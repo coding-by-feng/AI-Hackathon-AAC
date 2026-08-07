@@ -115,16 +115,19 @@ export function toGeminiContents(messages: ChatMessage[]): unknown[] {
       }
       if (parts.length) out.push({ role: 'model', parts })
     } else if (m.role === 'tool') {
-      // A tool result is a USER turn here, not a role of its own.
-      out.push({
-        role: 'user',
-        parts: [{
-          functionResponse: {
-            name: m.name,
-            response: safeParse(m.content),
-          },
-        }],
-      })
+      // A tool result is a USER turn here, not a role of its own — and when
+      // the model made SEVERAL calls in one turn, all their responses must
+      // share ONE user turn: Gemini 400s if the functionResponse part count
+      // does not equal the functionCall part count of the preceding turn.
+      const part = {
+        functionResponse: { name: m.name, response: safeParse(m.content) },
+      }
+      const last = out[out.length - 1] as { role: string; parts: Record<string, unknown>[] } | undefined
+      if (last?.role === 'user' && last.parts.every((p) => 'functionResponse' in p)) {
+        last.parts.push(part)
+      } else {
+        out.push({ role: 'user', parts: [part] })
+      }
     }
   }
   return out

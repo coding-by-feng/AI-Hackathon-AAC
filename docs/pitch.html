@@ -1,1135 +1,348 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reading the Board — AAC analytics pitch</title>
+<title>Reading the Board — AAC Analytics, 5-minute pitch</title>
 <style>
-/* ─────────────────────────────────────────────────────────────────────
-   READING THE BOARD — pitch deck
-   Design language borrowed from the subject itself: an AAC device is a
-   grid of high-contrast cells, each bordered by its Fitzgerald Key word
-   class. Every colour here means a word class, not a mood.
-   ───────────────────────────────────────────────────────────────────── */
-
-:root{
-  /* ground — device chrome, not paper */
-  --bg:        #E8ECF2;
-  --cell:      #FFFFFF;
-  --ink:       #0E1216;
-  --ink-2:     #5A6472;
-  --ink-3:     #8B95A3;
-  --rule:      #CFD7E2;
-  --rule-soft: #E1E7EF;
-
-  /* Fitzgerald Key — the AAC symbol colour code. Each one is a word class. */
-  --fk-verb:   #17914B;  /* green   — verbs      → things that run */
-  --fk-noun:   #D9741F;  /* orange  — nouns      → evidence, data */
-  --fk-desc:   #2159C4;  /* blue    — describing → the system */
-  --fk-pron:   #D9A50E;  /* yellow  — pronouns   → people */
-  --fk-social: #C93C81;  /* pink    — social     → the partner */
-  --fk-quest:  #6C43C0;  /* purple  — questions  → what we don't know */
-
-  /* Reserved. Used on exactly one slide: when the system indicts itself.
-     A child's metric is NEVER styled in this colour — that is a product
-     rule (metrics_catalog.polarity) expressed as a design rule. */
-  --fault:     #C62828;
-
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
-  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Mono", monospace;
-
-  --W: 1280px;
-  --H: 720px;
-}
-
-*{ box-sizing:border-box; margin:0; padding:0; }
-
-html,body{
-  height:100%; overflow:hidden;
-  background:var(--bg); color:var(--ink);
-  font-family:var(--sans);
-  -webkit-font-smoothing:antialiased;
-  font-variant-numeric:tabular-nums;
-}
-
-/* ── stage: a fixed 1280×720 canvas scaled to whatever projector shows up ── */
-#viewport{ position:fixed; inset:0; display:grid; place-items:center; }
-/* The stage gives up the bottom of the screen to the notes panel rather than
-   sliding underneath it. Deliberately not transitioned: fit() reads
-   clientHeight right after the class flips, and an animating box reports the
-   old height. */
-body.notes-on #viewport{ bottom:42vh; }
-#stage{
-  width:var(--W); height:var(--H); position:relative;
-  transform-origin:center center;
-  background:var(--bg);
-  box-shadow:0 24px 80px rgba(14,18,22,.16);
-  overflow:hidden;
-}
-
-/* ── slides ───────────────────────────────────────────────────────────── */
-.slide{
-  position:absolute; inset:0;
-  padding:52px 68px 78px;
-  display:none;
-  animation:rise .22s cubic-bezier(.2,.7,.3,1) both;
-}
-/* content sits optically centred in the 720px canvas rather than hanging
-   from the top edge — a deck read at 4 m has no scroll to absorb slack */
-.slide.on{ display:flex; flex-direction:column; justify-content:center; }
-@keyframes rise{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:none;} }
-
-/* the one inversion — used twice, and only where the stakes earn it */
-.slide.ink{ background:#0E1216; color:#EDF1F6; }
-.slide.ink .eyebrow{ color:#7C8797; }
-.slide.ink h2{ color:#FFFFFF; }
-.slide.ink .lede{ color:#B9C3D0; }
-/* set the three neutral sides only — .slide.ink .card outranks .card.tint-*,
-   so a blanket border-color here silently erases every tint stripe */
-.slide.ink .card{
-  background:#171D24;
-  border-left-color:#2A333D; border-right-color:#2A333D; border-bottom-color:#2A333D;
-}
-.slide.ink .card:not([class*="tint-"]){ border-top-color:#2A333D; }
-.slide.ink .k-lab{ color:#8B95A3; }
-.slide.ink .src{ color:#67727F; }
-
-/* ── type scale ───────────────────────────────────────────────────────── */
-.eyebrow{
-  font-size:11px; font-weight:700; letter-spacing:.19em; text-transform:uppercase;
-  color:var(--ink-3); display:flex; gap:12px; align-items:center; margin-bottom:16px;
-}
-.eyebrow .tick{ width:22px; height:2px; background:currentColor; opacity:.5; }
-
-h1{ font-size:76px; font-weight:800; letter-spacing:-.042em; line-height:.96; }
-h2{ font-size:40px; font-weight:800; letter-spacing:-.032em; line-height:1.06; margin-bottom:14px; }
-h3{ font-size:15px; font-weight:750; letter-spacing:-.008em; margin-bottom:6px; }
-
-.lede{ font-size:19px; line-height:1.42; color:var(--ink-2); max-width:60ch; font-weight:450; }
-.lede strong{ color:var(--ink); font-weight:650; }
-.slide.ink .lede strong{ color:#fff; }
-
-.small{ font-size:13.5px; line-height:1.45; color:var(--ink-2); }
-.mono{ font-family:var(--mono); font-size:12px; letter-spacing:-.01em; }
-.src{ font-family:var(--mono); font-size:10.5px; color:var(--ink-3); letter-spacing:0; }
-
-/* ── AAC card: the atom of this whole design ─────────────────────────── */
-.card{
-  background:var(--cell);
-  border:1px solid var(--rule);
-  border-radius:9px;
-  padding:14px 16px;
-  box-shadow:0 1px 0 rgba(14,18,22,.05);
-}
-.card.tint-verb  { border-top:3px solid var(--fk-verb);   }
-.card.tint-noun  { border-top:3px solid var(--fk-noun);   }
-.card.tint-desc  { border-top:3px solid var(--fk-desc);   }
-.card.tint-pron  { border-top:3px solid var(--fk-pron);   }
-.card.tint-social{ border-top:3px solid var(--fk-social); }
-.card.tint-quest { border-top:3px solid var(--fk-quest);  }
-.card.tint-fault { border-top:3px solid var(--fault);     }
-
-/* ── the AAC board itself ─────────────────────────────────────────────── */
-.board-grid{
-  display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
-  width:352px;
-}
-.btn{
-  aspect-ratio:1/.82; border-radius:9px; background:#fff;
-  border:1px solid var(--rule); border-bottom-width:3px;
-  display:grid; place-items:center; position:relative;
-  font-size:12.5px; font-weight:750; letter-spacing:.05em; text-transform:uppercase;
-  color:var(--ink);
-  transition:transform .12s ease, box-shadow .12s ease;
-}
-.btn.core     { border-color:#B7CBE8; border-bottom-color:var(--fk-desc); }
-.btn.essential{ border-color:#F0C9C9; border-bottom-color:#C0392B; }
-.btn.fringe   { border-color:#EBD3B4; border-bottom-color:var(--fk-noun); }
-.btn.empty    { background:transparent; border-style:dashed; border-bottom-width:1px; }
-.btn.press{ transform:translateY(2px); box-shadow:inset 0 2px 7px rgba(14,18,22,.16); border-bottom-width:1px; }
-.btn .rl{ position:absolute; top:4px; left:6px; font-size:8.5px; font-family:var(--mono);
-          color:var(--ink-3); letter-spacing:0; text-transform:none; }
-
-/* heat overlay for the reach-gradient slide */
-.btn.heat{ color:var(--ink); }
-.btn[data-heat="0"]{ background:#F3F8F4; border-bottom-color:#7FBF9A; }
-.btn[data-heat="1"]{ background:#FDF6E8; border-bottom-color:#E3BC63; }
-.btn[data-heat="2"]{ background:#FBE9E2; border-bottom-color:#E08A5F; }
-.btn[data-heat="3"]{ background:#FAE3DC; border-bottom-color:#D4704A; }
-
-/* ── layout helpers ───────────────────────────────────────────────────── */
-.row{ display:flex; gap:22px; }
-.col{ display:flex; flex-direction:column; gap:12px; }
-.grow{ flex:1; min-width:0; }
-.split{ display:grid; gap:26px; align-items:start; }
-.split.eq{ align-items:stretch; }
-.s-5050{ grid-template-columns:1fr 1fr; }
-.s-6040{ grid-template-columns:1.42fr 1fr; }
-.s-4060{ grid-template-columns:1fr 1.42fr; }
-.g3{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-.g4{ display:grid; grid-template-columns:repeat(4,1fr); gap:11px; }
-.pad-t{ margin-top:22px; }
-.pad-t-s{ margin-top:14px; }
-
-/* ── data display ─────────────────────────────────────────────────────── */
-.kpi{ display:flex; flex-direction:column; gap:2px; }
-.k-num{ font-size:34px; font-weight:800; letter-spacing:-.035em; line-height:1; }
-.k-num small{ font-size:15px; font-weight:650; letter-spacing:-.01em; color:var(--ink-2); }
-.k-lab{ font-family:var(--mono); font-size:10px; letter-spacing:.02em; color:var(--ink-3); }
-
-table.data{ width:100%; border-collapse:collapse; font-size:13px; }
-table.data th{
-  text-align:left; font-family:var(--mono); font-size:9.5px; font-weight:600;
-  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3);
-  padding:0 10px 7px 0; border-bottom:1px solid var(--rule);
-}
-/* baseline, not top — these cells mix 13px sans with 12px mono, and top
-   alignment leaves the smaller face floating above its own row */
-table.data td{ padding:8px 10px 8px 0; border-bottom:1px solid var(--rule-soft); vertical-align:baseline; }
-table.data td.num{ font-family:var(--mono); font-size:12px; }
-table.data tr:last-child td{ border-bottom:none; }
-
-.bar-track{ height:9px; background:var(--rule-soft); border-radius:5px; overflow:hidden; }
-.bar-fill{ height:100%; border-radius:5px; width:0; transition:width .55s cubic-bezier(.2,.7,.3,1); }
-
-.pill{
-  display:inline-flex; align-items:center; gap:6px;
-  font-family:var(--mono); font-size:10px; letter-spacing:.03em;
-  padding:3px 8px; border-radius:20px; border:1px solid var(--rule);
-  background:#fff; color:var(--ink-2); white-space:nowrap;
-}
-.pill.ok  { border-color:#A8D8BC; background:#F1F9F4; color:#116137; }
-.pill.warn{ border-color:#E8C98A; background:#FDF7EA; color:#8A5D08; }
-.pill.bad { border-color:#EDB4B4; background:#FCF0F0; color:#9A241E; }
-.pill.neu { border-color:#C2CBE0; background:#F4F6FB; color:#3B4A6B; }
-
-.forbid{
-  font-family:var(--mono); font-size:11px; color:#9A241E;
-  text-decoration:line-through; text-decoration-thickness:1.5px;
-  text-decoration-color:rgba(198,40,40,.55);
-}
-
-.flow{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
-.node{
-  border:1px solid var(--rule); background:#fff; border-radius:7px;
-  padding:8px 11px; font-size:11.5px; font-weight:650; line-height:1.25;
-}
-.node em{ display:block; font-family:var(--mono); font-size:9px; font-style:normal;
-          color:var(--ink-3); font-weight:400; letter-spacing:.02em; margin-top:2px; }
-.arrow{ color:var(--ink-3); font-size:15px; }
-
-/* ── chrome: nav board, HUD, notes ───────────────────────────────────── */
-#navboard{
-  position:absolute; left:0; right:0; bottom:0; height:46px;
-  display:flex; gap:4px; align-items:center;
-  padding:0 12px 8px; z-index:20;
-}
-.nav-cell{
-  flex:1; height:26px; border-radius:5px; background:#fff;
-  border:1px solid var(--rule); border-bottom:2px solid var(--rule);
-  font-family:var(--mono); font-size:9.5px; color:var(--ink-3);
-  display:grid; place-items:center; cursor:pointer;
-  transition:transform .1s ease, border-color .1s ease, color .1s ease,
-             background .1s ease;
-}
-/* the chrome follows the slide it sits on, so an inverted slide stays
-   inverted all the way to the edge */
-#stage.dark .nav-cell{ background:#171D24; border-top-color:#2A333D;
-                       border-left-color:#2A333D; border-right-color:#2A333D; }
-#stage.dark .nav-cell.here{ background:#fff; color:#0E1216; border-color:#fff; }
-#stage.dark #hud .box{ background:rgba(23,29,36,.9); border-color:#2A333D; color:#8B95A3; }
-.nav-cell:hover{ transform:translateY(-1px); color:var(--ink); }
-.nav-cell[data-act="1"]{ border-bottom-color:var(--fk-pron); }
-.nav-cell[data-act="2"]{ border-bottom-color:var(--fk-quest); }
-.nav-cell[data-act="3"]{ border-bottom-color:var(--fk-desc); }
-.nav-cell[data-act="4"]{ border-bottom-color:var(--fk-verb); }
-.nav-cell[data-act="5"]{ border-bottom-color:var(--fault); }
-.nav-cell.here{
-  background:var(--ink); color:#fff; border-color:var(--ink);
-  transform:translateY(1px); border-bottom-width:1px;
-  box-shadow:inset 0 2px 6px rgba(0,0,0,.4);
-}
-.nav-cell:focus-visible{ outline:2px solid var(--fk-desc); outline-offset:2px; }
-
-#hud{
-  position:absolute; top:14px; right:16px; z-index:20;
-  display:flex; gap:8px; align-items:center;
-  font-family:var(--mono); font-size:10px; color:var(--ink-3);
-}
-#hud .box{ border:1px solid var(--rule); background:rgba(255,255,255,.82);
-           border-radius:5px; padding:3px 8px; }
-#hud .box.run{ color:var(--fk-verb); border-color:#A8D8BC; }
-#hud .box.over{ color:var(--fault); border-color:#EDB4B4; }
-
-#notes{
-  position:fixed; left:0; right:0; bottom:0; height:42vh; overflow:auto;
-  background:#0E1216; color:#D8DEE6; z-index:60;
-  border-top:3px solid var(--fk-verb);
-  padding:16px 22px 20px; display:none;
-  font-size:14px; line-height:1.5;
-}
-#notes.open{ display:block; }
-#notes h4{ font-family:var(--mono); font-size:10px; letter-spacing:.14em;
-           text-transform:uppercase; color:#7C8797; margin-bottom:8px;
-           display:flex; gap:14px; }
-#notes b{ color:#fff; }
-#notes ul{ margin:6px 0 0 18px; }
-#notes li{ margin-bottom:4px; }
-#notes .say{ color:#EDF1F6; border-left:2px solid var(--fk-verb); padding-left:12px; }
-
-#help{
-  position:fixed; inset:0; background:rgba(14,18,22,.9); z-index:80;
-  display:none; place-items:center; color:#EDF1F6;
-}
-#help.open{ display:grid; }
-#help div{ font-family:var(--mono); font-size:14px; line-height:2; }
-#help kbd{ background:#232B34; border:1px solid #39434E; border-radius:4px;
-           padding:2px 7px; margin-right:10px; display:inline-block; min-width:74px;
-           text-align:center; }
-
-.sn{ display:none; }
-
-@media (prefers-reduced-motion:reduce){
-  *{ animation:none !important; transition:none !important; }
-}
-@media print{
-  html,body{ overflow:visible; height:auto; }
-  #viewport{ position:static; display:block; }
-  #stage{ transform:none !important; box-shadow:none; }
-  .slide{ display:block !important; page-break-after:always; position:relative; height:var(--H); }
-  #navboard,#hud,#notes,#help{ display:none !important; }
-}
+  /* Dark ground on purpose: every screenshot in this deck is the product's own
+     dark surface, and the product is the design language. Accent = dashboard
+     accent. The Fitzgerald pastels appear only inside the screenshots — in the
+     product, colour means word class, and the deck does not dilute that. */
+  :root {
+    --bg: #12151c; --surface: #1a1e27; --sunk: #171b23; --line: #272c38;
+    --ink: #eef1f6; --muted: #98a0b0; --faint: #667084;
+    --accent: #5b8def; --accent-soft: #1d2840;
+    --good: #6fbb92; --warn: #d3a35f; --alert: #d47f78;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased; overflow: hidden;
+  }
+  .slide {
+    position: absolute; inset: 0; display: none; flex-direction: column;
+    padding: 4.5vh 6vw 7vh; overflow: hidden;
+  }
+  .slide.active { display: flex; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 1.2vh;
+  }
+  h1 { font-size: clamp(34px, 5vw, 62px); line-height: 1.08; letter-spacing: -.015em; max-width: 24ch; }
+  h2 { font-size: clamp(24px, 3.2vw, 42px); line-height: 1.12; letter-spacing: -.01em; margin-bottom: 2.2vh; max-width: 30ch; }
+  .sub { color: var(--muted); font-size: clamp(16px, 1.5vw, 21px); max-width: 58ch; margin-top: 2vh; }
+  .cols { display: flex; gap: 3vw; flex: 1; min-height: 0; align-items: stretch; }
+  .col-text { flex: 0 0 34%; display: flex; flex-direction: column; gap: 1.6vh; min-width: 0; justify-content: center; }
+  .col-shot { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1.2vh; }
+  .shot {
+    flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--sunk); overflow: hidden;
+  }
+  .shot img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+  .thumbs { display: flex; gap: 1vw; flex: 0 0 16vh; }
+  ul.points { list-style: none; display: flex; flex-direction: column; gap: 1.5vh; font-size: clamp(14px, 1.25vw, 18px); }
+  ul.points li { padding-left: 1.1em; position: relative; }
+  ul.points li::before { content: ''; position: absolute; left: 0; top: .55em; width: .38em; height: .38em; border-radius: 50%; background: var(--accent); }
+  ul.points li .m { color: var(--muted); }
+  .rule-list { display: grid; grid-template-columns: 1fr 1fr; gap: 2vh 3vw; margin-top: 1vh; flex: 1; align-content: center; }
+  .rule { border-left: 3px solid var(--accent); padding: .4vh 0 .4vh 1.2vw; }
+  .rule b { display: block; font-size: clamp(15px, 1.5vw, 21px); }
+  .rule span { color: var(--muted); font-size: clamp(12.5px, 1.1vw, 16px); }
+  .rule.alert { border-color: var(--alert); }
+  .rule.good { border-color: var(--good); }
+  .rule.warn { border-color: var(--warn); }
+  .bignums { display: flex; gap: 4vw; margin: 4vh 0 3vh; flex-wrap: wrap; }
+  .bignum b { font-size: clamp(38px, 5vw, 68px); font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; display: block; line-height: 1.05; }
+  .bignum span { color: var(--muted); font-size: clamp(13px, 1.15vw, 16px); display: block; max-width: 22ch; margin-top: .6vh; }
+  .arch { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1.4vh; min-height: 0; }
+  .arch-row { display: flex; gap: 1.2vw; align-items: stretch; justify-content: center; }
+  .node {
+    border: 1px solid var(--line); background: var(--surface); border-radius: 10px;
+    padding: 1.2vh 1.4vw; text-align: center; flex: 1; max-width: 32ch;
+  }
+  .node b { display: block; font-size: clamp(14px, 1.3vw, 18px); }
+  .node span { color: var(--muted); font-size: clamp(11px, .95vw, 14px); }
+  .node.hot { border-color: var(--accent); background: var(--accent-soft); }
+  .down { text-align: center; color: var(--faint); font-size: clamp(12px, 1vw, 15px); line-height: 1.2; }
+  .urls { display: flex; gap: 2.5vw; margin-top: 4vh; flex-wrap: wrap; align-items: center; }
+  .urls a { color: var(--accent); text-decoration: none; font-size: clamp(15px, 1.5vw, 20px); border-bottom: 1px solid var(--accent-soft); }
+  .foot { position: absolute; bottom: 2vh; left: 6vw; right: 6vw; display: flex; justify-content: space-between; color: var(--faint); font-size: 12px; pointer-events: none; }
+  .notes {
+    display: none; position: absolute; left: 6vw; right: 6vw; bottom: 5.5vh;
+    background: var(--surface); border: 1px solid var(--accent); border-radius: 10px;
+    padding: 14px 18px; font-size: 15px; box-shadow: 0 12px 40px rgba(0,0,0,.5); z-index: 2;
+  }
+  body.show-notes .slide.active .notes { display: block; }
+  .notes::before { content: 'Say: '; color: var(--accent); font-weight: 600; }
+  .tag { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: .15em .8em; color: var(--muted); font-size: clamp(12px, 1.1vw, 15px); }
+  @media (max-width: 900px) {
+    body { overflow: auto; }
+    .cols { flex-direction: column; }
+    .col-text { flex: 0 0 auto; }
+    .rule-list { grid-template-columns: 1fr; }
+    .arch-row { flex-direction: column; }
+  }
 </style>
 </head>
 <body>
 
-<div id="viewport">
-<div id="stage">
-
-<!-- ══ 1 ══════════════════════════════════════════════════════════════ -->
-<section class="slide on" data-act="1" data-nav="Open" data-sec="30">
-  <div class="split s-6040">
-    <div>
-      <div class="eyebrow"><span class="tick"></span> AAC analytics · hackathon build</div>
-      <h1>Reading<br>the board</h1>
-      <p class="lede" style="margin-top:22px;">
-        A nonspeaking child says everything through a grid of buttons.
-        We built the analytics layer that reads that grid back —
-        <strong>and refuses to give advice that AAC practice says causes harm.</strong>
-      </p>
-      <div class="row pad-t" style="gap:26px;">
-        <div class="kpi"><span class="k-num">27,282</span><span class="k-lab">events · 5 children · 42 days</span></div>
-        <div class="kpi"><span class="k-num">8</span><span class="k-lab">diagnostic rules, all SQL</span></div>
-        <div class="kpi"><span class="k-num">14</span><span class="k-lab">MCP tools, working</span></div>
-      </div>
-    </div>
-    <div>
-      <div class="mono" style="color:var(--ink-3); margin-bottom:9px;">maya_t · board_maya_t · 4×4</div>
-      <div class="board-grid" id="heroBoard"></div>
-      <div class="small pad-t-s" style="font-size:12px;">
-        Every tap carries <span class="mono">row</span>, <span class="mono">col</span>,
-        <span class="mono">scene</span>, <span class="mono">nav_depth</span>, <span class="mono">actor</span>.
-        Four of those cannot be backfilled.
-      </div>
+<!-- 1 · Title -->
+<section class="slide active">
+  <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+    <p class="eyebrow">Reading the Board · AI Hackathon · live product</p>
+    <h1>A communication board that learns — without ever moving a button.</h1>
+    <p class="sub">AAC Analytics: a symbol board for nonspeaking children, a clinical analytics
+    dashboard for the adults around them, and an AI layer that is structurally unable to give
+    harmful advice.</p>
+    <div class="urls">
+      <a href="https://aac.kason.app">aac.kason.app</a>
+      <a href="https://aac-dashboard.kason.app">aac-dashboard.kason.app</a>
+      <a href="https://aac-mcp.kason.app">aac-mcp.kason.app</a>
     </div>
   </div>
-
-  <div class="sn">
-    <p class="say">"A nonspeaking child says everything through a grid of buttons. We built the layer that reads that grid back — and, more importantly, that refuses to give advice which would harm them."</p>
-    <ul>
-      <li>Don't read the numbers aloud — they're on screen. Point at the board.</li>
-      <li>Set the frame now: <b>this is not a dashboard demo, it's a safety argument.</b></li>
-      <li>If asked "is this real data?" — it's a deterministic seeded cohort, 5 personas, 42 days. Real schema, real rules, real MCP server.</li>
-    </ul>
-  </div>
+  <p class="notes">This is live — three public URLs, running right now. A communication board for
+  nonspeaking children, an analytics dashboard for their teachers and speech therapists, and an
+  AI layer whose clinical guardrails live in the code, not the prompt. Five minutes, four ideas.</p>
 </section>
 
-<!-- ══ 2 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="1" data-nav="Who" data-sec="30">
-  <div class="eyebrow"><span class="tick"></span> Who this is for</div>
-  <h2>Five children in one Year&nbsp;3 class</h2>
-  <p class="lede">Every one of them communicates. None of them communicates with their voice.</p>
-
-  <div class="g4 pad-t">
-    <div class="card tint-pron"><h3>Maya T.</h3><div class="small">Year 3<br><span class="mono" style="color:var(--ink-3)">CP / dysarthria</span></div></div>
-    <div class="card tint-pron"><h3>Jonah K.</h3><div class="small">Year 3<br><span class="mono" style="color:var(--ink-3)">CP / cortical visual impairment</span></div></div>
-    <div class="card tint-pron"><h3>Amara O.</h3><div class="small">Year 4<br><span class="mono" style="color:var(--ink-3)">Dysarthria</span></div></div>
-    <div class="card tint-pron"><h3>Liam W.</h3><div class="small">Year 2<br><span class="mono" style="color:var(--ink-3)">CP / apraxia</span></div></div>
-  </div>
-  <div class="g4" style="margin-top:11px;">
-    <div class="card tint-pron"><h3>Sofia R.</h3><div class="small">Year 2<br><span class="mono" style="color:var(--ink-3)">Nonspeaking / autistic</span></div></div>
-    <div class="card tint-desc" style="grid-column:span 3;">
-      <h3>The rate at which they can speak</h3>
-      <div class="row" style="align-items:flex-end; gap:30px; margin-top:8px;">
-        <div class="kpi"><span class="k-num" style="color:var(--fk-desc)">15 <small>words / min</small></span><span class="k-lab">AAC user</span></div>
-        <div class="kpi"><span class="k-num" style="color:var(--ink-3)">150–170 <small>words / min</small></span><span class="k-lab">speaking adult in the room</span></div>
-      </div>
-      <div class="src pad-t-s">assistiveware.com/learn-aac · read 2026-08-07 · docs/aac-clinical-constraints.md C7</div>
-    </div>
-  </div>
-
-  <div class="sn">
-    <p class="say">"Five children, one class. Every one of them communicates. None of them uses their voice to do it."</p>
-    <ul>
-      <li>The 15 vs 150 gap is the emotional anchor. <b>Land it, then pause.</b></li>
-      <li>Consequence: a ten-second silence is not the child being slow. It may be the adult not waiting. That comes back on slide 5 and in metric G1.</li>
-      <li><b>5-minute cut: skip this slide</b>, fold "15 vs 150" into slide 3.</li>
+<!-- 2 · Problem -->
+<section class="slide">
+  <p class="eyebrow">2 · The problem</p>
+  <h2>AAC devices are where language lives — and where data goes to die.</h2>
+  <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:2.5vh;">
+    <ul class="points" style="font-size: clamp(16px,1.6vw,22px); gap:2.4vh; max-width: 62ch;">
+      <li>Children with cerebral palsy, autism, or apraxia <b>communicate by pressing symbols</b> — every press is a word.</li>
+      <li>Those presses are <b>rich longitudinal data</b> — and today they evaporate. Teachers guess. Therapists see 40 minutes a week.</li>
+      <li>Worse: the obvious analytics are <b>clinically dangerous</b>. "Move her favourite button closer!" destroys the motor plan she spent months building — like rearranging a blind person's furniture.</li>
     </ul>
   </div>
+  <p class="notes">These children talk by pressing symbols. Every press is data — and today it
+  evaporates. But here's the trap: naive analytics on this data produces actively harmful advice.
+  Moving a child's most-used button "closer" destroys months of muscle memory. So the product
+  question isn't "what can we show" — it's "what must we refuse to say".</p>
 </section>
 
-<!-- ══ 3 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="1" data-nav="Problem" data-sec="35">
-  <div class="eyebrow"><span class="tick"></span> The problem we actually solve</div>
-  <h2>The data already exists. The meaning doesn't.</h2>
-
-  <div class="split s-5050 pad-t">
-    <div class="col">
-      <div class="card tint-noun">
-        <h3>What six weeks of one class produces</h3>
-        <div class="row pad-t-s" style="gap:24px;">
-          <div class="kpi"><span class="k-num">27,282</span><span class="k-lab">events</span></div>
-          <div class="kpi"><span class="k-num">6,360</span><span class="k-lab">utterances</span></div>
-          <div class="kpi"><span class="k-num">2,356</span><span class="k-lab">partner turns</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <h3>What the teacher has</h3>
-        <p class="small">A thirty-minute gap before lunch, and five children who each need something different today.</p>
+<!-- 3 · The board -->
+<section class="slide">
+  <p class="eyebrow">3 · The child's side</p>
+  <h2>A real AAC board, not a demo grid.</h2>
+  <div class="cols">
+    <div class="col-text">
+      <ul class="points">
+        <li><b>76 AI-generated symbols</b> in the Fitzgerald colour code — <span class="m">generated once, served static</span></li>
+        <li><b>Sentence bar + speech</b> — "I want water." spoken aloud, grammar handled</li>
+        <li><b>ABC keyboard</b> for emergent spellers — <span class="m">alphabet access is a clinical requirement (C8)</span></li>
+        <li><b>Offline PWA</b> — a wifi outage never takes away a child's voice</li>
+        <li><b>Private mode</b>, picture sign-in, per-child vocabulary, three themes</li>
+      </ul>
+    </div>
+    <div class="col-shot">
+      <div class="shot"><img src="pitch-assets/board.png" alt="The communication board"></div>
+      <div class="thumbs">
+        <div class="shot"><img src="pitch-assets/who.png" alt="Picture sign-in"></div>
+        <div class="shot"><img src="pitch-assets/keyboard.png" alt="ABC keyboard layer"></div>
+        <div class="shot"><img src="pitch-assets/board-warm.png" alt="Warm theme"></div>
       </div>
     </div>
-    <div class="card tint-quest" style="align-self:stretch;">
-      <h3>The question no AAC tool answers</h3>
-      <p class="lede" style="font-size:26px; color:var(--ink); font-weight:700; letter-spacing:-.02em; line-height:1.2; margin:14px 0;">
-        Which child needs me today, and what exactly should I do about it?
-      </p>
-      <p class="small">Existing tools show usage charts. A usage chart tells a teacher that Maya tapped 1,496 times.
-      It does not tell her that 152 of her 177 mis-taps landed on the button next door — which is the entire answer.</p>
-    </div>
   </div>
-
-  <div class="sn">
-    <p class="say">"Six weeks of one class is twenty-seven thousand events. The teacher has thirty minutes. Every AAC tool on the market will show her a usage chart."</p>
-    <ul>
-      <li>The pivot line: <b>"a usage chart tells her Maya tapped 1,496 times. It doesn't tell her 152 of 177 mis-taps landed next door."</b></li>
-      <li>That number comes back on slide 8 as the verdict. Plant it here.</li>
-      <li>Don't say "AI" yet. The problem is interpretation, not intelligence.</li>
-    </ul>
-  </div>
+  <p class="notes">The child's side is a full AAC system: 76 AI-generated symbols, a sentence bar
+  that speaks with real grammar, picture-based sign-in, an alphabet keyboard for spellers —
+  that's a clinical requirement, not a nice-to-have — and it's an offline PWA, because a wifi
+  outage must never take away a child's voice. Every tap logs an event with its grid position.</p>
 </section>
 
-<!-- ══ 4 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="2" data-nav="Harm" data-sec="45">
-  <div class="eyebrow"><span class="tick"></span> Why we didn't just ship a dashboard</div>
-  <h2>The obvious analytics would have hurt these children</h2>
-
-  <div class="split s-5050 eq pad-t-s">
-    <div class="card tint-fault">
-      <h3 style="color:var(--fault)">What we specified first</h3>
-      <p class="small pad-t-s">Maya presses the same button eleven times in a row.<br>
-      Log it as <span class="mono">repeat_tap_rate</span>. File it under <b>Errors</b>. Colour it red. Recommend reducing it.</p>
-      <div class="pad-t-s">
-        <span class="pill bad">↓ lower is better</span>
-        <span class="pill bad">group: errors</span>
-      </div>
-    </div>
-    <div class="card tint-verb">
-      <h3 style="color:var(--fk-verb)">What the clinical literature says</h3>
-      <p class="small pad-t-s">Repetition is how motor automaticity is built. It is how a gestalt processor speaks.
-      It is self-regulation. Only one of its four causes is a mistake.</p>
-      <div class="pad-t-s">
-        <span class="pill neu">= neutral polarity</span>
-        <span class="pill ok">group: communication style</span>
-      </div>
-    </div>
+<!-- 4 · Safety as code -->
+<section class="slide">
+  <p class="eyebrow">4 · The unusual part</p>
+  <h2>Eight clinical constraints, enforced in schema and code — not in copy.</h2>
+  <div class="rule-list">
+    <div class="rule alert"><b>Never move or resize a learned button</b><span>The database rejects a "move" proposal at the schema level. The UI offers mask and add-a-copy only.</span></div>
+    <div class="rule good"><b>Repeated pressing is communication, not error</b><span>repeat_tap_rate is neutral by catalogue — it cannot render as good or bad. Stimming is not a bug.</span></div>
+    <div class="rule warn"><b>A refusal is successful communication</b><span>The "unused word" finding renders no action button — a child's "no" must count.</span></div>
+    <div class="rule"><b>Forbidden actions are displayed, not just obeyed</b><span>Every finding card prints what practice rules out, so the adult learns the why.</span></div>
+    <div class="rule"><b>Nothing is flagged before a baseline</b><span>14 active days and 40 self-generated utterances — gated on activity, not the calendar.</span></div>
+    <div class="rule"><b>Slow may be the adult</b><span>Partner wait time is measured; a child is never called slow while the adult waits 1.4 s.</span></div>
   </div>
-
-  <div class="card pad-t" style="border-left:3px solid var(--fault); border-top-color:var(--rule);">
-    <p style="font-size:21px; font-weight:700; letter-spacing:-.02em; line-height:1.3;">
-      “Trying to reduce or stop repetitive tapping leads to less overall communication.”
-    </p>
-    <div class="src pad-t-s">AssistiveWare, /repeated-button-tapping → constraint C1 → <span class="mono">metrics_catalog.polarity = 'neutral'</span></div>
-  </div>
-
-  <p class="small pad-t-s"><strong>So the ban lives in the database, not in the copy.</strong>
-  A neutral metric cannot be rendered in a warning colour, because the UI reads its polarity from the catalogue.
-  Stimming does not get a red badge.</p>
-
-  <div class="sn">
-    <p class="say">"We specified this ourselves, and we specified it wrong. Repeated tapping looked exactly like an error rate."</p>
-    <ul>
-      <li><b>This is the most important slide in the deck.</b> Slow down. It is what separates us from a hackathon dashboard.</li>
-      <li>Read the quote aloud. Verbatim. Then: "we had built the metric that would cause that."</li>
-      <li>Close with the mechanism, not the intention: <b>"the ban is a column, not a copy guideline."</b></li>
-      <li>Likely question: "did a clinician review this?" — Honest answer: no clinician on the team; we read AssistiveWare's published guidance and encoded eight constraints from it, with sources cited per constraint. A clinician review is the next step, and slide 13 says so.</li>
-    </ul>
-  </div>
+  <p class="notes">Here's what makes this project unusual. We read the AAC clinical literature and
+  turned it into eight binding constraints that live in the schema and the query layer. The
+  database rejects a "move this button" proposal — the AI cannot even propose it. Repetition is
+  typed neutral, so no screen can paint stimming as a problem. A refusal finding has no action
+  button, because a child's "no" has to count.</p>
 </section>
 
-<!-- ══ 5 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="2" data-nav="C1–C8" data-sec="30">
-  <div class="eyebrow"><span class="tick"></span> docs/aac-clinical-constraints.md</div>
-  <h2>Eight constraints, each one invalidating something we'd built</h2>
-
-  <table class="data pad-t-s" style="max-width:1010px;">
-    <tr><th style="width:34px">#</th><th style="width:46%">Constraint</th><th>What it killed</th></tr>
-    <tr><td class="num">C1</td><td>Repetition is communication, not error</td><td><span class="forbid">mistap_rate counts repeats</span> → now requires a delete</td></tr>
-    <tr><td class="num">C2</td><td>Motor plans depend on stable button positions</td><td><span class="forbid">"shrink the grid"</span> → mask neighbours instead</td></tr>
-    <tr><td class="num">C3</td><td>Never relocate a learned button</td><td><span class="forbid">"promote to home grid"</span> → add a copy</td></tr>
-    <tr><td class="num">C4</td><td>Topic boards must not replace a robust board</td><td><span class="forbid">AI modes as new grids</span> → filtered views, same positions</td></tr>
-    <tr><td class="num">C5</td><td>Core vocabulary is the central measure</td><td>reinstated <span class="mono">core_fringe_ratio</span> we had cut</td></tr>
-    <tr><td class="num">C6</td><td>Requesting-only is the named failure mode</td><td>reinstated <span class="mono">pragmatic_function_mix</span>, 8-value enum</td></tr>
-    <tr><td class="num">C7</td><td>Slow output may be the partner's fault</td><td>added <span class="mono">partner_wait_time</span> — measures the adult</td></tr>
-    <tr><td class="num">C8</td><td>A robust system needs alphabet access</td><td>we have no keyboard — logged as a gap, not hidden</td></tr>
-  </table>
-
-  <p class="small pad-t-s">C4 was the expensive one. Our AI-generated “Café mode” was a new grid with new positions —
-  <strong>every mode would have taught a conflicting motor plan.</strong>
-  A mode is now a highlight over the robust board, and <span class="mono">position_consistency</span> measures whether we kept that promise.</p>
-
-  <div class="sn">
-    <p class="say">"Eight constraints. Each one invalidated something we had already specified."</p>
-    <ul>
-      <li>Don't read all eight. Read <b>C2 and C4</b> only, then let the table sit.</li>
-      <li>C4 is the one that changed the product, not just the metrics: modes became a lens over one board instead of many boards.</li>
-      <li>Note the pattern out loud: <b>"five of the eight deleted a feature we were proud of."</b></li>
-      <li><b>5-minute cut: skip this slide.</b> C1 on slide 4 carries the point alone.</li>
-    </ul>
+<!-- 5 · Dashboard -->
+<section class="slide">
+  <p class="eyebrow">5 · The adult's side</p>
+  <h2>A queue of who needs a human — not a wall of charts.</h2>
+  <div class="cols">
+    <div class="col-text">
+      <ul class="points">
+        <li><b>Attention queue</b> ranks the class by open findings — <span class="m">Jonah first: silent for 5 days</span></li>
+        <li><b>Deterministic SQL rules</b>, never a model — a therapist can trace every finding to a number</li>
+        <li>Every metric carries its <b>sample size</b> — a number without n doesn't render</li>
+        <li>Unmeasured things say <b>"not recorded"</b> — never a fabricated zero</li>
+      </ul>
+    </div>
+    <div class="col-shot">
+      <div class="shot"><img src="pitch-assets/dashboard.png" alt="Class attention queue"></div>
+    </div>
   </div>
+  <p class="notes">The teacher's side opens with a queue, not charts: who needs a human today, and
+  why. Jonah's on top — he hasn't spoken in five days. The findings come from plain SQL rules,
+  deliberately not a model, so a therapist can trace every claim to a number. Every figure
+  carries its sample size, and what isn't measured says "not recorded" — never a fake zero.</p>
 </section>
 
-<!-- ══ 6 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="3" data-nav="Build" data-sec="40">
-  <div class="eyebrow"><span class="tick"></span> Architecture</div>
-  <h2>SQL decides. The model narrates. Neither can reach the text.</h2>
-
-  <div class="flow pad-t-s">
-    <div class="node">Web PWA<em>board + dashboard</em></div><span class="arrow">→</span>
-    <div class="node">events<em>27,282 rows, L0</em></div><span class="arrow">→</span>
-    <div class="node">44 SQL views<em>metrics + rules, L1</em></div><span class="arrow">→</span>
-    <div class="node">fired_rules<em>evidence JSON, L2</em></div><span class="arrow">→</span>
-    <div class="node" style="border-color:var(--fk-desc)">MCP server<em>14 tools, read-only</em></div><span class="arrow">→</span>
-    <div class="node" style="border-color:var(--fk-verb)">Gemma 3 4B<em>separate device</em></div>
-  </div>
-
-  <div class="split s-5050 pad-t">
-    <div class="col">
-      <div class="card tint-desc">
-        <h3>Two databases, and one of them is never opened</h3>
-        <div class="small pad-t-s">
-          <span class="mono">aac.db</span> — counts, positions, timings. The MCP process reads this.<br>
-          <span class="mono">aac_text.db</span> — what the child actually said. <strong>The MCP process user has no read bit on this file.</strong>
-        </div>
-      </div>
-      <div class="card tint-verb">
-        <h3>Why the rules are SQL and not a model</h3>
-        <p class="small">A speech therapist has to be able to disagree with a finding and trace the disagreement to a number.
-        Every rule ships its thresholds and the exact rows that triggered it.</p>
+<!-- 6 · Findings + report -->
+<section class="slide">
+  <p class="eyebrow">6 · Findings that argue their case</p>
+  <h2>Evidence, thresholds, and a "no" button that trains the rules.</h2>
+  <div class="cols">
+    <div class="col-text">
+      <ul class="points">
+        <li>Each card shows <b>the numbers that fired it</b> and the thresholds they crossed</li>
+        <li><b>"Does that match what you see?"</b> — dismissals with reasons feed the rule engine</li>
+        <li>What practice forbids is <b>printed on the card</b> in red</li>
+        <li><b>One-click PDF</b> — a real file for the IEP meeting, caveats included</li>
+      </ul>
+    </div>
+    <div class="col-shot">
+      <div class="shot"><img src="pitch-assets/findings.png" alt="Insight cards with evidence"></div>
+      <div class="thumbs" style="flex-basis:20vh">
+        <div class="shot"><img src="pitch-assets/report.png" alt="Downloaded PDF report"></div>
       </div>
     </div>
-    <div class="card tint-noun">
-      <h3>Routing is by data class, not by availability</h3>
-      <table class="data pad-t-s">
-        <tr><td>utterance text, per-child patterns</td><td class="num" style="text-align:right; color:var(--fk-verb); white-space:nowrap;">local only</td></tr>
-        <tr><td>aggregates, counts, rates</td><td class="num" style="text-align:right; white-space:nowrap;">either</td></tr>
-        <tr><td>the 8 diagnostic rules</td><td class="num" style="text-align:right; white-space:nowrap;">no model at all</td></tr>
-      </table>
-      <p class="small pad-t-s"><span class="mono">write_insight</span> requires the <span class="mono">fired_rule_id</span> that justified it.
-      No model prose reaches a teacher without SQL behind it.</p>
-    </div>
   </div>
-
-  <div class="sn">
-    <p class="say">"SQL decides what's true. The model only turns a fired rule into a sentence a teacher can read. And neither of them can reach what the child said."</p>
-    <ul>
-      <li>Trace the flow left to right once with your hand. Don't narrate every box.</li>
-      <li>The two lines that matter: <b>"rules are SQL so a therapist can argue with a number"</b> and <b>"write_insight requires a fired_rule_id."</b></li>
-      <li>If asked why Gemma and not a frontier model: it runs on a separate box we control, it costs nothing per night, and the sensitive data never leaves. Cloud gets sanitised concepts only.</li>
-    </ul>
-  </div>
+  <p class="notes">Each finding argues its case: the exact numbers, the thresholds they crossed,
+  and — in red — what practice forbids doing about it. The human always decides: "does that match
+  what you see?", and a "no" with a reason feeds back into the rules. The whole report exports
+  as a real PDF, caveats included, for the IEP meeting.</p>
 </section>
 
-<!-- ══ 7 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="4" data-nav="Triage" data-sec="35">
-  <div class="eyebrow"><span class="tick"></span> Live · <span class="mono">get_attention_queue(class_y3)</span></div>
-  <h2>Who needs a person today</h2>
-
-  <table class="data pad-t-s">
-    <tr><th style="width:120px">Child</th><th style="width:56px">Score</th><th>Why</th><th style="width:150px">Open findings</th></tr>
-    <tr>
-      <td><b>Jonah K.</b></td><td class="num">4</td>
-      <td class="small">4 days since they last said anything</td>
-      <td><span class="pill">I2</span></td>
-    </tr>
-    <tr>
-      <td><b>Maya T.</b></td><td class="num">3</td>
-      <td class="small">14% unintended presses — check reach before anything else</td>
-      <td><span class="pill">I1</span> <span class="pill">I3</span></td>
-    </tr>
-    <tr>
-      <td><b>Liam W.</b></td><td class="num">3</td>
-      <td class="small">32% of sentences are built then given up on</td>
-      <td><span class="pill">I5</span></td>
-    </tr>
-    <tr>
-      <td><b>Sofia R.</b></td><td class="num">1</td>
-      <td class="small">Falling in one vocabulary area, nobody modelling it</td>
-      <td><span class="pill">I6</span> <span class="pill">I7</span></td>
-    </tr>
-    <tr style="opacity:.55">
-      <td><b>Amara O.</b></td><td class="num">—</td>
-      <td class="small">Not in the queue. Nothing needs a person today.</td>
-      <td><span class="pill">informational only</span></td>
-    </tr>
-  </table>
-
-  <div class="card tint-verb pad-t">
-    <p class="small"><strong>Amara is the test.</strong> She is the control child in the seed data, and
-    <span class="mono">verify.py</span> fails the build if any intervention fires for her.
-    A dashboard that flags all five children every morning gets ignored by Wednesday.</p>
+<!-- 7 · Ask panel -->
+<section class="slide">
+  <p class="eyebrow">7 · The AI layer</p>
+  <h2>An agentic analyst that cannot leak and cannot harm.</h2>
+  <div class="cols">
+    <div class="col-text">
+      <ul class="points">
+        <li><b>Multi-step tool loop</b> — this answer made 11 calls, 5 children in parallel</li>
+        <li><b>Scope injected server-side</b> — the model never chooses whose data it reads</li>
+        <li>A <b>guard rewrites</b> any answer recommending what practice forbids</li>
+        <li><b>Gemini 3 · GPT-5.1 · Claude Sonnet 5</b> — swap model + keys in Settings; <span class="m">the guardrails don't move</span></li>
+      </ul>
+    </div>
+    <div class="col-shot">
+      <div class="shot"><img src="pitch-assets/ask.png" alt="Agentic chat answer with table"></div>
+      <div class="thumbs" style="flex-basis:18vh">
+        <div class="shot"><img src="pitch-assets/settings.png" alt="AI provider settings"></div>
+      </div>
+    </div>
   </div>
-
-  <div class="sn">
-    <p class="say">"This is the actual output of get_attention_queue, run against the database ninety seconds ago."</p>
-    <ul>
-      <li><b>Point at Amara, not at the top of the list.</b> The restraint is the demo — anyone can rank five children.</li>
-      <li>"verify.py fails the build if Amara gets flagged" — say this as a build-gate fact, because it is one.</li>
-      <li>Jonah is top because silence outranks everything: four days without a word beats any error rate.</li>
-    </ul>
-  </div>
+  <p class="notes">The Ask panel is a real agent: this table took eleven tool calls — five children
+  queried in parallel. But scope is injected server-side; the model never picks whose data it
+  reads. A guard checks every answer against the forbidden list and rewrites violations. And it's
+  multi-provider — Gemini 3 by default, GPT or Claude with a key in Settings. Swap the brain;
+  the guardrails stay.</p>
 </section>
 
-<!-- ══ 8 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="4" data-nav="Maya" data-sec="60">
-  <div class="eyebrow"><span class="tick"></span> Live · <span class="mono">get_cell_heat(maya_t)</span> · the slide that carries the product</div>
-
-  <div class="split s-4060" style="margin-top:6px;">
-    <div>
-      <h2 style="font-size:32px;">Reach, not comprehension</h2>
-      <div class="board-grid" id="heatBoard" style="margin-top:14px;"></div>
-      <div class="src" style="margin-top:9px;">error share by row · 1,993 taps · 14 days</div>
+<!-- 8 · Architecture -->
+<section class="slide">
+  <p class="eyebrow">8 · How it holds together</p>
+  <h2>One machine, one seam, zero trust in the model.</h2>
+  <div class="arch">
+    <div class="arch-row">
+      <div class="node"><b>Board PWA</b><span>aac.kason.app</span></div>
+      <div class="node"><b>Dashboard</b><span>aac-dashboard.kason.app</span></div>
+      <div class="node"><b>Any MCP client</b><span>Claude Code · ChatGPT · local Gemma</span></div>
     </div>
-
-    <div class="col" style="gap:11px;">
-      <div class="card tint-noun">
-        <h3>The gradient</h3>
-        <div id="rowBars" style="margin-top:9px;"></div>
-      </div>
-      <div class="card tint-verb">
-        <h3>What the rule concluded</h3>
-        <div class="row pad-t-s" style="gap:22px;">
-          <div class="kpi"><span class="k-num" style="color:var(--fk-verb)">0.859</span><span class="k-lab">motor_share — 152 of 177 mis-taps landed next door</span></div>
-          <div class="kpi"><span class="k-num">0.52<small>×</small></span><span class="k-lab">taps on the far row vs the near row</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <p class="small"><strong>Verdict: her hand is missing, her meaning is fine.</strong>
-        Mask the neighbours of the hard targets, or change the mount angle.</p>
-        <div class="pad-t-s">
-          <span class="forbid">resize_grid</span> &nbsp;
-          <span class="forbid">move_card</span> &nbsp;
-          <span class="forbid">retrain_without_access_check</span>
-        </div>
-        <div class="src" style="margin-top:6px;">forbidden_actions ships inside the payload — the model is told in-band what it may not say</div>
-      </div>
+    <div class="down">↓ Cloudflare Tunnel · hostname-scoped middleware ↓</div>
+    <div class="arch-row">
+      <div class="node hot"><b>One Next.js app</b><span>event ingest · analytics readers · agentic chat · PDF render</span></div>
+      <div class="node hot"><b>MCP server</b><span>20 read-only tools · bearer auth · zero npm dependencies</span></div>
+    </div>
+    <div class="down">↓ node:sqlite · WAL ↓</div>
+    <div class="arch-row">
+      <div class="node"><b>aac.db</b><span>events → daily rollups → SQL rules · pipeline-owned</span></div>
+      <div class="node"><b>aac_app.db</b><span>accounts · card overrides · AI settings</span></div>
+      <div class="node"><b>Python pipeline</b><span>7-stage deterministic build · 42-check clinical gate</span></div>
     </div>
   </div>
-
-  <div class="sn">
-    <p class="say">"Unintended presses climb steadily down the board — eight percent on the top row, sixteen on the bottom. And she only reaches the bottom row half as often. That is a shoulder, not a vocabulary."</p>
-    <ul>
-      <li><b>Let the rows fill before you talk.</b> The animation is the argument.</li>
-      <li>Then the kill line: <b>"eighty-six percent of her corrections land on the button next door."</b></li>
-      <li>The contrast to draw: a naive system sees a 14% error rate and recommends <b>reteaching the concepts.</b> That would retrain a child whose comprehension was never in question.</li>
-      <li>End on the crossed-out actions: <b>"the three most obvious fixes are forbidden, and the ban travels inside the payload."</b></li>
-    </ul>
-  </div>
+  <p class="notes">Architecture in one breath: one Next.js app serves both surfaces, split by
+  hostname. SQLite in WAL mode — proven under a hundred thousand concurrent reads and writes.
+  The MCP server is the single seam between the data and any model — twenty read-only tools,
+  zero npm dependencies. And a Python pipeline rebuilds everything deterministically behind a
+  42-check clinical safety gate.</p>
 </section>
 
-<!-- ══ 9 ══════════════════════════════════════════════════════════════ -->
-<section class="slide ink" data-act="5" data-nav="I8" data-sec="50">
-  <div class="eyebrow"><span class="tick"></span> Insight I8 · the only rule that points at us</div>
-  <h2>Our own recommendation broke her board</h2>
-
-  <div class="split s-5050 pad-t-s">
-    <div class="card tint-fault">
-      <h3>What happened</h3>
-      <table class="data pad-t-s" style="color:#B9C3D0;">
-        <tr><td style="border-color:#2A333D">30 July 2026</td><td class="num" style="border-color:#2A333D; color:#EDF1F6">board_revisions</td></tr>
-        <tr><td style="border-color:#2A333D">moved <span class="mono">water</span> from (3,0) to (0,2)</td><td class="num" style="border-color:#2A333D; color:#EDF1F6">change_kind: move</td></tr>
-        <tr><td style="border-color:#2A333D">by Mrs Patel, on our advice</td><td class="num" style="border-color:#2A333D; color:var(--fault)">suggested_by_insight: I3</td></tr>
-      </table>
-      <p class="small pad-t-s" style="color:#B9C3D0;">Reason recorded at the time: <em>“Moved ‘water’ into easier reach and swapped ‘more’ down.”</em></p>
-    </div>
-
-    <div class="card">
-      <h3>What it cost</h3>
-      <div class="row pad-t-s" style="gap:30px; align-items:flex-end;">
-        <div class="kpi"><span class="k-num" style="color:#9AA6B4">6.2<small>%</small></span><span class="k-lab">7 days before</span></div>
-        <div class="arrow" style="font-size:22px; color:#5A6472; padding-bottom:9px;">→</div>
-        <div class="kpi"><span class="k-num" style="color:var(--fault)">15.2<small>%</small></span><span class="k-lab">7 days after</span></div>
-      </div>
-      <div style="margin-top:16px;">
-        <div class="bar-track" style="background:#232B34;"><div class="bar-fill" data-w="41" style="background:#5A6472"></div></div>
-        <div class="bar-track" style="margin-top:6px; background:#232B34;"><div class="bar-fill" data-w="100" style="background:var(--fault)"></div></div>
-      </div>
-      <p class="small pad-t-s" style="color:#B9C3D0;">Every relocation destroys a motor plan the child spent months building.
-      We knew that — and our own I3 rule recommended it anyway.</p>
-    </div>
+<!-- 9 · Proven -->
+<section class="slide">
+  <p class="eyebrow">9 · Verified, not vibed</p>
+  <h2>We tested it like it matters.</h2>
+  <div class="bignums">
+    <div class="bignum"><b>194</b><span>feature checks, exact input → expected output</span></div>
+    <div class="bignum"><b>135/135</b><span>metrics equal an independent gold recompute</span></div>
+    <div class="bignum"><b>42</b><span>clinical-safety checks gate every build</span></div>
+    <div class="bignum"><b>0</b><span>lock errors under 116k writes + 108k concurrent reads</span></div>
   </div>
-
-  <p class="lede pad-t" style="font-size:22px; color:#fff; font-weight:650; letter-spacing:-.02em;">
-    Without I8, every layout recommendation this system makes is unfalsifiable.
-  </p>
-  <p class="small" style="color:#8B95A3; margin-top:6px;">
-    I8's <span class="mono">forbidden_actions</span>: <span class="forbid" style="color:#E88">blame_the_child</span>
-    <span class="forbid" style="color:#E88">frame_as_regression</span>
-    <span class="forbid" style="color:#E88">recommend_further_layout_change</span>
-    — <span class="mono">target_audience: system</span>
-  </p>
-
-  <div class="sn">
-    <p class="say">"On the thirtieth of July, a teacher moved one button. She moved it because our system told her to. In the week that followed, Maya's unintended presses went from six percent to fifteen."</p>
-    <ul>
-      <li><b>Pause after "because our system told her to."</b> Don't rush to the fix.</li>
-      <li>Then: "I8 is the only rule whose target_audience is <b>system</b>. It fires against us, and it is forbidden from framing this as the child regressing."</li>
-      <li>The closing line is the thesis of the whole project: <b>"without I8, every layout recommendation we make is unfalsifiable."</b></li>
-      <li>Judges' likely question: "did you plant this in the seed data?" — <b>Yes, deliberately</b>, and verify.py asserts it fires. A rule that has never fired on any data is not a rule, it's a comment.</li>
-    </ul>
-  </div>
+  <ul class="points" style="max-width:64ch">
+    <li>Every metric recomputed independently from raw events on a <b>180-day, 5-child cohort</b> — dashboard, chatbot and SQL agree to the digit</li>
+    <li><b>23 bugs</b> found and fixed by our own verification passes — including one invisible since the first commit</li>
+  </ul>
+  <p class="notes">And we tested it like it matters. 194 feature checks with exact expected
+  outputs. Every metric recomputed independently from raw events on a half-year cohort — the
+  dashboard, the chatbot, and the SQL agree to the digit, 135 out of 135. A 42-check clinical
+  gate runs on every build. Our own verification passes caught 23 bugs — including one that had
+  been invisible since the first commit.</p>
 </section>
 
-<!-- ══ 10 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="3" data-nav="Guard" data-sec="35">
-  <div class="eyebrow"><span class="tick"></span> Safety as a build gate</div>
-  <h2>Advice a model cannot give, enforced four ways</h2>
-
-  <div class="g4 pad-t-s">
-    <div class="card tint-desc">
-      <div class="k-lab">layer 1</div><h3 class="pad-t-s">Catalogue</h3>
-      <p class="small"><span class="mono">insights_catalog.forbidden_actions</span> — a column on every rule.</p>
-    </div>
-    <div class="card tint-desc">
-      <div class="k-lab">layer 2</div><h3 class="pad-t-s">In-band</h3>
-      <p class="small">The list travels inside every MCP payload, so the model is told in the same breath as the evidence.</p>
-    </div>
-    <div class="card tint-desc">
-      <div class="k-lab">layer 3</div><h3 class="pad-t-s">Write gate</h3>
-      <p class="small"><span class="mono">write_insight</span> rejects reasoning text containing a forbidden action.</p>
-    </div>
-    <div class="card tint-verb">
-      <div class="k-lab">layer 4</div><h3 class="pad-t-s">CI</h3>
-      <p class="small"><span class="mono">tools/verify.py</span> fails the build. 42 checks, run on every build.</p>
+<!-- 10 · Close -->
+<section class="slide">
+  <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+    <p class="eyebrow">10 · The point</p>
+    <h1>Data that helps the adults change —<br>so the child doesn't have to.</h1>
+    <p class="sub">Every finding points at something a grown-up can do: wait longer, model more,
+    add a copy, mask a neighbour. The board stays exactly where the child learned it.</p>
+    <div class="urls">
+      <a href="https://aac.kason.app">aac.kason.app</a>
+      <a href="https://aac-dashboard.kason.app">aac-dashboard.kason.app</a>
+      <span class="tag">MCP: aac-mcp.kason.app · 20 tools</span>
     </div>
   </div>
-
-  <div class="card pad-t">
-    <h3>What the gate actually asserts</h3>
-    <div class="g3 pad-t-s">
-      <div class="small"><span class="pill ok">PASS</span> no insight recommends reducing repetition</div>
-      <div class="small"><span class="pill ok">PASS</span> no insight recommends relocating a learned button</div>
-      <div class="small"><span class="pill ok">PASS</span> a refusal is never routed to retraining</div>
-      <div class="small"><span class="pill ok">PASS</span> every AI mode is a filtered view of the robust board</div>
-      <div class="small"><span class="pill ok">PASS</span> never proposes removing a core or essential word</div>
-      <div class="small"><span class="pill ok">PASS</span> control child triggers no intervention</div>
-      <div class="small"><span class="pill ok">PASS</span> all 8 rules fire on plausible data</div>
-      <div class="small"><span class="pill ok">PASS</span> no value published below its <span class="mono">min_n</span></div>
-      <div class="small"><span class="pill warn">WARN</span> 4 known gaps in seed data, named</div>
-    </div>
-  </div>
-
-  <div class="sn">
-    <p class="say">"Four layers, and the last one is a build gate. If someone writes a rule next month that recommends shrinking a grid, the build goes red."</p>
-    <ul>
-      <li>Emphasise <b>"a refusal is never routed to retraining"</b> — if a child says no to something, drilling them to request it teaches them their no doesn't count.</li>
-      <li>Also worth saying: <b>"all 8 rules must fire on plausible data"</b>. A rule that never fires is a comment.</li>
-      <li>The WARN is deliberate and named — three metrics need events the kids app doesn't emit yet. Slide 13.</li>
-    </ul>
-  </div>
+  <p class="notes">Every finding in this system points at something an adult can change — wait
+  longer, model more, add a copy. The board stays exactly where the child learned it. That's the
+  whole idea: data that helps the adults change, so the child doesn't have to. It's live — try
+  it. Thank you.</p>
 </section>
 
-<!-- ══ 11 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="3" data-nav="Privacy" data-sec="30">
-  <div class="eyebrow"><span class="tick"></span> Privacy · docs/mcp-api.md §10</div>
-  <h2>“Read-only” was harder than it looks</h2>
-
-  <div class="split s-5050 pad-t-s">
-    <div class="col">
-      <div class="card tint-fault">
-        <h3>Finding 1 — <span class="mono">mode=ro</span> cannot open a WAL database</h3>
-        <p class="small pad-t-s">A WAL reader must map the <span class="mono">-shm</span> file, which a read-only handle can't create.
-        WAL is mandatory here, so the obvious implementation is unavailable.</p>
-      </div>
-      <div class="card tint-fault">
-        <h3>Finding 2 — <span class="mono">query_only</span> does not block <span class="mono">ATTACH</span></h3>
-        <p class="small pad-t-s">Verified on SQLite 3.50.6. <span class="mono">INSERT</span>, <span class="mono">DELETE</span>, <span class="mono">DROP</span> all blocked.
-        <span class="mono">ATTACH</span> allowed. One statement through the query escape hatch would have read every utterance a child ever produced.</p>
-      </div>
-    </div>
-
-    <div class="card tint-verb">
-      <h3>Three layers, weakest first</h3>
-      <table class="data pad-t-s">
-        <tr><td class="num">1</td><td class="small">SQL parse guard — <span class="mono">SELECT</span>/<span class="mono">WITH</span> only<br><span class="src">fails to a parser bypass</span></td></tr>
-        <tr><td class="num">2</td><td class="small">Deny-<span class="mono">ATTACH</span> authorizer at the VDBE<br><span class="src">fails if not installed on that connection</span></td></tr>
-        <tr><td class="num">3</td><td class="small"><strong>OS permissions — the MCP user cannot read the file</strong><br><span class="src">survives a full compromise of layers 1 and 2</span></td></tr>
-      </table>
-      <p class="small pad-t-s"><strong>Layer 3 is the one that makes the claim true.</strong>
-      “Utterance text is unreachable” becomes a statement about the filesystem rather than about our code.</p>
-    </div>
-  </div>
-
-  <div class="sn">
-    <p class="say">"We tried to open the database read-only. It doesn't work — a WAL reader has to write the shared-memory file. Then we found query_only doesn't block ATTACH."</p>
-    <ul>
-      <li>The punchline: <b>"one ATTACH through our own escape hatch would have read every utterance a child ever produced."</b></li>
-      <li>Then the fix: three layers, and only the third one is a real guarantee. <b>"It's a statement about the filesystem, not about our code."</b></li>
-      <li>Both findings are verified against SQLite 3.50.6, not assumed. There's a CI check in the docs.</li>
-      <li><b>5-minute cut: skip this slide</b> — or keep just the ATTACH finding as one spoken sentence on slide 10.</li>
-    </ul>
-  </div>
-</section>
-
-<!-- ══ 12 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="4" data-nav="Built" data-sec="30">
-  <div class="eyebrow"><span class="tick"></span> What actually runs</div>
-  <h2>Built and verified, not sketched</h2>
-
-  <div class="g4 pad-t-s">
-    <div class="card"><span class="k-num">27</span><div class="k-lab">tables · STRICT</div></div>
-    <div class="card"><span class="k-num">44</span><div class="k-lab">SQL views</div></div>
-    <div class="card"><span class="k-num">38</span><div class="k-lab">metrics catalogued</div></div>
-    <div class="card"><span class="k-num">8</span><div class="k-lab">insight rules, all firing</div></div>
-  </div>
-  <div class="g4" style="margin-top:11px;">
-    <div class="card"><span class="k-num">14</span><div class="k-lab">MCP tools over JSON-RPC</div></div>
-    <div class="card"><span class="k-num">42</span><div class="k-lab">safety checks passing</div></div>
-    <div class="card"><span class="k-num">7</span><div class="k-lab">stage build, one command</div></div>
-    <div class="card"><span class="k-num">0</span><div class="k-lab">npm dependencies in the MCP server</div></div>
-  </div>
-
-  <div class="split s-5050 pad-t">
-    <div class="card tint-verb">
-      <h3>Concurrency — 1 writer, 3 readers, 15 seconds</h3>
-      <table class="data pad-t-s">
-        <tr><th></th><th style="text-align:right">ok</th><th style="text-align:right">p50</th><th style="text-align:right">p99</th><th style="text-align:right">errors</th></tr>
-        <tr><td>writer</td><td class="num" style="text-align:right">5,715</td><td class="num" style="text-align:right">2.43 ms</td><td class="num" style="text-align:right">6.89 ms</td><td class="num" style="text-align:right">0</td></tr>
-        <tr><td>readers</td><td class="num" style="text-align:right">122,542</td><td class="num" style="text-align:right">0.20 ms</td><td class="num" style="text-align:right">1.74 ms</td><td class="num" style="text-align:right">0</td></tr>
-      </table>
-      <p class="src pad-t-s">114,300 events written while 122,542 reads were served. Zero lock errors, zero busy retries.</p>
-    </div>
-    <div class="card tint-noun">
-      <h3>Cost of one full investigation</h3>
-      <p class="small pad-t-s">Seven MCP calls to answer <em>“why is Maya struggling this week?”</em> —
-      profile, metrics, fired rules, cell heat, board revisions, partner metrics, write-back.</p>
-      <div class="row pad-t-s" style="gap:26px;">
-        <div class="kpi"><span class="k-num">~14.4<small>k</small></span><span class="k-lab">tokens, measured not estimated</span></div>
-        <div class="kpi"><span class="k-num">1,149</span><span class="k-lab">tokens of tool definitions</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="sn">
-    <p class="say">"One command builds the whole thing from nothing — schema, catalogues, seed data, views, rollup, rules, verification. Seven stages, deterministic."</p>
-    <ul>
-      <li>Zero npm dependencies in the MCP server is worth one sentence: <b>node:sqlite is built in, Node strips the TypeScript at load. Nothing to install.</b></li>
-      <li>The concurrency table answers "does SQLite hold up?" before anyone asks it.</li>
-      <li>14.4k tokens is <b>measured against the seeded database</b>, not estimated. Say that word.</li>
-    </ul>
-  </div>
-</section>
-
-<!-- ══ 13 ══════════════════════════════════════════════════════════════ -->
-<section class="slide" data-act="2" data-nav="Gaps" data-sec="25">
-  <div class="eyebrow"><span class="tick"></span> What we have not built</div>
-  <h2>Four things this does not do yet</h2>
-
-  <div class="g4 pad-t-s">
-    <div class="card tint-quest">
-      <h3>No keyboard</h3>
-      <p class="small">Constraint C8 says a robust AAC system needs alphabet access from early learning. We have none.
-      <span class="mono">keyboard_use</span> is defined in the schema so the gap is visible, not hidden.</p>
-    </div>
-    <div class="card tint-quest">
-      <h3>The kids app is a shell</h3>
-      <p class="small">Data layer, rules, MCP server and verification all run. The PWA board and dashboard UI are next —
-      the schema and the API contract are what we chose to get right first.</p>
-    </div>
-    <div class="card tint-quest">
-      <h3>Three metrics have no events</h3>
-      <p class="small"><span class="mono">suggestion_acceptance</span>, <span class="mono">vocabulary_gaps</span>
-      and <span class="mono">visual_source_split</span> need events the app doesn't emit yet.
-      <span class="mono">verify.py</span> warns by name rather than passing quietly.</p>
-    </div>
-    <div class="card tint-quest">
-      <h3>No clinician has reviewed this</h3>
-      <p class="small">The eight constraints come from AssistiveWare's published guidance, cited per constraint.
-      That is reading, not review. A speech therapist signing off is step one, not step ten.</p>
-    </div>
-  </div>
-
-  <p class="lede pad-t">Offline is the honest one: a returning user on a warm cache is fine.
-  <strong>A first visit with no network is not</strong>, and voice availability varies by browser. Flagged, not solved.</p>
-
-  <div class="sn">
-    <p class="say">"Four things this doesn't do. I'd rather you hear them from me."</p>
-    <ul>
-      <li><b>Say the clinician one out loud, clearly.</b> Claiming clinical validation we don't have would undo everything slides 4 and 9 just built.</li>
-      <li>Frame the shell app as a choice, not a failure: <b>"we got the contract right first, because the schema is the thing you can't refactor later."</b></li>
-      <li>Keep this slide short — 25 seconds. Honesty lands better brief than laboured.</li>
-    </ul>
-  </div>
-</section>
-
-<!-- ══ 14 ══════════════════════════════════════════════════════════════ -->
-<section class="slide ink" data-act="5" data-nav="Close" data-sec="25">
-  <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:40px;">
-    <div>
-      <div class="eyebrow"><span class="tick"></span> In one sentence</div>
-      <h2 style="font-size:36px; line-height:1.16;">Anyone can count taps.<br>The work was deciding which counts<br>a child should never be judged by.</h2>
-      <p class="lede pad-t" style="font-size:17px;">
-        Eight constraints from clinical practice, encoded as columns.
-        Eight rules in plain SQL, every one carrying its evidence.
-        One rule that fires against us — and forty-two checks that fail the build if any of it slips.
-      </p>
-    </div>
-    <div class="col" style="gap:11px;">
-      <div class="card tint-verb"><h3>Next</h3><p class="small">Clinician review of C1–C8 · build the PWA board on the contract · emit the three missing event types · pilot with one class.</p></div>
-      <div class="card"><h3>Try it</h3>
-        <p class="small mono" style="line-height:1.7;">
-          npm run build<br>
-          npm run verify<br>
-          npm run mcp
-        </p>
-      </div>
-      <div class="card"><h3>Read it</h3>
-        <p class="small mono" style="line-height:1.6; color:var(--ink-3)">
-          docs/aac-clinical-constraints.md<br>
-          docs/analytics-metrics.md<br>
-          docs/mcp-api.md
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <div class="sn">
-    <p class="say">"Anyone can count taps. The work was deciding which counts a child should never be judged by."</p>
-    <ul>
-      <li>Stop talking after that line. Let it sit. <b>Do not add a summary after the summary.</b></li>
-      <li>If there's time, offer: "happy to run any of the fourteen tools live against the database."</li>
-      <li>Have <span class="mono">npm run verify</span> ready in a terminal — 42 green checks is a better closing argument than a slide.</li>
-    </ul>
-  </div>
-</section>
-
-<div id="hud">
-  <span class="box" id="clock">0:00</span>
-  <span class="box" id="count">1 / 14</span>
-  <span class="box" id="hint">? help</span>
-</div>
-
-<nav id="navboard" aria-label="Slide navigation"></nav>
-</div>
-</div>
-
-<aside id="notes" aria-live="polite"></aside>
-
-<div id="help" role="dialog" aria-label="Keyboard shortcuts">
-  <div>
-    <kbd>→ ↓ Space</kbd> next slide<br>
-    <kbd>← ↑</kbd> previous slide<br>
-    <kbd>1 … 9</kbd> jump to slide<br>
-    <kbd>Home / End</kbd> first / last<br>
-    <kbd>N</kbd> speaker notes<br>
-    <kbd>T</kbd> start / pause timer<br>
-    <kbd>R</kbd> reset timer<br>
-    <kbd>F</kbd> fullscreen<br>
-    <kbd>?  Esc</kbd> close this
-  </div>
+<div class="foot">
+  <span>Reading the Board — AAC Analytics · AI Hackathon 2026</span>
+  <span id="counter">1 / 10</span>
+  <span>← → navigate · N notes</span>
 </div>
 
 <script>
-(() => {
-'use strict';
-
-const slides = [...document.querySelectorAll('.slide')];
-const nav    = document.getElementById('help');
-const stage  = document.getElementById('stage');
-const board  = document.getElementById('navboard');
-const notes  = document.getElementById('notes');
-const clock  = document.getElementById('clock');
-const count  = document.getElementById('count');
-let i = 0, notesOpen = false, t0 = null, elapsed = 0, ticking = null;
-
-/* ── Maya's real 4×4 board, from board_cells where board_id = 'board_maya_t' ── */
-const BOARD = [
-  ['I','core'],['want','core'],['more','core'],['help','essential'],
-  ['you','core'],['go','core'],['stop','essential'],['yes','essential'],
-  ['no','essential'],['like','core'],['toilet','essential'],['hurt','essential'],
-  ['water','fringe'],['finished','core'],['what','core'],[null,'empty']
-];
-/* error share by row, from get_cell_heat(maya_t).reach_gradient.per_row */
-const ROWS = [
-  { row:0, err:0.083, taps:505 },
-  { row:1, err:0.102, taps:678 },
-  { row:2, err:0.161, taps:547 },
-  { row:3, err:0.160, taps:263 }
-];
-
-const cell = (label, kind, r, c, heat) => {
-  const b = document.createElement('div');
-  b.className = 'btn ' + kind + (heat !== undefined ? ' heat' : '');
-  if (heat !== undefined) b.dataset.heat = heat;
-  if (label) {
-    const rl = document.createElement('span');
-    rl.className = 'rl'; rl.textContent = r + ',' + c;
-    b.append(rl, document.createTextNode(label));
+  const slides = [...document.querySelectorAll('.slide')]
+  let i = 0
+  const show = (n) => {
+    i = Math.max(0, Math.min(slides.length - 1, n))
+    slides.forEach((s, k) => s.classList.toggle('active', k === i))
+    document.getElementById('counter').textContent = (i + 1) + ' / ' + slides.length
   }
-  return b;
-};
-
-const buildBoard = (host, withHeat) => {
-  host.textContent = '';
-  BOARD.forEach(([label, kind], n) => {
-    const r = Math.floor(n / 4), c = n % 4;
-    host.append(cell(label, kind, r, c, withHeat && label ? r : undefined));
-  });
-};
-
-buildBoard(document.getElementById('heroBoard'), false);
-buildBoard(document.getElementById('heatBoard'), true);
-
-/* Row bars. Direct-labelled, no legend, held in board-row order because
-   position IS the variable under test. Bar colour uses the SAME scale as the
-   grid heat above — one variable must not carry two encodings on one slide. */
-const HEAT = ['#7FBF9A', '#E3BC63', '#E08A5F', '#D4704A'];
-const bars = document.getElementById('rowBars');
-ROWS.forEach(r => {
-  const wrap = document.createElement('div');
-  wrap.style.marginBottom = '9px';
-  wrap.innerHTML =
-    '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">' +
-      '<span class="mono" style="color:var(--ink-3)">row ' + r.row + '</span>' +
-      '<span><b>' + (r.err * 100).toFixed(1) + '%</b>' +
-      '<span class="mono" style="color:var(--ink-3)"> · ' + r.taps + ' taps</span></span>' +
-    '</div>' +
-    '<div class="bar-track"><div class="bar-fill" data-w="' +
-      Math.round(r.err / 0.161 * 100) + '" style="background:' + HEAT[r.row] + '"></div></div>';
-  bars.append(wrap);
-});
-
-/* ── nav board: the deck is itself an AAC board ─────────────────────── */
-slides.forEach((s, n) => {
-  const b = document.createElement('button');
-  b.className = 'nav-cell';
-  b.dataset.act = s.dataset.act;
-  b.textContent = s.dataset.nav;
-  b.setAttribute('aria-label', 'Slide ' + (n + 1) + ': ' + s.dataset.nav);
-  b.addEventListener('click', () => go(n));
-  board.append(b);
-});
-const navCells = [...board.children];
-
-/* ── slide-local animation, replayed on every entry ─────────────────── */
-const play = s => {
-  s.querySelectorAll('.bar-fill').forEach((f, n) => {
-    f.style.width = '0';
-    setTimeout(() => { f.style.width = f.dataset.w + '%'; }, 120 + n * 130);
-  });
-
-  const heat = s.querySelector('#heatBoard');
-  if (heat) {
-    const btns = [...heat.children];
-    btns.forEach(b => b.style.opacity = '.18');
-    btns.forEach((b, n) => setTimeout(() => { b.style.transition = 'opacity .3s';
-      b.style.opacity = '1'; }, 150 + Math.floor(n / 4) * 320));
-  }
-
-  const hero = s.querySelector('#heroBoard');
-  if (hero) {
-    const btns = [...hero.children];
-    [0, 1, 2].forEach((idx, n) => setTimeout(() => {
-      btns[idx].classList.add('press');
-      setTimeout(() => btns[idx].classList.remove('press'), 300);
-    }, 700 + n * 380));
-  }
-};
-
-const renderNotes = s => {
-  const src = s.querySelector('.sn');
-  const budget = s.dataset.sec;
-  notes.innerHTML =
-    '<h4><span>Slide ' + (i + 1) + ' / ' + slides.length + '</span>' +
-    '<span>' + s.dataset.nav + '</span>' +
-    '<span>budget ' + budget + 's</span>' +
-    '<span>N to hide</span></h4>' + (src ? src.innerHTML : '');
-};
-
-function go(n) {
-  i = Math.max(0, Math.min(slides.length - 1, n));
-  slides.forEach((s, k) => s.classList.toggle('on', k === i));
-  navCells.forEach((c, k) => c.classList.toggle('here', k === i));
-  stage.classList.toggle('dark', slides[i].classList.contains('ink'));
-  count.textContent = (i + 1) + ' / ' + slides.length;
-  play(slides[i]);
-  if (notesOpen) renderNotes(slides[i]);
-}
-
-/* ── timer: budget is 8:20 across the 14 slides ─────────────────────── */
-const BUDGET = slides.reduce((a, s) => a + (+s.dataset.sec), 0);
-const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-const tick = () => {
-  const e = elapsed + (t0 ? (Date.now() - t0) / 1000 : 0);
-  clock.textContent = fmt(e) + ' / ' + fmt(BUDGET);
-  clock.className = 'box ' + (e > BUDGET ? 'over' : t0 ? 'run' : '');
-};
-const toggleTimer = () => {
-  if (t0) { elapsed += (Date.now() - t0) / 1000; t0 = null; clearInterval(ticking); ticking = null; }
-  else { t0 = Date.now(); ticking = setInterval(tick, 500); }
-  tick();
-};
-clock.textContent = '0:00 / ' + fmt(BUDGET);
-
-/* ── keyboard ───────────────────────────────────────────────────────── */
-addEventListener('keydown', e => {
-  const k = e.key;
-  if (k === 'Escape') { nav.classList.remove('open'); return; }
-  if (k === '?' || (k === '/' && e.shiftKey)) { nav.classList.toggle('open'); e.preventDefault(); return; }
-  if (k === 'ArrowRight' || k === 'ArrowDown' || k === ' ' || k === 'PageDown') { go(i + 1); e.preventDefault(); }
-  else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp') { go(i - 1); e.preventDefault(); }
-  else if (k === 'Home') { go(0); }
-  else if (k === 'End') { go(slides.length - 1); }
-  else if (k >= '1' && k <= '9') { go(+k - 1); }
-  else if (k === 'n' || k === 'N') {
-    notesOpen = !notesOpen;
-    notes.classList.toggle('open', notesOpen);
-    document.body.classList.toggle('notes-on', notesOpen);
-    if (notesOpen) renderNotes(slides[i]);
-    fit();
-  }
-  else if (k === 't' || k === 'T') { toggleTimer(); }
-  else if (k === 'r' || k === 'R') { elapsed = 0; if (t0) t0 = Date.now(); tick(); }
-  else if (k === 'f' || k === 'F') {
-    document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
-  }
-});
-
-/* click-to-advance on the slide body, but never on the nav board */
-stage.addEventListener('click', e => {
-  if (e.target.closest('#navboard') || e.target.closest('#hud')) return;
-  go(i + 1);
-});
-
-/* ── scale the fixed 1280×720 canvas to whatever projector turns up ── */
-const vp = document.getElementById('viewport');
-function fit() {
-  const s = Math.min(vp.clientWidth / 1280, (vp.clientHeight * 0.96) / 720);
-  stage.style.transform = 'scale(' + s + ')';
-}
-addEventListener('resize', fit);
-fit();
-go(0);
-})();
+  addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') show(i + 1)
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') show(i - 1)
+    else if (e.key === 'Home') show(0)
+    else if (e.key === 'End') show(slides.length - 1)
+    else if (e.key.toLowerCase() === 'n') document.body.classList.toggle('show-notes')
+  })
+  addEventListener('click', (e) => {
+    if (e.target.closest('a')) return
+    show(e.clientX > innerWidth / 2 ? i + 1 : i - 1)
+  })
 </script>
 </body>
 </html>
