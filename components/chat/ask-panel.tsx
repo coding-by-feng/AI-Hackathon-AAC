@@ -9,6 +9,7 @@
  * are reading. Both are visible by default; only the raw payload is collapsed.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Markdown } from './markdown'
 
 type Notice = { level: string; code: string; detail: string }
 type ToolRun = { name: string; ok: boolean; ms: number; rowCount: number }
@@ -308,13 +309,7 @@ function AssistantTurn({ turn, busy }: { turn: Turn; busy: boolean }) {
         />
       )}
 
-      {turn.content && (
-        <div className="space-y-2 text-sm leading-relaxed">
-          {turn.content.split('\n').filter(Boolean).map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-        </div>
-      )}
+      {turn.content && <Markdown text={turn.content} />}
 
       {busy && !turn.content && (
         <p className="text-sm text-[var(--color-ink-faint)]">Reading the data…</p>

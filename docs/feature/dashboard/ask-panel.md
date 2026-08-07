@@ -147,3 +147,11 @@ Both disclaimers reflect `mcp-api.md` §9: utterance text is not a permission se
 - **Raising `maxLength` above 2000** shifts cost and prompt-injection surface onto `/api/chat`; the limit is the only client-side bound.
 - **Rendering suggestion chips after the first turn** (removing the `turns.length === 0` guard) would push the transcript around mid-conversation and re-offer questions already answered.
 - **Removing the tool strip or the notice rows** turns this from an auditable answer into an unattributed claim about a child — the failure the component header exists to prevent.
+
+> **2026-08-08:** Assistant answers render as markdown via
+> `components/chat/markdown.tsx` — a dependency-free renderer building React
+> elements only (no `dangerouslySetInnerHTML`, no HTML pass-through, so model
+> output cannot inject markup). Covers GFM tables (in an `overflow-x-auto`
+> wrapper), bold/italic, inline + fenced code, lists, headings, blockquotes,
+> rules, and http(s) links. Streaming re-parses the accumulated text per frame;
+> a table snaps into shape when its separator row arrives.
