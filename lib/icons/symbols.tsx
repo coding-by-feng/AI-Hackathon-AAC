@@ -182,14 +182,17 @@ export function allSymbolNames(): string[] {
   return Object.keys(SYMBOLS).sort()
 }
 
-export function SymbolArt({ label, size = 32 }: { label: string; size?: number }) {
+export function SymbolArt({ label, size = 32 }: { label: string; size?: number | string }) {
   const sym = symbolFor(label)
   if (!sym) return null
+  // SVG width/height attributes can't parse CSS functions like clamp(); those go through style.
+  const attr = typeof size === 'number' ? size : undefined
   return (
     <svg
       viewBox="0 0 24 24"
-      width={size}
-      height={size}
+      width={attr}
+      height={attr}
+      style={attr === undefined ? { width: `min(${size}, 100%)`, height: 'auto', aspectRatio: '1' } : undefined}
       fill="none"
       stroke="currentColor"
       strokeWidth={2}

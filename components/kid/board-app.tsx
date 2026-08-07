@@ -665,7 +665,7 @@ export function BoardApp({ data }: { data: BoardData }) {
           viewport — resizing the grid would relocate every learned button. */}
       <main className="flex-1 p-3">
         <div
-          className="grid gap-2"
+          className="grid gap-1.5 sm:gap-2"
           style={{ gridTemplateColumns: `repeat(${data.grid_cols}, minmax(0, 1fr))` }}
         >
           {Array.from({ length: data.grid_rows }).flatMap((_, r) =>
@@ -840,12 +840,20 @@ function CardButton({
         }
         onTap()
       }}
-      className={`relative flex touch-manipulation select-none flex-col items-center justify-center rounded-[var(--radius-card)] border-2 p-2 text-center transition-opacity ${
+      className={`relative flex touch-manipulation select-none flex-col items-center justify-center rounded-[var(--radius-card)] border-2 p-1 text-center transition-opacity sm:p-2 ${
         dimmed ? 'opacity-35' : ''
       } ${editing ? 'ring-2 ring-[var(--color-accent)] ring-offset-1' : ''}`}
       style={{ minHeight: 'max(64px, 14vh)', ...faceColours(card.label, card.symbol) }}
     >
-      <CardFace label={card.label} symbolKey={card.symbol} imageData={card.image_data} size={36} />
+      {/* Scales with the card, which is itself 14vh-based. The width cap in
+          CardFace keeps it inside narrow phone cards; on laptop/iPad it grows
+          to 11vh, capped at 112px. */}
+      <CardFace
+        label={card.label}
+        symbolKey={card.symbol}
+        imageData={card.image_data}
+        size="clamp(40px, 11vh, 112px)"
+      />
       {editing && (
         <span className="absolute top-1 right-1 rounded-full bg-[var(--color-accent)] px-1.5 text-[10px] font-bold text-white">
           edit

@@ -7,7 +7,8 @@ export type CardFaceProps = {
   symbolKey?: string | null
   /** A photo replaces the symbol entirely — preferred for personal things. */
   imageData?: string | null
-  size?: number
+  /** A number is pixels; a string is any CSS length (e.g. clamp()) so the icon can scale with the card. */
+  size?: number | string
   showLabel?: boolean
 }
 
@@ -50,33 +51,32 @@ export function CardFace({
   const cls: WordClass | null = sym?.wordClass ?? null
   const style = cls ? CLASS_STYLE[cls] : null
 
+  // SVG width/height attributes need a number; CSS sizes go through style.
+  // A CSS size is capped at the card's own width and keeps aspect-ratio 1 —
+  // otherwise flex squeezes the img narrower than its height on small cards
+  // and object-cover crops the sides of the picture.
+  const px = typeof size === 'number' ? size : undefined
+  const box =
+    px !== undefined
+      ? { width: px, height: px }
+      : { width: `min(${size}, 100%)`, height: 'auto', aspectRatio: '1' }
+
   // With a word class the card is a pale pastel, so the dark class colour is
   // correct in both themes. Without one the card uses the surface colour, where
   // the theme's own ink is the right choice.
   const ink = style?.fg ?? 'var(--color-ink)'
 
   return (
-    <span className="flex flex-col items-center justify-center gap-1" style={{ color: ink }}>
+    // min-w-0/max-w-full: without them a long label ("different") sets this
+    // column's min-content width wider than the card button, the icon sized at
+    // 100% follows it past the borders, and neighbouring labels collide.
+    <span className="flex min-w-0 max-w-full flex-col items-center justify-center gap-1" style={{ color: ink }}>
       {imageData ? (
         // eslint-disable-next-line @next/next/no-img-element -- a data: URL, already downscaled client-side
-        <img
-          src={imageData}
-          alt=""
-          width={size}
-          height={size}
-          className="rounded-md object-cover"
-          style={{ width: size, height: size }}
-        />
+        <img src={imageData} alt="" width={px} height={px} className="rounded-md object-cover" style={box} />
       ) : aiIcon ? (
         // eslint-disable-next-line @next/next/no-img-element -- small static asset, no next/image pipeline needed
-        <img
-          src={aiIcon}
-          alt=""
-          width={size}
-          height={size}
-          className="rounded-md object-cover"
-          style={{ width: size, height: size }}
-        />
+        <img src={aiIcon} alt="" width={px} height={px} className="rounded-md object-cover" style={box} />
       ) : sym ? (
         <SymbolArt label={lookup} size={size} />
       ) : (
@@ -84,9 +84,8 @@ export function CardFace({
           aria-hidden
           className="flex items-center justify-center rounded-md font-bold"
           style={{
-            width: size,
-            height: size,
-            fontSize: size * 0.55,
+            ...box,
+            fontSize: px !== undefined ? px * 0.55 : `calc(${size} * 0.55)`,
             background: 'var(--color-surface-sunk)',
             color: 'var(--color-ink-muted)',
           }}
@@ -95,7 +94,9 @@ export function CardFace({
         </span>
       )}
       {showLabel && (
-        <span className="text-base leading-tight font-semibold break-words sm:text-lg">{label}</span>
+        <span className="max-w-full text-sm leading-tight font-semibold [overflow-wrap:anywhere] sm:text-lg">
+          {label}
+        </span>
       )}
     </span>
   )

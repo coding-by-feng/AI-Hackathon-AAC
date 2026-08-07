@@ -32,7 +32,7 @@ export function EssentialRail({
             label={card.label}
             symbolKey={card.symbol}
             imageData={card.image_data}
-            size={26}
+            size={32}
           />
         </button>
       ))}
