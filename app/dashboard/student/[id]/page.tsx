@@ -147,32 +147,41 @@ export default async function StudentPage({
         ]
 
   return (
-    <div className="space-y-6">
+    // Capped width: on a wide monitor unbounded columns scatter the cards and
+    // leave the page mostly empty.
+    <div className="mx-auto max-w-[1400px] space-y-6">
       <DashHeader
         title={child.display_name}
         subtitle={[child.year_group, child.profile_note].filter(Boolean).join(' · ')}
         period={`Last ${period} days`}
       />
 
+      {sections.map((sec) => (
+        <section key={sec.title}>
+          <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-muted)]">
+            {sec.title}
+          </h2>
+          {/* Wrap-and-grow: every row fills the full width — a one-card section
+              stretches, and an orphan card on the last row does too, so no
+              section leaves an empty tract beside it. */}
+          <div className="flex flex-wrap gap-3">
+            {sec.items.map((m) => (
+              <div key={m.metric_id} className="min-w-[min(280px,100%)] max-w-full grow basis-[300px] [&>article]:h-full">
+                <MetricCard m={m} n={nById.get(m.metric_id)} />
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      {/* Below the numbers by request: the queue already surfaces urgency, and
+          these cards are guidance to read after the metrics, not a banner. */}
       <section>
         <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-muted)]">
           Findings — {findings.length} open
         </h2>
         <InsightList items={findings} />
       </section>
-
-      {sections.map((sec) => (
-        <section key={sec.title}>
-          <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-muted)]">
-            {sec.title}
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {sec.items.map((m) => (
-              <MetricCard key={m.metric_id} m={m} n={nById.get(m.metric_id)} />
-            ))}
-          </div>
-        </section>
-      ))}
 
       <section className="rounded-[var(--radius-card)] border border-[var(--color-line)] border-l-[3px] border-l-[var(--color-accent)] bg-[var(--color-surface)] p-5">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
