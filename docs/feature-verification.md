@@ -315,3 +315,60 @@ Calculation bugs found and fixed by this pass:
 Gate state after: `verify.py` **PASSED** on both the 180-day cohort (3 informative
 warnings) and the live database · `test-api.sh` 28/28 · repeat-run of `run_rules.py`
 preserves all dismissals.
+
+---
+
+## Run 3 — 2026-08-08 morning · full retest on PUBLIC hostnames (BUILD_ID at close: see git 73c177a..HEAD)
+
+Scope change from earlier runs: every browser and curl row executed against
+**https://aac.kason.app / aac-dashboard.kason.app / aac-mcp.kason.app** (or
+localhost with a spoofed `Host:` header), after the icon 404 proved that
+localhost-only testing hides hostname-scoped failures.
+
+### Suites
+| Suite | Result |
+|---|---|
+| `tools/test-api.sh` | **33/33** (new: K1–K4 hostname static assets · L5 invalid-window rejection) |
+| `npm run verify` | **PASSED**, 1 known warning (documented not-collected gaps) |
+| `npm run concurrency` | 116,480 writes + 108,489 reads, 0 lock errors |
+| `npm run typecheck` | clean |
+
+### Browser rows (public URLs, evidence recorded in session)
+- /who: 5 children; console clean. Board icons **36/36 loaded** (post-fix).
+- Sentence assembly: “I want water.” · “I want more.” · Undo → “I want.” exact.
+- Mode safety (while modes existed): 36-card order byte-identical entering
+  Snack time, 30 dimmed. Modes were then **removed from the live db by request**
+  (boards/mode_selection + 6 same-day test events; FK check clean; verify PASSED).
+  A pipeline rebuild would re-seed them.
+- Modelling dialog: opens, Escape closes. ABC keyboard: QWERTY, Escape now closes
+  (bug #21). 375 px: no horizontal scroll.
+- Icon geometry after resize work: 375×812 → 42×42 · 820×1180 → 106×106 ·
+  1440×900 → 99×99, **0 overflowing card children at all three widths**.
+- Dashboard: login ✓; queue ranks Jonah first (“Has not spoken for 5 days”);
+  Findings on student page — I4 renders no action list, forbidden actions
+  visible, **Yes button now answers visibly** (bug #19); every metric carries
+  `n = …`; partner-wait renders “not recorded”, never 0; student + class pages
+  clean at 375 px; metric rows pack with **0 trailing empty px** (flex grow).
+- Chat SSE (public): tool_call → tool_result → notices → text → done; grounded
+  “Jonah has not communicated in the last 5 days”; move-the-buttons question
+  answered with mask/add-copy alternatives, never relocation.
+- MCP (public): 20 tools; `last_28d` teacher_modeling amara_o = **372 n=372**,
+  equal to direct SQL; UPDATE rejected (`SQL_REJECTED`); `move` refused
+  (read-only transport + schema enum); invalid window rejected loudly (bug #22).
+
+### Bugs found and fixed this run
+| # | Bug | Fix |
+|---|---|---|
+| 19 | Insight card “Yes — show me the detail” was a no-op when the numbers were already open (user-reported) | confirmed state + scroll-into-view + footer feedback (`components/insight-card.tsx`) |
+| 20 | Long labels (“different”) widened the card’s inner flex column past the button: icon overflowed the card, labels collided (user-reported, iPhone) | `min-w-0 max-w-full` on the face column, `overflow-wrap:anywhere` on labels (`components/kid/card-face.tsx`) |
+| 21 | ABC keyboard layer claims `aria-modal` but ignored Escape | document keydown → onClose (`components/kid/keyboard-layer.tsx`) |
+| 22 | All 7 window-taking MCP tools silently fell back to 7 days on an unknown window token (`"28d"` → week labelled as month) | `resolveWindow` throws `SQL_REJECTED` naming allowed tokens (`mcp/tools.ts`); pinned by L5 |
+| 23 | Board icons fixed at 36 px regardless of screen; squeezed to 32×73 (distorted) at phone width after first resize attempt | responsive `clamp(40px, 11vh, 112px)` + width cap with `aspect-ratio: 1` (`card-face.tsx`, `board-app.tsx`) |
+
+### Product changes by user request (same session)
+- “Snack time” mode chips removed from the live install (data-level; feature intact in code).
+- Findings section moved below the metric sections on the student page.
+- Metric card rows: wrap-and-grow flex + 1400 px max content width — no empty tracts.
+- Icons enlarged at every breakpoint; category drawer + essential rail bumped to match.
+- `/icons/ai/*` now served with `Cache-Control: max-age=86400, stale-while-revalidate=604800`
+  (were `max-age=0`: 76 revalidations per board load).

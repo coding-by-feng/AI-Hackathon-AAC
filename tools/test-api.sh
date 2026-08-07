@@ -53,6 +53,9 @@ eq L1 "$(curl -s -o /dev/null -w '%{http_code}' -X POST $BASE/api/mcp -H 'conten
 eq L2 "$(curl -s -o /dev/null -w '%{http_code}' -X POST $BASE/api/mcp -H 'Authorization: Bearer wrong' -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"ping"}')" "401" "wrong token refused"
 eq L3 "$(curl -s -X POST $BASE/api/mcp -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | python3 -c 'import sys,json;n=len(json.load(sys.stdin)["result"]["tools"]);print("ok" if n>=14 else n)')" "ok" "at least 14 tools exposed"
 eq L4 "$(curl -s -X POST $BASE/api/mcp -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_children","arguments":{"adult_id":"adult_patel"}}}' | python3 -c 'import sys,json;print(len(json.loads(json.load(sys.stdin)["result"]["content"][0]["text"])["data"]["children"]))')" "5" "list_children returns 5"
+# An unknown window token must reject loudly, never silently fall back to 7d —
+# a model that asked for a month and got a week would caption it as a month.
+eq L5 "$(curl -s -X POST $BASE/api/mcp -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_metrics","arguments":{"child_id":"amara_o","metric_ids":["teacher_modeling"],"window":"28d"}}}' | python3 -c 'import sys,json;d=json.load(sys.stdin);print("rejected" if "not a window" in d.get("error",{}).get("message","") else "accepted")')" "rejected" "invalid window token rejected loudly"
 
 echo; echo "C. Categories"
 eq C1 "$(curl -s "$BASE/api/categories?child=maya_t" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)["categories"]))' )" "10" "categories seeded"

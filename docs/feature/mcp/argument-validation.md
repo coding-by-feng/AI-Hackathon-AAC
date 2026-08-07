@@ -112,3 +112,7 @@ Because unknown keys are a hard error, any parameter a tool's `run()` reads but 
 - **Adding validation of `additionalProperties`, `oneOf`, `$ref` or nested array item objects** is not supported today; a schema using them would validate more loosely than it reads.
 - **Adding a parameter to a tool's `run()` without adding it to that tool's `schema`** makes the parameter permanently unreachable over stdio while silently working over HTTP (which skips validation) — a divergence that is easy to miss.
 - **Changing the error message format** breaks nothing programmatically but degrades the one-retry self-correction behaviour the module exists to produce.
+
+> **2026-08-08:** `resolveWindow` (mcp/tools.ts) now throws `SQL_REJECTED` for an
+> unknown window token instead of silently defaulting to 7 days. All 7
+> window-taking tools inherit the rejection; `tools/test-api.sh` L5 pins it.

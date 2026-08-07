@@ -153,3 +153,8 @@ const freeVisuals  = sources.filter(s => s.resolved_by !== 'generated' && s.reso
 - **Wiring the "Add to her board" button** must go through a server action with `requireChild` — the pattern already used by `dismissAction` and `generateReportAction` — and should also make `unreviewedGapCount` review-aware, or the queue will keep scoring resolved gaps.
 - **Only `f.evidence[0]` is rendered.** A rule that fires with multiple evidence rows (e.g. I5 word pairs, I3 buried cards) shows only the first; widening this changes what every insight card displays.
 - **Changing `KpiTile`'s suppressed-state ordering** would let a small-sample value display as a real number, breaking the `n < min_n ⇒ null` contract that `mcp-api.md` §2 also depends on.
+
+> **2026-08-08:** Section order is now metrics → Findings → Report → Ask (Findings
+> moved to the bottom by request). Metric cards lay out as wrap-and-grow flex
+> (`basis-[300px] grow`, width-capped wrappers) inside a 1400 px max-width page —
+> one-card and orphan rows stretch to fill, no empty tracks at any width.

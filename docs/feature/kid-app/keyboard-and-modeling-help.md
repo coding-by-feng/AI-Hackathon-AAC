@@ -37,3 +37,6 @@ Modeling help exists because aided language stimulation only works if adults act
 - **Logging typed free text**: only sanitized concepts leave the machine; whether raw spelled strings are stored is consent-tier territory — verify what the shipped code actually logs before describing it here.
 - **Emitting `keyboard_input` without the fields ingest requires** silently drops the H2 source.
 - **Rearranging the board to fit the keyboard** would violate C4 (cards never move); the keyboard must overlay or dock, never reflow the grid.
+
+> **2026-08-08:** The keyboard layer honours Escape (it claims `aria-modal`, so the
+> modal keyboard contract applies — same fix the modelling-help dialog got earlier).

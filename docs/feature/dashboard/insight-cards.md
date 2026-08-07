@@ -155,3 +155,8 @@ Renders `EmptyState tone="good"` titled **"Nothing needs your attention here"** 
 - **`if (done) return null`** removes the card optimistically. If `dismissAction` throws after the write, or the `revalidatePath` fails, the card disappears while the row may or may not be updated — a refresh is the only way to find out.
 - **Removing `AND dismissed_at IS NULL`** from `dismissInsight` would let a second click overwrite the original `dismissed_by`, corrupting the only audit trail of who rejected a finding.
 - **Rendering `classification`** (currently carried but unused) would expose I1's `motor_share` / `semantic_share`; per constraint C1's safety note, ambiguous splits must default to the MOTOR reading, so any such UI needs the same defaulting the [Reach & errors](reach-and-errors.md) page already applies.
+
+> **2026-08-08:** "Yes — show me the detail" sets a `confirmed` state: opens the
+> evidence, scrolls it into view (reduced-motion aware), swaps the footer text, and
+> removes itself. It was previously `setOpen(true)` only — a no-op when the numbers
+> were already open (user-reported).

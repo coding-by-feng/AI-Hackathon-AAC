@@ -153,3 +153,11 @@ Speech-unavailable banner (rendered only once `speechChecked`): *"This browser c
 - **Changing the `composed` key format** (`${card_id}-${Date.now()}`) breaks `deleteLast`, which recovers the tap timestamp with `Number(last.key.split('-').at(-1))`; `ms_delta` would become `NaN` and `mistap_rate` would silently stop working.
 - **Renaming the `board_switch` event type** to match the `mode_switch` name in the metrics spec requires a matching change to the `TYPES` set in `lib/ingest.ts`, or every mode switch is rejected with `unknown event type`.
 - **Making `cards`/`categories` required in `BoardData`** re-introduces the hot-reload crash the optional fields were added to prevent.
+
+> **2026-08-08:** Card icons are responsive — `clamp(40px, 11vh, 112px)` capped at
+> card width with `aspect-ratio: 1` (see `CardFace` size prop, now `number | string`).
+> Card face column is `min-w-0 max-w-full` and labels wrap with `overflow-wrap:anywhere`
+> (long labels used to push icons past the card borders on phones). Grid gap and card
+> padding tighten below `sm:`. Live install currently has **no mode boards** (Snack
+> time removed by request at data level); the mode code path is unchanged and a
+> pipeline rebuild re-seeds them.
