@@ -1,0 +1,7 @@
+# The dashboard shows named children and their communication records.
+# It is behind a password, but a password is not a reason to let a crawler
+# archive these pages somewhere that outlives the demo — that part cannot be
+# undone afterwards. See docs/deploy.md.
+User-agent: *
+Disallow: /dashboard
+Disallow: /api

@@ -1,0 +1,5744 @@
+{
+  "version": 1,
+  "generated_at": "2026-08-07T11:16:46Z",
+  "generator": "extract-features",
+  "project_type": "mixed",
+  "domains": [
+    "kid-app",
+    "dashboard",
+    "api",
+    "auth",
+    "analytics",
+    "ai",
+    "database",
+    "mcp",
+    "pipeline",
+    "deploy"
+  ],
+  "features": [
+    {
+      "doc": "ai/ask-agent.md",
+      "name": "Ask Agent Loop",
+      "domain": "ai",
+      "sources": [
+        "lib/chat/agent.ts"
+      ],
+      "source_hashes": {
+        "lib/chat/agent.ts": "715d922891f0e0b093f732d5a4e662efabea3007"
+      },
+      "symbols": {
+        "functions": [
+          "runAgent",
+          "systemPrompt"
+        ],
+        "constants": {
+          "MAX_STEPS": "6",
+          "CLINICAL_RULES": "eight-point condensed block from docs/aac-clinical-constraints.md plus a READING THE DATA section"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "tool_call event",
+          "tool_result event",
+          "notice event",
+          "text event",
+          "forbidden event",
+          "regenerated event",
+          "done event",
+          "error event"
+        ],
+        "cli_commands": [],
+        "storage_keys": []
+      },
+      "depends_on": [
+        "ai/chat-providers.md",
+        "ai/forbidden-action-guard.md",
+        "ai/scoped-tool-bridge.md",
+        "mcp/tool-surface.md"
+      ],
+      "depended_on_by": [
+        "api/ask-chat-endpoint.md",
+        "dashboard/ask-panel.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "ai/chat-providers.md",
+      "name": "Chat Provider Split (OpenAI / Gemini)",
+      "domain": "ai",
+      "sources": [
+        "lib/chat/provider.ts",
+        "lib/chat/openai.ts",
+        "lib/chat/gemini.ts",
+        "lib/chat/schema-adapter.ts"
+      ],
+      "source_hashes": {
+        "lib/chat/provider.ts": "cd40f98f9cd0c1127b190cb12854322db4017280",
+        "lib/chat/openai.ts": "5adcd7821708d886ee8e7d0e4abdad44ccf1d838",
+        "lib/chat/gemini.ts": "cc49352fb7fd10a9f73284eb5e3f2ef90df30813",
+        "lib/chat/schema-adapter.ts": "f7404e7dc81aa03098651535d096b9d79d77dd36"
+      },
+      "symbols": {
+        "functions": [
+          "resolveProvider",
+          "requireKey",
+          "sseLines",
+          "OpenAIProvider.send",
+          "GeminiProvider.send",
+          "toOpenAIMessage",
+          "toGeminiContents",
+          "safeParse",
+          "toOpenAITools",
+          "toGeminiTools",
+          "geminiSchema",
+          "validateArgs"
+        ],
+        "constants": {
+          "ENDPOINT (openai.ts)": "https://api.openai.com/v1/chat/completions",
+          "BASE (gemini.ts)": "https://generativelanguage.googleapis.com/v1beta/models",
+          "GEMINI_ALLOWED": "type, description, properties, required, items, enum, nullable, format",
+          "GEMINI_TYPES": "string, number, integer, boolean, array, object",
+          "OpenAI default model": "gpt-5.1",
+          "Gemini default model": "gemini-2.5-pro",
+          "ProviderError.retryable": "status === 429 || status >= 500"
+        },
+        "endpoints": [
+          "POST https://api.openai.com/v1/chat/completions",
+          "POST https://generativelanguage.googleapis.com/v1beta/models/<model>:streamGenerateContent?alt=sse&key=<GEMINI_API_KEY>"
+        ],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "CHAT_PROVIDER",
+          "CHAT_MODEL",
+          "OPENAI_API_KEY",
+          "GEMINI_API_KEY"
+        ]
+      },
+      "depends_on": [
+        "mcp/argument-validation.md",
+        "mcp/tool-surface.md"
+      ],
+      "depended_on_by": [
+        "ai/ask-agent.md",
+        "ai/image-providers.md",
+        "ai/scoped-tool-bridge.md",
+        "api/ask-chat-endpoint.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "ai/forbidden-action-guard.md",
+      "name": "Forbidden-Action Guard",
+      "domain": "ai",
+      "sources": [
+        "lib/chat/guard.ts"
+      ],
+      "source_hashes": {
+        "lib/chat/guard.ts": "d3a0e61c91a3690ed139c2b8d32349cbb19469a6"
+      },
+      "symbols": {
+        "functions": [
+          "checkForbidden",
+          "correctionPrompt",
+          "explainForbidden"
+        ],
+        "constants": {
+          "PHRASES": "14 action keys with regex surface forms (resize_grid, move_card, remove_original, reduce_repetition, retrain_preference, reintroduce_refused_item, treat_refusal_as_deficit, demand_output, test_the_child, demand_imitation, blame_the_child, frame_as_regression, demand_transfer, drill_in_therapy)",
+          "GuardHit.matched": "m[0].slice(0, 90)",
+          "correction attempts": "1",
+          "explainForbidden output": "Cannot recommend: <names joined by ' \u00b7 '>"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "Cannot recommend: \u2026 label"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "insights_catalog.forbidden_actions"
+        ]
+      },
+      "depends_on": [
+        "analytics/fired-rules-and-evidence.md",
+        "mcp/tool-surface.md"
+      ],
+      "depended_on_by": [
+        "ai/ask-agent.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "ai/image-providers.md",
+      "name": "Image Provider Chain (Gemini / Vertex / OpenAI)",
+      "domain": "ai",
+      "sources": [
+        "lib/visuals/provider.ts",
+        "lib/visuals/gemini.ts",
+        "lib/visuals/vertex.ts",
+        "lib/visuals/openai.ts"
+      ],
+      "source_hashes": {
+        "lib/visuals/provider.ts": "512490f93cf4ebac5b242a647a107723941fefbf",
+        "lib/visuals/gemini.ts": "6df711073120d2ec3141e3360b0a251a68f9c473",
+        "lib/visuals/vertex.ts": "cbbe12d6f2351d342592e7f9c17f3fedbbdefae1",
+        "lib/visuals/openai.ts": "57c9903ceddf02119b5bf7175642d9721db0bff4"
+      },
+      "symbols": {
+        "functions": [
+          "activeProvider",
+          "providerModel",
+          "unconfiguredMessage",
+          "generate",
+          "embed",
+          "usable",
+          "generateWithGemini",
+          "embedWithGemini",
+          "geminiAvailable",
+          "generateWithVertex",
+          "embedWithVertex",
+          "vertexAvailable",
+          "accessToken",
+          "generateImages",
+          "cosine"
+        ],
+        "constants": {
+          "GEMINI_IMAGE_MODEL": "gemini-2.5-flash-image",
+          "VERTEX_IMAGE_MODEL": "imagen-4.0-fast-generate-001",
+          "IMAGE_MODEL (OpenAI)": "gpt-image-1",
+          "Vertex default location": "us-central1 ('global' treated as unset)",
+          "Vertex token cache TTL": "45 * 60 * 1000 ms",
+          "gcloud execFile timeout": "15_000 ms",
+          "Vertex safetySetting": "block_medium_and_above",
+          "Vertex personGeneration": "dont_allow",
+          "OpenAI image size": "1024x1024",
+          "OpenAI image quality": "low",
+          "OpenAI output_format": "webp",
+          "Gemini embedding model": "text-embedding-004",
+          "Vertex embedding model": "text-embedding-005",
+          "OpenAI embedding model": "text-embedding-3-small"
+        },
+        "endpoints": [
+          "POST https://generativelanguage.googleapis.com/v1beta/models/<GEMINI_IMAGE_MODEL>:generateContent?key=\u2026",
+          "POST https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=\u2026",
+          "POST https://<loc>-aiplatform.googleapis.com/v1/projects/<proj>/locations/<loc>/publishers/google/models/<VERTEX_IMAGE_MODEL>:predict",
+          "POST https://<loc>-aiplatform.googleapis.com/v1/projects/<proj>/locations/<loc>/publishers/google/models/text-embedding-005:predict",
+          "POST https://api.openai.com/v1/images/generations",
+          "POST https://api.openai.com/v1/embeddings"
+        ],
+        "ui_elements": [],
+        "cli_commands": [
+          "gcloud auth print-access-token"
+        ],
+        "storage_keys": [
+          "IMAGE_PROVIDER",
+          "GEMINI_API_KEY",
+          "GEMINI_IMAGE_MODEL",
+          "VERTEX_PROJECT",
+          "GOOGLE_CLOUD_PROJECT",
+          "VERTEX_LOCATION",
+          "GOOGLE_CLOUD_LOCATION",
+          "VERTEX_IMAGE_MODEL",
+          "OPENAI_API_KEY",
+          "IMAGE_MODEL"
+        ]
+      },
+      "depends_on": [
+        "ai/chat-providers.md"
+      ],
+      "depended_on_by": [
+        "ai/visual-cache.md",
+        "ai/visual-resolution-ladder.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "ai/scoped-tool-bridge.md",
+      "name": "Scoped Tool Bridge (in-process MCP)",
+      "domain": "ai",
+      "sources": [
+        "lib/chat/tools.ts"
+      ],
+      "source_hashes": {
+        "lib/chat/tools.ts": "bf6f525db1928fb14d881b45775805a9b757c57d"
+      },
+      "symbols": {
+        "functions": [
+          "toolsForScope",
+          "invokeTool",
+          "readCatalogueSummary",
+          "db"
+        ],
+        "constants": {
+          "SCOPED_PARAMS": "['child_id', 'class_id', 'adult_id']",
+          "EXCLUDED_FROM_CHAT": "new Set(['query'])",
+          "in-process call cost": "4.4 ms vs ~70 ms subprocess startup (~350 ms per question saved)"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "AAC_DB",
+          "globalThis.__aacChatDb",
+          "metrics_catalog"
+        ]
+      },
+      "depends_on": [
+        "auth/role-consent-scoping.md",
+        "database/schema.md",
+        "mcp/argument-validation.md",
+        "mcp/tool-surface.md"
+      ],
+      "depended_on_by": [
+        "ai/ask-agent.md",
+        "api/ask-chat-endpoint.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "ai/visual-cache.md",
+      "name": "Generated-Picture Cache",
+      "domain": "ai",
+      "sources": [
+        "lib/visuals/store.ts"
+      ],
+      "source_hashes": {
+        "lib/visuals/store.ts": "1a5e6746e07923b0eb51ca2a75c49d2ecbf54de3"
+      },
+      "symbols": {
+        "functions": [
+          "findExact",
+          "findSemantic",
+          "save",
+          "markUsed",
+          "stats",
+          "db",
+          "row"
+        ],
+        "constants": {
+          "APP_DB": "process.env.AAC_APP_DB ?? path.join(process.cwd(), 'aac_app.db')",
+          "findSemantic threshold": "0.88",
+          "PRAGMA journal_mode": "WAL",
+          "PRAGMA busy_timeout": "5000",
+          "visual_id format": "vis_ + crypto.randomUUID().slice(0, 12)",
+          "findExact ordering": "ORDER BY used_count DESC, created_at DESC LIMIT 1"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "AAC_APP_DB",
+          "aac_app.db",
+          "generated_visuals",
+          "ix_visuals_norm",
+          "globalThis.__aacVisuals"
+        ]
+      },
+      "depends_on": [
+        "ai/image-providers.md",
+        "ai/visual-prompt-and-sanitisation.md"
+      ],
+      "depended_on_by": [
+        "ai/visual-resolution-ladder.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "ai/visual-prompt-and-sanitisation.md",
+      "name": "Visual Prompt & Concept Sanitisation",
+      "domain": "ai",
+      "sources": [
+        "lib/visuals/sanitize.ts",
+        "lib/visuals/prompt.ts"
+      ],
+      "source_hashes": {
+        "lib/visuals/sanitize.ts": "9eb1e2265e7fbd81fbd98745b7547b0797a7d2ad",
+        "lib/visuals/prompt.ts": "26844f163a4dfc7bcf23cd104eb8b2371c4f3cac"
+      },
+      "symbols": {
+        "functions": [
+          "sanitizeConcept",
+          "normalizeConcept",
+          "toRequest",
+          "buildPrompt"
+        ],
+        "constants": {
+          "IDENTIFYING": "/\\b(mr|mrs|ms|miss|dr|mum|mummy|mom|dad|daddy|nan|nana|grandma|grandad)\\b/gi",
+          "concept length cap": "80 characters",
+          "STOPWORDS": "a, an, the, of, to, for, my, his, her, their, some, this, that, i, want, need, like, please, can, have, get, is, are, and (24 entries)",
+          "HOUSE_STYLE.illustration": "flat vector illustration with clean bold outlines and simple shapes",
+          "HOUSE_STYLE.background": "plain solid off-white background",
+          "HOUSE_STYLE.detail": "minimal detail, no shading, no gradients, no texture"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "generated_visuals.normalized_concept",
+          "generated_visuals.prompt"
+        ]
+      },
+      "depends_on": [],
+      "depended_on_by": [
+        "ai/image-providers.md",
+        "ai/visual-cache.md",
+        "ai/visual-resolution-ladder.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "ai/visual-resolution-ladder.md",
+      "name": "Visual Resolution Ladder",
+      "domain": "ai",
+      "sources": [
+        "lib/visuals/ladder.ts"
+      ],
+      "source_hashes": {
+        "lib/visuals/ladder.ts": "d139bb281bb3787f28daf9949c048a2f13b98a8f"
+      },
+      "symbols": {
+        "functions": [
+          "resolveVisual",
+          "logGap"
+        ],
+        "constants": {
+          "IMAGE_COST_USD": "0.02",
+          "EMBED_COST_USD": "0.00002",
+          "ResolvedBy": "icon_pack | card_library | hash_cache | semantic | generated | failed",
+          "session_id for gap events": "'visual-resolve'",
+          "default candidate count": "3",
+          "visual_source_split target": "at least 90% resolved before reaching generation",
+          "vocabulary_gaps min_n": "1",
+          "visual_source_split min_n": "10"
+        },
+        "endpoints": [
+          "POST /api/visuals"
+        ],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "gap_detected event type",
+          "payload.resolvedBy",
+          "payload.normalizedConcept",
+          "payload.msResolve",
+          "payload.costUsd"
+        ]
+      },
+      "depends_on": [
+        "ai/image-providers.md",
+        "ai/visual-cache.md",
+        "ai/visual-prompt-and-sanitisation.md",
+        "api/event-ingest.md",
+        "database/schema.md",
+        "kid-app/symbol-set.md"
+      ],
+      "depended_on_by": [
+        "analytics/metric-readers.md",
+        "api/visual-resolution-endpoint.md",
+        "dashboard/attention-queue.md",
+        "dashboard/student-overview.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "analytics/baseline-gating.md",
+      "name": "Baseline Gating",
+      "domain": "analytics",
+      "sources": [
+        "lib/baseline.ts"
+      ],
+      "source_hashes": {
+        "lib/baseline.ts": "9cd16f8776403f45096951d813a833d183835389"
+      },
+      "symbols": {
+        "functions": [
+          "baseline",
+          "rollingBaseline"
+        ],
+        "constants": {
+          "BASELINE_ACTIVE_DAYS": "14",
+          "BASELINE_MIN_UTTERANCES": "40",
+          "rollingBaseline days default": "28",
+          "progress": "Math.min(dayProgress, uttProgress)",
+          "ready": "activeDays >= 14 && utterances >= 40",
+          "stdev expression": "SQRT(AVG(value * value) - AVG(value) * AVG(value)) (population stdev)"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "BaselineBanner 'Still learning what is normal for {name}'",
+          "EmptyState 'No findings during the settling-in period'",
+          "KpiTile caption 'still learning what is normal'",
+          "baseline progress bar (width = progress * 100%)"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "utterances",
+          "agg_daily_metric"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md",
+        "pipeline/l2-rollup.md"
+      ],
+      "depended_on_by": [
+        "dashboard/attention-queue.md",
+        "dashboard/student-overview.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "analytics/data-dictionary.md",
+      "name": "Data Dictionary (metrics_catalog / insights_catalog reader)",
+      "domain": "analytics",
+      "sources": [
+        "lib/catalog.ts"
+      ],
+      "source_hashes": {
+        "lib/catalog.ts": "359cbebb2f4f5c0c92d18fc34d56532713833aa8"
+      },
+      "symbols": {
+        "functions": [
+          "metricCatalog",
+          "metric",
+          "shownMetrics",
+          "insightMeta",
+          "direction",
+          "formatValue",
+          "parseJson"
+        ],
+        "constants": {
+          "Polarity": "'higher_better' | 'lower_better' | 'neutral'",
+          "Tier": "'P0' | 'P1' | 'P2'",
+          "MetricStatus": "'shown' | 'logged' | 'cut'",
+          "min_n fallback": "1",
+          "formatValue ratio": "${Math.round(value * 100)}%",
+          "formatValue ms": "${(value / 1000).toFixed(1)} s",
+          "formatValue wpm": "${value.toFixed(1)} wpm",
+          "formatValue default threshold": "Math.abs(value) >= 10 ? Math.round(value) : value.toFixed(1)",
+          "formatValue null output": "'\u2014'"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "KpiTile delta tone (better/worse/flat)",
+          "KpiTile caption 'not a target' for neutral metrics"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "metrics_catalog",
+          "insights_catalog"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "analytics/fired-rules-and-evidence.md",
+        "analytics/metric-readers.md",
+        "dashboard/attention-queue.md",
+        "dashboard/reach-and-errors.md",
+        "dashboard/student-overview.md",
+        "mcp/tool-surface.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "analytics/fired-rules-and-evidence.md",
+      "name": "Fired Rules & Evidence",
+      "domain": "analytics",
+      "sources": [
+        "lib/insights.ts"
+      ],
+      "source_hashes": {
+        "lib/insights.ts": "7f3edddbd0fe6e56167c0cb0adf656204a949db7"
+      },
+      "symbols": {
+        "functions": [
+          "openInsights",
+          "insightHistory",
+          "openInsightCount",
+          "dismissInsight",
+          "splitEvidence",
+          "humanKey",
+          "humanEvidenceValue",
+          "hydrate",
+          "parse"
+        ],
+        "constants": {
+          "insightHistory limit default": "30",
+          "splitEvidence skipped keys": "child_id, window_start, window_end, triggered",
+          "threshold key detection": "startsWith('threshold_') || endsWith('_threshold_ms')",
+          "dismissed_at expression": "CAST(strftime('%s','now') AS INTEGER) * 1000",
+          "humanEvidenceValue rate format": "${(value * 100).toFixed(1)}%",
+          "humanEvidenceValue ms format": "${(value / 1000).toFixed(1)} s",
+          "humanEvidenceValue non-integer format": "value.toFixed(2)",
+          "DismissReason values": "not_accurate | already_known | not_actionable | disagree_with_advice | other"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "Insight card evidence values table",
+          "Insight card thresholds table",
+          "Dismiss reason menu (DISMISS_LABELS)"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "fired_rules",
+          "insights",
+          "insights_catalog"
+        ]
+      },
+      "depends_on": [
+        "analytics/data-dictionary.md",
+        "database/schema.md",
+        "mcp/tool-surface.md",
+        "pipeline/rule-materialisation.md"
+      ],
+      "depended_on_by": [
+        "api/insight-dismissal-action.md",
+        "dashboard/attention-queue.md",
+        "dashboard/student-overview.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "analytics/metric-readers.md",
+      "name": "Metric Readers",
+      "domain": "analytics",
+      "sources": [
+        "lib/metrics.ts"
+      ],
+      "source_hashes": {
+        "lib/metrics.ts": "9fe969c43753186ebe412e631a60ae440c3d7886"
+      },
+      "symbols": {
+        "functions": [
+          "readMetric",
+          "readMetrics",
+          "aggregate",
+          "rollupFor",
+          "silenceStreak",
+          "topCards",
+          "newWords",
+          "cellHeat",
+          "abandonmentTrend",
+          "suggestionFunnel",
+          "tapsSaved",
+          "vocabularyGaps",
+          "visualSourceSplit",
+          "eventTypeCollected"
+        ],
+        "constants": {
+          "ROLLUP.new_words": "'sum'",
+          "ROLLUP.teacher_modeling": "'sum'",
+          "ROLLUP.taps_saved": "'sum'",
+          "ROLLUP.vocabulary_gaps": "'sum'",
+          "ROLLUP.layout_stability": "'sum'",
+          "ROLLUP.cell_heat": "'sum'",
+          "ROLLUP.card_frequency": "'sum'",
+          "ROLLUP.word_pairs": "'sum'",
+          "ROLLUP.scene_distribution": "'sum'",
+          "ROLLUP.keyboard_use": "'sum'",
+          "ROLLUP.silence_streak": "'last'",
+          "ROLLUP.zero_activation_days": "'last'",
+          "ROLLUP.position_consistency": "'last'",
+          "default rollup": "'weighted_mean'",
+          "topCards limit": "8",
+          "newWords limit": "8",
+          "silenceStreak no-data fallback": "999",
+          "CardStat.days_since_last": "0 (hardcoded stub)",
+          "weighted_mean expression": "SUM(value * n) / NULLIF(SUM(n), 0)"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "KpiTile caption 'not recorded yet'",
+          "KpiTile caption 'too few to report (needs {min_n})'",
+          "KpiTile 'n = {n}' line"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "agg_daily_metric",
+          "agg_cell_heat",
+          "events",
+          "utterances",
+          "cards",
+          "boards",
+          "board_cells",
+          "board_revisions"
+        ]
+      },
+      "depends_on": [
+        "analytics/data-dictionary.md",
+        "database/schema.md",
+        "pipeline/l2-rollup.md"
+      ],
+      "depended_on_by": [
+        "dashboard/attention-queue.md",
+        "dashboard/reach-and-errors.md",
+        "dashboard/student-overview.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "api/ask-chat-endpoint.md",
+      "name": "Ask Chat Endpoint",
+      "domain": "api",
+      "sources": [
+        "app/api/chat/route.ts"
+      ],
+      "source_hashes": {
+        "app/api/chat/route.ts": "6d253d7bb96dd423b7803685e0128c67de852e61"
+      },
+      "symbols": {
+        "functions": [
+          "POST",
+          "GET",
+          "json",
+          "currentViewer",
+          "visibleChildren",
+          "requireChild",
+          "runAgent",
+          "toolsForScope"
+        ],
+        "constants": {
+          "MAX_MESSAGE": "2000",
+          "MAX_HISTORY": "12",
+          "runtime": "nodejs",
+          "dynamic": "force-dynamic",
+          "content-type": "text/event-stream; charset=utf-8",
+          "cache-control": "no-cache, no-transform",
+          "x-accel-buffering": "no",
+          "SSE terminator": "data: [DONE]\\n\\n",
+          "no-children status": "403 'No children are shared with your account.'",
+          "NOT_AUTHORISED mapping": "403, all other scope errors 500",
+          "provider default": "process.env.CHAT_PROVIDER ?? 'openai'"
+        },
+        "endpoints": [
+          "POST /api/chat",
+          "GET /api/chat"
+        ],
+        "ui_elements": [
+          "components/chat/ask-panel.tsx (SSE reader, tool chips, buffered text via requestAnimationFrame)"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "cookie aac_adult",
+          "AAC_DB",
+          "CHAT_PROVIDER",
+          "globalThis.__aacChatDb"
+        ]
+      },
+      "depends_on": [
+        "ai/ask-agent.md",
+        "ai/scoped-tool-bridge.md",
+        "auth/host-surface-routing.md",
+        "auth/role-consent-scoping.md",
+        "mcp/tool-surface.md"
+      ],
+      "depended_on_by": [
+        "dashboard/ask-panel.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "api/board-content-endpoints.md",
+      "name": "Board Content Endpoints",
+      "domain": "api",
+      "sources": [
+        "app/api/cards/route.ts",
+        "app/api/categories/route.ts"
+      ],
+      "source_hashes": {
+        "app/api/cards/route.ts": "dc04c1c1573d051765d17d0e129d4aa7b0ebff29",
+        "app/api/categories/route.ts": "ac22010d6640d6dcae8baa75c99a9fbf59ff2638"
+      },
+      "symbols": {
+        "functions": [
+          "GET",
+          "PUT",
+          "DELETE",
+          "POST",
+          "saveOverride",
+          "clearOverride",
+          "clearPhoto",
+          "overridesFor",
+          "allSymbolNames",
+          "categoriesForChild",
+          "createCategory",
+          "renameCategory",
+          "deleteCategory",
+          "addWord",
+          "updateWord",
+          "removeWord",
+          "setShown",
+          "reorderForChild"
+        ],
+        "constants": {
+          "MAX_IMAGE_BYTES": "400_000",
+          "imageData regex": "/^data:image\\/(png|jpeg|webp);base64,/",
+          "card_created session_id": "'card-edit'",
+          "card_created actor": "'adult'",
+          "payload.origin": "'photo' when imageData present, else 'manual'",
+          "category actions": "create \u00b7 rename \u00b7 delete \u00b7 show \u00b7 reorder \u00b7 add-word \u00b7 update-word \u00b7 remove-word (8)",
+          "createCategory createdBy": "'adult' (hardcoded in the route)",
+          "unknown card status": "404 \"Unknown card '<id>'\"",
+          "dynamic": "force-dynamic"
+        },
+        "endpoints": [
+          "GET /api/cards?child=<childId>",
+          "PUT /api/cards",
+          "DELETE /api/cards?child=&card=&photoOnly=1",
+          "GET /api/categories?child=<childId>",
+          "POST /api/categories"
+        ],
+        "ui_elements": [
+          "components/kid/edit-sheet.tsx (label, word form, spoken text, symbol picker, photo upload, reset)",
+          "components/kid/category-editor.tsx"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "aac_app.db card_overrides",
+          "aac_app.db categories",
+          "aac_app.db category_words",
+          "aac_app.db child_categories",
+          "aac.db events (card_created)",
+          "AAC_APP_DB"
+        ]
+      },
+      "depends_on": [
+        "api/event-ingest.md",
+        "database/schema.md",
+        "kid-app/card-customisation.md",
+        "kid-app/category-folders.md",
+        "kid-app/symbol-set.md"
+      ],
+      "depended_on_by": [
+        "dashboard/student-overview.md",
+        "kid-app/card-customisation.md",
+        "kid-app/category-folders.md",
+        "kid-app/communication-board.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "api/event-ingest.md",
+      "name": "Event Ingest",
+      "domain": "api",
+      "sources": [
+        "app/api/events/route.ts",
+        "lib/ingest.ts"
+      ],
+      "source_hashes": {
+        "app/api/events/route.ts": "16d17eb5ff73b1af945b497c2db53592433139e0",
+        "lib/ingest.ts": "785474652b029c1311ac169ec174221122317c3c"
+      },
+      "symbols": {
+        "functions": [
+          "POST",
+          "ingestEvents",
+          "validate",
+          "db"
+        ],
+        "constants": {
+          "SCENES": "therapy \u00b7 classroom \u00b7 free_play \u00b7 home \u00b7 community \u00b7 unknown",
+          "ACTORS": "child \u00b7 adult",
+          "TYPES": "card_tap \u00b7 speak \u00b7 delete_last \u00b7 abandon \u00b7 board_switch \u00b7 scene_change \u00b7 listen \u00b7 suggestion_shown \u00b7 suggestion_tap \u00b7 gap_detected \u00b7 card_created \u00b7 keyboard_input \u00b7 session_start \u00b7 session_end (14)",
+          "SOURCES": "board \u00b7 suggestion \u00b7 essential \u00b7 recent \u00b7 search \u00b7 keyboard",
+          "DB_PATH": "process.env.AAC_DB ?? path.join(process.cwd(), 'aac.db')",
+          "max events per request": "500 (413 above)",
+          "PRAGMA busy_timeout": "5000",
+          "PRAGMA foreign_keys": "ON",
+          "dynamic": "force-dynamic"
+        },
+        "endpoints": [
+          "POST /api/events"
+        ],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "aac.db events table",
+          "AAC_DB",
+          "connect() cache key 'aac:ingest'"
+        ]
+      },
+      "depends_on": [
+        "database/connection-layer.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "api/board-content-endpoints.md",
+        "api/sign-in-endpoints.md",
+        "api/visual-resolution-endpoint.md",
+        "kid-app/event-logging.md",
+        "pipeline/l2-rollup.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "api/insight-dismissal-action.md",
+      "name": "Insight Dismissal Action",
+      "domain": "api",
+      "sources": [
+        "app/actions.ts"
+      ],
+      "source_hashes": {
+        "app/actions.ts": "2591d60b164fef47c2f92f01d6b0834594307e84"
+      },
+      "symbols": {
+        "functions": [
+          "dismissAction",
+          "currentViewer",
+          "requireChild",
+          "dismissInsight",
+          "one",
+          "revalidatePath"
+        ],
+        "constants": {
+          "DismissReason": "not_accurate \u00b7 already_known \u00b7 not_actionable \u00b7 disagree_with_advice \u00b7 other",
+          "unknown finding error": "'Unknown finding'",
+          "dismissal guard": "UPDATE \u2026 WHERE fired_rule_id = ? AND dismissed_at IS NULL",
+          "revalidated paths": "/dashboard/student/<child_id> then /dashboard",
+          "module directive": "'use server'"
+        },
+        "endpoints": [
+          "Server Action dismissAction(firedRuleId, reason)"
+        ],
+        "ui_elements": [
+          "insight card dismiss menu: \"That's not what's happening\", 'I already knew this', 'Nothing I can do about it now', 'I disagree with the advice', 'Another reason'"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "aac.db fired_rules (dismissed_at, dismissed_by, dismiss_reason)",
+          "cookie aac_adult"
+        ]
+      },
+      "depends_on": [
+        "analytics/fired-rules-and-evidence.md",
+        "auth/role-consent-scoping.md",
+        "dashboard/insight-cards.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "dashboard/attention-queue.md",
+        "dashboard/insight-cards.md",
+        "dashboard/student-overview.md",
+        "mcp/tool-surface.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "api/mcp-http-transport.md",
+      "name": "MCP HTTP Transport",
+      "domain": "api",
+      "sources": [
+        "app/api/mcp/route.ts"
+      ],
+      "source_hashes": {
+        "app/api/mcp/route.ts": "db112f12be6e5c495335a257f5f78d1b82b6575c"
+      },
+      "symbols": {
+        "functions": [
+          "POST",
+          "GET",
+          "handle",
+          "authorised",
+          "db"
+        ],
+        "constants": {
+          "PROTOCOL_VERSION": "2025-06-18",
+          "ROOT": "process.cwd()",
+          "DB_PATH": "process.env.AAC_DB ?? path.join(ROOT, 'aac.db')",
+          "serverInfo": "{ name: 'aac-analytics', version: '1.0.0' }",
+          "unauthorised error code": "-32001 (HTTP 401)",
+          "parse error code": "-32700 (HTTP 200)",
+          "generic error code": "-32000 with data.code",
+          "notification response": "HTTP 204, empty body",
+          "methods": "initialize \u00b7 tools/list \u00b7 tools/call \u00b7 resources/list \u00b7 resources/read \u00b7 ping",
+          "resources": "schema://ddl \u00b7 schema://dictionary \u00b7 schema://insights \u00b7 schema://interpretation-guide (4; sample-questions not implemented)",
+          "Db mode": "new Db(DB_PATH) \u2014 read-only, no allowWrites",
+          "dynamic": "force-dynamic"
+        },
+        "endpoints": [
+          "POST /api/mcp",
+          "GET /api/mcp"
+        ],
+        "ui_elements": [],
+        "cli_commands": [
+          "tools/test-api.sh L1\u2013L4 (401 no token, 401 wrong token, tools/list \u226514, tools/call list_children = 5)"
+        ],
+        "storage_keys": [
+          "AAC_MCP_TOKEN",
+          "AAC_DB",
+          "globalThis.__mcpDb",
+          "db/schema.sql",
+          "docs/aac-clinical-constraints.md"
+        ]
+      },
+      "depends_on": [
+        "auth/host-surface-routing.md",
+        "database/schema.md",
+        "mcp/read-only-db-access.md",
+        "mcp/tool-surface.md"
+      ],
+      "depended_on_by": [
+        "mcp/stdio-server.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "api/print-and-generate.md",
+      "name": "Reporting Endpoints",
+      "domain": "api",
+      "sources": [
+        "app/api/reports/route.ts",
+        "app/api/reports/[id]/print/route.ts"
+      ],
+      "source_hashes": {
+        "app/api/reports/route.ts": "b964331a89e677c97f8f31802ff10edb33ec9253",
+        "app/api/reports/[id]/print/route.ts": "d976911d2cbd9a96477673950e3e690168162027"
+      },
+      "symbols": {
+        "functions": [
+          "POST",
+          "GET",
+          "json",
+          "esc",
+          "generateReport",
+          "readReport",
+          "windowOf",
+          "currentViewer",
+          "visibleChildren",
+          "requireChild"
+        ],
+        "constants": {
+          "accepted days": "[7, 28, 90], default 28",
+          "success status (POST)": "201",
+          "runtime": "nodejs",
+          "dynamic": "force-dynamic",
+          "print content-type": "text/html; charset=utf-8",
+          "print cache-control": "no-store",
+          "@page margin": "18mm",
+          "body font": "12pt/1.55 Georgia, serif",
+          "body max-width": "46em",
+          "h1 size": "18pt",
+          "h2 size": "11pt uppercase, letter-spacing .04em",
+          "footer size": "9pt #777",
+          "esc() coverage": "& < > \" (not ')",
+          "not-found body": "404 'Not found'",
+          "not-authorised body": "403 'Not authorised'",
+          "canonical metric set": "SELECT metric_id FROM metrics_catalog WHERE report_set = 1"
+        },
+        "endpoints": [
+          "POST /api/reports",
+          "GET /api/reports/[id]/print"
+        ],
+        "ui_elements": [
+          "print page: h1 display_name, .meta period line, Measure/Result table, 'In plain words', 'How to read these numbers', footer, .noprint 'Use your browser's Print dialog and choose \u201cSave as PDF\u201d.'"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "aac.db reports table",
+          "cookie aac_adult"
+        ]
+      },
+      "depends_on": [
+        "auth/role-consent-scoping.md",
+        "dashboard/progress-reports.md",
+        "database/connection-layer.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "dashboard/progress-reports.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "api/sign-in-endpoints.md",
+      "name": "Sign-in Endpoints",
+      "domain": "api",
+      "sources": [
+        "app/api/auth/route.ts",
+        "app/api/session/route.ts"
+      ],
+      "source_hashes": {
+        "app/api/auth/route.ts": "79a79f925377674b378f3cabd1e5d8e29e563f25",
+        "app/api/session/route.ts": "39c29ca48a97d39d46c5a24142a23754ef6bea79"
+      },
+      "symbols": {
+        "functions": [
+          "POST",
+          "GET",
+          "DELETE",
+          "today",
+          "authenticate",
+          "signIn",
+          "signOut",
+          "accountCount",
+          "createAccount",
+          "setCurrentChild",
+          "clearCurrentChild",
+          "checkPasscode",
+          "childProfile"
+        ],
+        "constants": {
+          "MAX_AGE (aac_adult, aac_child)": "60 * 60 * 12 seconds",
+          "minimum username length": "3 characters",
+          "minimum password length": "8 characters",
+          "setup-closed status": "409 'Setup is closed \u2014 an account already exists'",
+          "bad-credentials status": "401 'Those details do not match'",
+          "bad-passcode response": "200 { ok: false, reason: 'passcode' }",
+          "session_start payload": "{\"via\":\"sign_in\"}",
+          "session_end payload": "{\"endReason\":\"normal\",\"via\":\"sign_out\"}",
+          "dynamic": "force-dynamic"
+        },
+        "endpoints": [
+          "POST /api/auth",
+          "GET /api/auth",
+          "DELETE /api/auth",
+          "POST /api/session",
+          "DELETE /api/session?child=<id>"
+        ],
+        "ui_elements": [
+          "components/login-form.tsx (username, password, confirm, 'This account is for' select)",
+          "components/kid/who-picker.tsx (photo tiles, 3-symbol picture passcode)"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "cookie aac_adult",
+          "cookie aac_child",
+          "aac_app.db adult_credentials",
+          "aac_app.db child_passcodes",
+          "AAC_SESSION_SECRET",
+          "AAC_APP_DB",
+          "AAC_VIEWER"
+        ]
+      },
+      "depends_on": [
+        "api/event-ingest.md",
+        "auth/adult-sign-in.md",
+        "auth/host-surface-routing.md",
+        "database/schema.md",
+        "kid-app/child-sign-in.md"
+      ],
+      "depended_on_by": [
+        "auth/login-page.md",
+        "auth/role-consent-scoping.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/communication-board.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "api/visual-resolution-endpoint.md",
+      "name": "Visual Resolution Endpoint",
+      "domain": "api",
+      "sources": [
+        "app/api/visuals/route.ts"
+      ],
+      "source_hashes": {
+        "app/api/visuals/route.ts": "ca017c56096ee5b32250b0e6798cfc04bc0bcfec"
+      },
+      "symbols": {
+        "functions": [
+          "POST",
+          "resolveVisual"
+        ],
+        "constants": {
+          "maxDuration": "60",
+          "dynamic": "force-dynamic",
+          "IMAGE_COST_USD": "0.02",
+          "EMBED_COST_USD": "0.00002",
+          "forceGenerate": "body.force === true (strict)",
+          "createdBy": "'adult' when childId present, else null",
+          "failed-resolution status": "502",
+          "resolvedBy values": "icon_pack \u00b7 card_library \u00b7 hash_cache \u00b7 semantic \u00b7 generated \u00b7 failed",
+          "generated candidates": "3"
+        },
+        "endpoints": [
+          "POST /api/visuals"
+        ],
+        "ui_elements": [],
+        "cli_commands": [
+          "tools/test-api.sh (curl POST /api/visuals, --max-time 90)"
+        ],
+        "storage_keys": [
+          "aac.db events (gap_detected, session_id 'visual-resolve')",
+          "visual cache in aac_app.db"
+        ]
+      },
+      "depends_on": [
+        "ai/image-providers.md",
+        "ai/visual-cache.md",
+        "ai/visual-resolution-ladder.md",
+        "api/event-ingest.md",
+        "kid-app/symbol-set.md"
+      ],
+      "depended_on_by": [
+        "dashboard/student-overview.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "auth/adult-sign-in.md",
+      "name": "Adult Sign-In",
+      "domain": "auth",
+      "sources": [
+        "lib/auth.ts"
+      ],
+      "source_hashes": {
+        "lib/auth.ts": "67a66e16e946ae3081bed8f6226d2f933d3fd849"
+      },
+      "symbols": {
+        "functions": [
+          "db",
+          "hashPassword",
+          "verifyPassword",
+          "accountCount",
+          "createAccount",
+          "authenticate",
+          "secret",
+          "sign",
+          "mint",
+          "read",
+          "isHttps",
+          "signIn",
+          "signOut",
+          "currentAdultId"
+        ],
+        "constants": {
+          "APP_DB": "process.env.AAC_APP_DB ?? path.join(process.cwd(), 'aac_app.db')",
+          "COOKIE": "'aac_adult'",
+          "MAX_AGE": "60 * 60 * 12 (43200 seconds = 12 hours)",
+          "scrypt keylen": "64",
+          "scrypt salt": "randomBytes(16)",
+          "decoy password": "'decoy-so-timing-matches'",
+          "PRAGMA busy_timeout": "5000",
+          "PRAGMA journal_mode": "WAL",
+          "cookie sameSite": "'lax'",
+          "cookie path": "'/'",
+          "min username length": "3",
+          "min password length": "8"
+        },
+        "endpoints": [
+          "POST /api/auth",
+          "DELETE /api/auth",
+          "GET /api/auth"
+        ],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "aac_app.db",
+          "adult_credentials",
+          "aac_adult (cookie)",
+          "AAC_APP_DB",
+          "AAC_SESSION_SECRET",
+          "globalThis.__aacAuth",
+          "adults (aac.db)"
+        ]
+      },
+      "depends_on": [
+        "database/connection-layer.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "api/sign-in-endpoints.md",
+        "auth/host-surface-routing.md",
+        "auth/login-page.md",
+        "auth/role-consent-scoping.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "auth/host-surface-routing.md",
+      "name": "Host and Surface Routing",
+      "domain": "auth",
+      "sources": [
+        "middleware.ts"
+      ],
+      "source_hashes": {
+        "middleware.ts": "d41207263814ce052872bf511425338586e2836d"
+      },
+      "symbols": {
+        "functions": [
+          "surfaceFor",
+          "allowed",
+          "middleware"
+        ],
+        "constants": {
+          "SHARED": "['/manifest.webmanifest', '/icon.svg', '/sw.js', '/favicon.ico', '/robots.txt']",
+          "KID_PREFIXES": "['/who', '/api/session', '/api/events', '/api/cards', '/api/visuals', '/api/categories']",
+          "DASH_PREFIXES": "['/dashboard', '/login', '/api/dashboard', '/api/auth', '/api/chat', '/api/reports']",
+          "PUBLIC_DASH": "['/login', '/api/auth']",
+          "Surface": "'kid' | 'dashboard' | 'mcp' | 'any'",
+          "dashboard host prefix": "'aac-dashboard.'",
+          "mcp host prefix": "'aac-mcp.'",
+          "kid host prefix": "'aac.'",
+          "X-Robots-Tag": "'noindex, nofollow, noarchive, nosnippet'",
+          "config.matcher": "['/((?!_next/static|_next/image).*)']",
+          "disallowed-path response": "new NextResponse('Not found', { status: 404 })"
+        },
+        "endpoints": [
+          "GET / (dashboard host) -> rewrite to /dashboard when aac_adult present, else 307 redirect to /login",
+          "GET /dashboard/* -> 307 redirect to /login when aac_adult absent",
+          "* (path not allowed for surface) -> 404 'Not found'"
+        ],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "aac_adult (cookie)"
+        ]
+      },
+      "depends_on": [
+        "auth/adult-sign-in.md",
+        "auth/login-page.md",
+        "deploy/cloudflare-tunnel-ingress.md"
+      ],
+      "depended_on_by": [
+        "api/event-ingest.md",
+        "api/mcp-http-transport.md",
+        "auth/login-page.md",
+        "dashboard/dashboard-shell.md",
+        "kid-app/communication-board.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "auth/login-page.md",
+      "name": "Login Page and First-Run Setup",
+      "domain": "auth",
+      "sources": [
+        "app/login/page.tsx",
+        "components/login-form.tsx"
+      ],
+      "source_hashes": {
+        "app/login/page.tsx": "3ecb0d8c5cc876baea30c4cc275c874fcc9aeb01",
+        "components/login-form.tsx": "c98f3b5fa4560e3f65a6b2186eeb17956cf5f1d7"
+      },
+      "symbols": {
+        "functions": [
+          "LoginPage",
+          "LoginForm",
+          "submit",
+          "accountCount"
+        ],
+        "constants": {
+          "dynamic": "'force-dynamic'",
+          "password minLength (setup mode)": "8",
+          "redirect target on success": "'/dashboard'",
+          "setup body": "{ username, password, adultId, setup: true }",
+          "sign-in body": "{ username, password }",
+          "mismatch error": "'The two passwords do not match'",
+          "network error": "'Could not reach the server'",
+          "fallback error": "'Could not sign in'",
+          "bad credentials error (401)": "'Those details do not match'",
+          "setup closed error (409)": "'Setup is closed \u2014 an account already exists'",
+          "roster query": "SELECT adult_id, display_name, role FROM adults ORDER BY display_name"
+        },
+        "endpoints": [
+          "POST /api/auth"
+        ],
+        "ui_elements": [
+          "h1 'Set up the dashboard' / 'Sign in'",
+          "select 'This account is for' (options: {display_name} \u2014 {role})",
+          "helper 'Which children you can see is decided by the roster, not by this account.'",
+          "input 'Username' (autoComplete=username, autoCapitalize=none, required)",
+          "input 'Password' (type=password, autoComplete=new-password|current-password, required, minLength 8 in setup)",
+          "helper 'At least 8 characters.'",
+          "input 'Password again' (setup only)",
+          "error box (--color-alert-soft / --color-alert)",
+          "submit button 'Create account and sign in' / 'Sign in' / 'Working\u2026' (disabled while busy)",
+          "warning banner 'This page is reachable by anyone until the first account is created. Claim it now.'"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "adults",
+          "adult_credentials"
+        ]
+      },
+      "depends_on": [
+        "api/sign-in-endpoints.md",
+        "auth/adult-sign-in.md",
+        "auth/host-surface-routing.md",
+        "database/connection-layer.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "auth/host-surface-routing.md",
+        "dashboard/dashboard-shell.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "auth/role-consent-scoping.md",
+      "name": "Role and Consent Scoping",
+      "domain": "auth",
+      "sources": [
+        "lib/access.ts"
+      ],
+      "source_hashes": {
+        "lib/access.ts": "9e13e57502e4553b2f3cd5c2825cd13a2407ea18"
+      },
+      "symbols": {
+        "functions": [
+          "currentViewer",
+          "visibleChildren",
+          "requireChild",
+          "consentTiers",
+          "canSee",
+          "lockReason"
+        ],
+        "constants": {
+          "TIER_RELATIONS.aggregate": "['teacher', 'parent', 'slt']",
+          "TIER_RELATIONS.card_labels": "['teacher', 'parent', 'slt']",
+          "TIER_RELATIONS.utterance_text": "['parent', 'slt']",
+          "TIER_RELATIONS.partner_speech": "['slt']",
+          "RELATION_NAME": "{ teacher: 'teachers', parent: 'parents', slt: 'speech therapists' }",
+          "Relation": "'teacher' | 'parent' | 'slt'",
+          "ConsentTier": "'aggregate' | 'card_labels' | 'utterance_text' | 'partner_speech'",
+          "Viewer.role": "'teacher' | 'parent' | 'slt' | 'admin'",
+          "NOT_SIGNED_IN": "thrown Error message when no session and no AAC_VIEWER fallback, or adult_id missing from adults",
+          "NOT_AUTHORISED": "`NOT_AUTHORISED: ${viewer.adult_id} has no active roster row for ${childId}`",
+          "roster expiry predicate": "r.expires_at IS NULL OR r.expires_at > CAST(strftime('%s','now') AS INTEGER) * 1000"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "ConsentLock panel (\ud83d\udd12 title, lockReason body, 'You can see' / 'You cannot see' list)"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "AAC_VIEWER",
+          "adults",
+          "roster",
+          "consent"
+        ]
+      },
+      "depends_on": [
+        "auth/adult-sign-in.md",
+        "database/connection-layer.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "dashboard/ask-panel.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "mcp/tool-surface.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "dashboard/ask-panel.md",
+      "name": "Ask Panel",
+      "domain": "dashboard",
+      "sources": [
+        "components/chat/ask-panel.tsx",
+        "app/dashboard/ask/page.tsx",
+        "app/dashboard/student/[id]/ask/page.tsx"
+      ],
+      "source_hashes": {
+        "components/chat/ask-panel.tsx": "625d3d0a5c05928cda800ab6efaa3144b9c0fddb",
+        "app/dashboard/ask/page.tsx": "d7fd626393b65a78bcfac7667aad4d4bb016df8a",
+        "app/dashboard/student/[id]/ask/page.tsx": "1a7ab4debffaf17bfd49f5cbd53039cca28c87e5"
+      },
+      "symbols": {
+        "functions": [
+          "AskPanel",
+          "AssistantTurn",
+          "NoticeRow",
+          "ask",
+          "patch",
+          "flush",
+          "ClassAskPage",
+          "StudentAskPage",
+          "visibleChildren",
+          "requireChild"
+        ],
+        "constants": {
+          "input maxLength": "2000",
+          "panel min height": "28rem",
+          "SSE event types handled": "text \u00b7 tool_call \u00b7 tool_result \u00b7 notice \u00b7 forbidden \u00b7 regenerated \u00b7 error \u00b7 done",
+          "stream sentinel ignored": "[DONE]",
+          "in-flight tool marker": "ms === 0",
+          "TOOL_LABELS entries": "13 (list_children, get_child_profile, get_metrics, get_metric_timeseries, get_card_stats, get_cell_heat, get_word_pairs, get_scene_breakdown, get_utterances, get_partner_metrics, get_board_revisions, get_fired_rules, get_attention_queue)",
+          "solo detection (class Ask)": "children.length === 1",
+          "suggestion chip visibility": "turns.length === 0",
+          "history filter": "turns without an error only",
+          "text flush cadence": "one requestAnimationFrame"
+        },
+        "endpoints": [
+          "POST /api/chat  {message, childId?, history[]} -> data: SSE stream",
+          "GET /dashboard/ask",
+          "GET /dashboard/student/{id}/ask"
+        ],
+        "ui_elements": [
+          "Ask",
+          "Your class",
+          "Send",
+          "Stop",
+          "looked at",
+          "Reading the data\u2026",
+          "REWRITTEN",
+          "Or open a child directly:",
+          "Who needs attention today, and why?",
+          "Has anyone gone quiet this week?",
+          "Which children have open findings?",
+          "Where are we spending on generated images?",
+          "What changed for {first} this month?",
+          "Are there any open findings, and what caused them?",
+          "What should I try next?",
+          "Which of these matters most?",
+          "What does the pairs number mean?",
+          "No children shared with you"
+        ],
+        "cli_commands": [],
+        "storage_keys": []
+      },
+      "depends_on": [
+        "api/ask-chat-endpoint.md",
+        "auth/role-consent-scoping.md",
+        "dashboard/dashboard-shell.md",
+        "mcp/tool-surface.md"
+      ],
+      "depended_on_by": [
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "dashboard/attention-queue.md",
+      "name": "Attention Queue (Class View)",
+      "domain": "dashboard",
+      "sources": [
+        "app/dashboard/page.tsx",
+        "lib/queue.ts"
+      ],
+      "source_hashes": {
+        "app/dashboard/page.tsx": "e763ee93d1eaecc368268c251c4e821bdde420e1",
+        "lib/queue.ts": "fe7f3d6f4a69cabc160a53d47fef87ed54d1d74e"
+      },
+      "symbols": {
+        "functions": [
+          "ClassPage",
+          "buildQueue",
+          "unreviewedGapCount",
+          "analysisFreshness",
+          "rollupThrough",
+          "classesFor",
+          "silenceStreak",
+          "readMetric",
+          "openInsights",
+          "baseline",
+          "formatValue"
+        ],
+        "constants": {
+          "SCORE.silence": "3",
+          "SCORE.abandonment": "2",
+          "SCORE.mistap": "2",
+          "SCORE.gaps": "1",
+          "SCORE.openInsight": "1",
+          "THRESHOLD.silenceDays": "2",
+          "THRESHOLD.abandonment": "0.25",
+          "THRESHOLD.mistap": "0.12",
+          "THRESHOLD.gaps": "3",
+          "buildQueue days default": "7",
+          "maximum possible score": "9",
+          "reason codes": "SILENCE \u00b7 ABANDONMENT \u00b7 MISTAP \u00b7 GAPS \u00b7 INSIGHT",
+          "classesFor fallback": "'Class'",
+          "ageHours divisor": "3_600_000"
+        },
+        "endpoints": [
+          "GET /dashboard",
+          "GET /dashboard/student/{child_id}"
+        ],
+        "ui_elements": [
+          "Needs a person today",
+          "Ranked by how much is going wrong, not by how much they talk",
+          "Nothing needs you today",
+          "Open",
+          "priority",
+          "Everyone",
+          "Child",
+          "Last spoke",
+          "Presses per sentence",
+          "Own words",
+          "New words",
+          "Notes",
+          "settling in \u00b7 {n}%",
+          "{names} is/are within their usual range today."
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "events",
+          "agg_daily_metric",
+          "fired_rules",
+          "classes",
+          "children"
+        ]
+      },
+      "depends_on": [
+        "analytics/baseline-gating.md",
+        "analytics/fired-rules-and-evidence.md",
+        "analytics/metric-readers.md",
+        "auth/role-consent-scoping.md",
+        "dashboard/dashboard-shell.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "dashboard/ask-panel.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/student-overview.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "dashboard/dashboard-shell.md",
+      "name": "Dashboard Shell & Primitives",
+      "domain": "dashboard",
+      "sources": [
+        "app/dashboard/layout.tsx",
+        "app/dashboard/error.tsx",
+        "app/error.tsx",
+        "components/status.tsx",
+        "components/ui.tsx"
+      ],
+      "source_hashes": {
+        "app/dashboard/layout.tsx": "c2b9b71f175241298d17546a4d3ad2ee18d970c2",
+        "app/dashboard/error.tsx": "0943d1da2f7c94e3330f23bae0bc9d1673706739",
+        "app/error.tsx": "7f5d996f610ec0b00407413c97ca8830cf28842b",
+        "components/status.tsx": "e98b4fbe633a7f0f1e875b562b3b1ba2e80b8b34",
+        "components/ui.tsx": "b32586eec5eaac7736e03ca4f49f01234a0fa8ec"
+      },
+      "symbols": {
+        "functions": [
+          "DashboardLayout",
+          "DashboardError",
+          "Error",
+          "say",
+          "AnalysisFreshness",
+          "ConsentLock",
+          "BaselineBanner",
+          "StudentTabs",
+          "Panel",
+          "Bar",
+          "EmptyState",
+          "NotCollected",
+          "Pill",
+          "Sparkline"
+        ],
+        "constants": {
+          "stale (AnalysisFreshness)": "ageHours > 36",
+          "AnalysisFreshness wording cutover": "ageHours < 24 -> '{n} h ago', else '{n} days ago'",
+          "Bar minimum rendered width": "Math.max(2, round(value/max*100))%",
+          "Sparkline default height": "36",
+          "Sparkline minimum points": "2 (returns null below)",
+          "Sparkline max floor": "0.0001",
+          "FALLBACK": "help \u00b7 stop \u00b7 yes \u00b7 no \u00b7 toilet \u00b7 hurt",
+          "FALLBACK button minHeight": "88",
+          "signedOut match": "error.message.includes('NOT_SIGNED_IN')",
+          "notAuthorised match": "error.message.startsWith('NOT_AUTHORISED')",
+          "StudentTabs keys": "report \u00b7 overview \u00b7 access \u00b7 ai-impact \u00b7 ask"
+        },
+        "endpoints": [
+          "GET /dashboard",
+          "GET /dashboard/sessions",
+          "GET /dashboard/reports",
+          "GET /dashboard/ask",
+          "GET /login"
+        ],
+        "ui_elements": [
+          "AAC \u00b7 communication analytics",
+          "AAC users",
+          "Sessions",
+          "Reports",
+          "Ask",
+          "analysis has never run",
+          "analysed {when}",
+          "figures complete through {day}",
+          "\u00b7 findings below may not reflect the last two days",
+          "Still learning what is normal for {name}",
+          "You can see / You cannot see",
+          "Progress",
+          "Overview",
+          "Reach & errors",
+          "AI impact",
+          "You need to sign in",
+          "That child is not on your roster",
+          "Something went wrong",
+          "Sign in",
+          "Try again",
+          "Back to the dashboard",
+          "Details for whoever fixes this",
+          "The board stopped working",
+          "Try the board again",
+          "Findings are hypotheses with their evidence attached, never diagnoses."
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "fired_rules",
+          "agg_daily_metric",
+          "--color-accent",
+          "--color-warn",
+          "--color-alert",
+          "--color-good",
+          "--color-neutral",
+          "--color-surface-sunk",
+          "--radius-card"
+        ]
+      },
+      "depends_on": [
+        "analytics/fired-rules-and-evidence.md",
+        "auth/role-consent-scoping.md",
+        "dashboard/attention-queue.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "dashboard/ask-panel.md",
+        "dashboard/attention-queue.md",
+        "dashboard/insight-cards.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md",
+        "dashboard/sittings.md",
+        "dashboard/student-overview.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "dashboard/insight-cards.md",
+      "name": "Insight Cards (Findings & Dismissal)",
+      "domain": "dashboard",
+      "sources": [
+        "components/insight-card.tsx",
+        "components/insight-list.tsx",
+        "lib/dismiss.ts"
+      ],
+      "source_hashes": {
+        "components/insight-card.tsx": "49e411b348a04093b8e46c3328f50268fc30a5ea",
+        "components/insight-list.tsx": "f1df36cb461482e323df46199976e5307bcc06a8",
+        "lib/dismiss.ts": "f063cc6900090187b844f703f07d5d5e597d50a9"
+      },
+      "symbols": {
+        "functions": [
+          "InsightCard",
+          "InsightList",
+          "readableForbidden",
+          "dismissAction",
+          "dismissInsight",
+          "splitEvidence"
+        ],
+        "constants": {
+          "DISMISS_LABELS.not_accurate": "That's not what's happening",
+          "DISMISS_LABELS.already_known": "I already knew this",
+          "DISMISS_LABELS.not_actionable": "Nothing I can do about it now",
+          "DISMISS_LABELS.disagree_with_advice": "I disagree with the advice",
+          "DISMISS_LABELS.other": "Another reason",
+          "action list suppression": "action_kind === 'informational' renders no actions",
+          "readableForbidden.resize_grid": "change the grid size",
+          "readableForbidden.move_card": "move a card she already knows",
+          "readableForbidden.reduce_repetition": "try to stop repeated pressing",
+          "readableForbidden fallback": "action.replace(/_/g, ' ')",
+          "dismiss write guard": "UPDATE ... WHERE fired_rule_id = ? AND dismissed_at IS NULL",
+          "post-dismiss render": "if (done) return null"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "about our software",
+          "for the adult",
+          "What number caused this?",
+          "Hide the numbers",
+          "compared against",
+          "what usually helps",
+          "do not",
+          "Does that match what you see?",
+          "No, that's not it",
+          "Yes \u2014 show me the detail",
+          "Why not? This is how the rules get better.",
+          "cancel",
+          "Nothing needs your attention here",
+          "These are starting values, not clinical cut-offs."
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "fired_rules",
+          "insights",
+          "insights_catalog"
+        ]
+      },
+      "depends_on": [
+        "analytics/fired-rules-and-evidence.md",
+        "auth/role-consent-scoping.md",
+        "dashboard/dashboard-shell.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "dashboard/attention-queue.md",
+        "dashboard/student-overview.md",
+        "mcp/tool-surface.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "dashboard/progress-reports.md",
+      "name": "Progress Reports",
+      "domain": "dashboard",
+      "sources": [
+        "lib/report.ts",
+        "lib/report-store.ts",
+        "app/dashboard/student/[id]/report/page.tsx",
+        "app/dashboard/reports/page.tsx",
+        "app/dashboard/reports/actions.ts",
+        "app/dashboard/reports/[id]/page.tsx",
+        "components/metric-card.tsx",
+        "components/charts.tsx"
+      ],
+      "source_hashes": {
+        "lib/report.ts": "60113aa8573be5ad85e93df50298d4e6b8178bcc",
+        "lib/report-store.ts": "08ddc8858c2faf8a1a14ede52cb7dc0f46b144c3",
+        "app/dashboard/student/[id]/report/page.tsx": "d01c366c3494f91e7fbd221e80b34da1e470be06",
+        "app/dashboard/reports/page.tsx": "b573959406ba2a97cf978dee77ae9c9423ce3b3e",
+        "app/dashboard/reports/actions.ts": "cc09583bb3b68545c74f8b5a39a2bc7e47eae2ef",
+        "app/dashboard/reports/[id]/page.tsx": "a85038e2e5b9ab658524a123d81e64d22e1854d6",
+        "components/metric-card.tsx": "8cc4bfdd97e605d4d4e94a7e9151b74f83cb0674",
+        "components/charts.tsx": "eb63a00deda33f7231860026bd5b65a52690244b"
+      },
+      "symbols": {
+        "functions": [
+          "reportMetrics",
+          "build",
+          "plainSummary",
+          "monthly",
+          "weekly",
+          "windowValue",
+          "generateReport",
+          "listReports",
+          "readReport",
+          "canonicalIds",
+          "citedIn",
+          "safeParse",
+          "generateReportAction",
+          "ReportsPage",
+          "ReportPage",
+          "StudentReportPage",
+          "MetricCard",
+          "MetricCaveats",
+          "Chart",
+          "LineChart",
+          "BarChart",
+          "DonutChart",
+          "SplitBar",
+          "CalendarHeat",
+          "ScatterChart",
+          "PairTable",
+          "GridHeat",
+          "RankedBars",
+          "scale",
+          "Empty"
+        ],
+        "constants": {
+          "report set size": "13 rows, report_rank 1\u201313, WHERE report_set = 1",
+          "ChartKind": "line \u00b7 bar \u00b7 table \u00b7 calendar \u00b7 donut \u00b7 scatter \u00b7 split_bar \u00b7 grid \u00b7 ranked_bar \u00b7 none",
+          "weekly() default": "8 weeks",
+          "monthly() default": "6 months (function never called)",
+          "listReports limit": "30",
+          "report id format": "'rep_' + randomUUID().slice(0, 12)",
+          "allowed periods": "[7, 28, 90], default 28",
+          "frozen-numbers banner": "ageDays >= 7",
+          "correction_adjacent_rate readings": ">= 60 reach \u00b7 <= 35 changed her mind \u00b7 else mixed",
+          "nav_depth_by_card buried": "depth >= 3",
+          "word_pairs filter": "together = 0 AND solo_a >= 10 AND solo_b >= 10, LIMIT 8",
+          "card_frequency ranked bars": "LIMIT 6",
+          "partner_wait_time reading": "< 2 s -> 'she may need longer'",
+          "silence_streak sub": ">= 2 days -> 'worth checking in'",
+          "GROUPS": "A Effort and speed \u00b7 B Errors and reach \u00b7 C Words she uses \u00b7 D How the board is laid out \u00b7 E Whose voice \u00b7 G The adult \u00b7 H How she communicates (no F)",
+          "GridHeat cell warn outline": "error share > 0.18",
+          "GridHeat worst-row highlight": "> 0.12",
+          "CalendarHeat default weeks": "7",
+          "PairTable rows rendered": "4",
+          "RankedBars items rendered": "6",
+          "DonutChart geometry": "size 88, r 32, strokeWidth 12",
+          "keyboard_use": "hardcoded 'not set up' (constraint C8)"
+        },
+        "endpoints": [
+          "GET /dashboard/reports",
+          "GET /dashboard/reports/{report_id}",
+          "GET /dashboard/student/{id}/report?days=7|28|90",
+          "GET /api/reports/{report_id}/print",
+          "POST generateReportAction (server action: child_id, days)"
+        ],
+        "ui_elements": [
+          "Write a new one",
+          "Child",
+          "Period",
+          "Last week",
+          "Last month",
+          "This term",
+          "Generate",
+          "See live numbers",
+          "Save as PDF",
+          "In plain words",
+          "This period in plain words",
+          "Ask about this",
+          "Ask about this report",
+          "How to read these numbers ({n} things worth knowing)",
+          "This week",
+          "This month",
+          "not enough yet",
+          "Neither one is better.",
+          "No pairs like this right now \u2014 she is combining the words she uses most."
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "reports",
+          "metrics_catalog",
+          "agg_daily_metric",
+          "agg_card_stats",
+          "agg_cell_heat",
+          "agg_word_pairs",
+          "boards",
+          "board_cells",
+          "cards",
+          "child_vocabulary",
+          "syntax_patterns",
+          "utterances",
+          "events",
+          "v_first_uses"
+        ]
+      },
+      "depends_on": [
+        "analytics/metric-readers.md",
+        "api/print-and-generate.md",
+        "auth/role-consent-scoping.md",
+        "dashboard/ask-panel.md",
+        "dashboard/dashboard-shell.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "api/print-and-generate.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/sittings.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "dashboard/reach-and-errors.md",
+      "name": "Reach & Errors (Access Page)",
+      "domain": "dashboard",
+      "sources": [
+        "app/dashboard/student/[id]/access/page.tsx",
+        "components/heat-grid.tsx"
+      ],
+      "source_hashes": {
+        "app/dashboard/student/[id]/access/page.tsx": "be42c37c16cba8fdd7150de93711a1b655580e7d",
+        "components/heat-grid.tsx": "b73aff25231ad74dfd495162ef44e29d0948c552"
+      },
+      "symbols": {
+        "functions": [
+          "AccessPage",
+          "Row",
+          "HeatGridPair",
+          "Grid",
+          "cellHeat",
+          "readMetric",
+          "canSee",
+          "formatValue"
+        ],
+        "constants": {
+          "window": "windowOf(14)",
+          "motor reading threshold": "correction_adjacent_rate >= 0.6",
+          "semantic reading threshold": "correction_adjacent_rate <= 0.35",
+          "partner wait short cutoff": "partner_wait_time < 2000 ms",
+          "errorHot cell threshold": "mistaps >= Math.max(2, maxMis * 0.6)",
+          "reach suspect adjacency": "Chebyshev distance <= 1",
+          "cell alpha cap": "0.92",
+          "white label threshold": "alpha > 0.55",
+          "mis-tap window quoted in caption": "1.5 s (MISTAP_MS = 1500)",
+          "accent heat base rgb": "47, 95, 208",
+          "alert heat base rgb": "179, 38, 30"
+        },
+        "endpoints": [
+          "GET /dashboard/student/{id}/access"
+        ],
+        "ui_elements": [
+          "Where presses land",
+          "Hand or meaning?",
+          "Presses undone straight away",
+          "Corrections landing on a neighbouring button",
+          "Timing",
+          "Time to build a sentence",
+          "Pause before she starts answering",
+          "And how long the adult waited",
+          "How long the adult waited (ConsentLock)",
+          "Where she presses",
+          "Where presses go wrong",
+          "Read the two maps together",
+          "Mask the cells beside the errors",
+          "Add a copy somewhere easier to reach",
+          "No board layout recorded for this child"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "boards",
+          "board_cells",
+          "agg_cell_heat",
+          "board_revisions",
+          "agg_daily_metric"
+        ]
+      },
+      "depends_on": [
+        "analytics/metric-readers.md",
+        "auth/role-consent-scoping.md",
+        "dashboard/dashboard-shell.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "dashboard/sittings.md",
+      "name": "Sittings (Sessions Page)",
+      "domain": "dashboard",
+      "sources": [
+        "app/dashboard/sessions/page.tsx",
+        "lib/sittings.ts"
+      ],
+      "source_hashes": {
+        "app/dashboard/sessions/page.tsx": "e04976294149b1922799b61d13e5186c4945827e",
+        "lib/sittings.ts": "f2ca797c7c2fb14f6d59fbe08d06c55fcc1aa90f"
+      },
+      "symbols": {
+        "functions": [
+          "SessionsPage",
+          "Stat",
+          "sittings",
+          "sitting",
+          "sittingUtterances",
+          "sittingStats",
+          "visibleChildren"
+        ],
+        "constants": {
+          "minimum taps per sitting": "s.taps >= 10",
+          "idle gap that splits a sitting": "20 minutes",
+          "default window": "14 days",
+          "allowed windows": "7 \u00b7 14 \u00b7 42",
+          "page row limit": "60",
+          "sittings default limit": "40 (capped at 200)",
+          "sittingUtterances default limit": "40",
+          "fatigue threshold": "fatigue_ratio >= 1.5",
+          "hard sitting highlight": "mistap_rate > 0.12",
+          "ORDERS": "recent='Most recent' \u00b7 worst='Hardest going' \u00b7 longest='Longest'",
+          "worst ordering": "mistap_rate DESC NULLS LAST, s.taps DESC",
+          "median_minutes / median_taps": "actually ROUND(AVG(...)) \u2014 means, not medians"
+        },
+        "endpoints": [
+          "GET /dashboard/sessions",
+          "GET /dashboard/student/{child_id}/report"
+        ],
+        "ui_elements": [
+          "Sessions",
+          "Sittings",
+          "Typical length",
+          "Typical presses",
+          "Tiring sittings",
+          "Sort",
+          "Most recent",
+          "Hardest going",
+          "Longest",
+          "Child",
+          "Everyone",
+          "When",
+          "Who",
+          "Where",
+          "Length",
+          "Said",
+          "Presses",
+          "Not meant",
+          "Towards the end",
+          "too short to tell",
+          "harder ({ratio}\u00d7)",
+          "steady",
+          "Nothing in this period with more than ten presses."
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "sessions",
+          "children",
+          "events",
+          "utterances"
+        ]
+      },
+      "depends_on": [
+        "auth/role-consent-scoping.md",
+        "dashboard/dashboard-shell.md",
+        "database/schema.md",
+        "pipeline/l2-rollup.md"
+      ],
+      "depended_on_by": [
+        "dashboard/progress-reports.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "dashboard/student-overview.md",
+      "name": "Student Overview & AI Impact",
+      "domain": "dashboard",
+      "sources": [
+        "app/dashboard/student/[id]/page.tsx",
+        "app/dashboard/student/[id]/ai-impact/page.tsx",
+        "components/kpi-tile.tsx"
+      ],
+      "source_hashes": {
+        "app/dashboard/student/[id]/page.tsx": "0a4f47270008bcdc958eb6885cc11ec8ce5f442f",
+        "app/dashboard/student/[id]/ai-impact/page.tsx": "be7bcdb442d42fd6b6a995b75607d36fe95b89ee",
+        "components/kpi-tile.tsx": "26a54541129bba4e347eb9d4bfef20672ba74bd0"
+      },
+      "symbols": {
+        "functions": [
+          "StudentPage",
+          "AiImpactPage",
+          "KpiTile",
+          "FunnelRow",
+          "readMetric",
+          "silenceStreak",
+          "topCards",
+          "newWords",
+          "abandonmentTrend",
+          "tapsSaved",
+          "suggestionFunnel",
+          "vocabularyGaps",
+          "visualSourceSplit",
+          "eventTypeCollected",
+          "direction",
+          "formatValue",
+          "splitEvidence",
+          "humanKey",
+          "humanEvidenceValue"
+        ],
+        "constants": {
+          "overview window": "windowOf(7)",
+          "new words / abandonment trend window": "windowOf(14)",
+          "BASELINE_ACTIVE_DAYS": "14",
+          "silence 'Worth checking in.' threshold": ">= 2 days",
+          "perSentence no-effect cutoff": "< 0.05 presses",
+          "suggestion acceptance cutoff": "< 0.2",
+          "visual reuse target": ">= 90%",
+          "free visuals exclusion": "resolved_by not in ('generated','failed')",
+          "typical AAC output rate quoted": "2\u201315 words per minute",
+          "insight evidence row rendered": "f.evidence[0] only",
+          "InsightCardData defaults": "action_kind='informational', target_audience='adult'",
+          "KpiTile neutral behaviour": "polarity 'neutral' -> direction 'flat', label 'not a target'"
+        },
+        "endpoints": [
+          "GET /dashboard/student/{id}",
+          "GET /dashboard/student/{id}/ai-impact"
+        ],
+        "ui_elements": [
+          "Presses per sentence",
+          "Last spoke",
+          "Her own words",
+          "Repeat runs per sentence",
+          "Needs your attention",
+          "Her go-to words",
+          "New words",
+          "Giving up on sentences",
+          "Presses she did not have to make",
+          "The whole claim, in one number",
+          "Building it herself",
+          "Taking a suggestion",
+          "No measurable difference yet.",
+          "Are the suggestions any good?",
+          "Shown to her",
+          "Tapped",
+          "Actually spoken",
+          "Where her pictures come from",
+          "Words she reached for that do not exist",
+          "This list is the teaching to-do",
+          "Add to her board",
+          "Not needed",
+          "not recorded yet",
+          "too few to report (needs {min_n})",
+          "still learning what is normal"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "agg_daily_metric",
+          "utterances",
+          "events",
+          "metrics_catalog"
+        ]
+      },
+      "depends_on": [
+        "analytics/baseline-gating.md",
+        "analytics/fired-rules-and-evidence.md",
+        "analytics/metric-readers.md",
+        "api/event-ingest.md",
+        "auth/role-consent-scoping.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/insight-cards.md"
+      ],
+      "depended_on_by": [
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/sittings.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "database/catalogues.md",
+      "name": "Metric and Insight Catalogues",
+      "domain": "database",
+      "sources": [
+        "db/seed_catalogues.sql"
+      ],
+      "source_hashes": {
+        "db/seed_catalogues.sql": "9546654fdeade4612f3f28a38f740a4841498084"
+      },
+      "symbols": {
+        "functions": [],
+        "constants": {
+          "metrics seeded (actual)": "41",
+          "metrics with status='shown'": "33",
+          "metrics with status='logged'": "4",
+          "metrics with status='cut'": "4",
+          "header comment claim (stale)": "38 metrics: 30 shown \u00b7 4 logged-only \u00b7 4 cut",
+          "insights seeded": "8 (I1-I8)",
+          "report_set size": "13",
+          "report_set columns added by ALTER TABLE": "report_set INTEGER NOT NULL DEFAULT 0, chart TEXT, report_rank INTEGER",
+          "I1 default_thresholds": "{\"mistap_rate_min\":0.08,\"min_sessions\":5,\"mistap_threshold_ms\":1500,\"adjacent_ratio_motor\":0.6}",
+          "I2 default_thresholds": "{\"sigma_multiplier\":2,\"fallback_ms\":5000,\"baseline_weeks\":4}",
+          "I3 default_thresholds": "{\"frequency_percentile\":95,\"min_nav_depth\":3}",
+          "I4 default_thresholds": "{\"obsolete_days\":30,\"min_scene_activity\":10}",
+          "I5 default_thresholds": "{\"min_solo\":20,\"max_mlu\":1.3}",
+          "I6 default_thresholds": "{\"weeks\":2,\"therapy_min_count\":10}",
+          "I7 default_thresholds": "{\"weeks\":2,\"modeling_threshold\":3}",
+          "I8 default_thresholds": "{\"window_days\":7,\"variance_multiplier\":1.0}",
+          "mistap_rate min_n": "30",
+          "correction_adjacent_rate min_n": "10",
+          "repeat_tap_rate min_n": "10",
+          "silence_streak min_n": "1",
+          "feeling_words min_n": "5",
+          "answers_vs_starts min_n": "20",
+          "taps_saved min_n": "20",
+          "cell_heat min_n": "50",
+          "core_fringe_ratio min_n": "50",
+          "position_consistency target": "1.0",
+          "re-run failure message": "table metrics_catalog has 17 columns but 14 values were supplied",
+          "I8 target_audience / action_kind": "system / system_fix",
+          "I4 action_kind": "informational"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "Buttons to say one thing (line)",
+          "Where corrections land (split_bar)",
+          "Which buttons get reached (grid)",
+          "Days since she last spoke (calendar)",
+          "Her go-to words (ranked_bar)",
+          "New words (line)",
+          "Words not yet paired (table)",
+          "Flexible words vs naming (donut)",
+          "How deep words are buried (scatter)",
+          "Adult demonstrating (bar)",
+          "How long the adult waits (line)",
+          "Repeated pressing (line)",
+          "Spelling and the alphabet (none)",
+          "Presses she did not mean",
+          "Built but not spoken",
+          "Time to start answering",
+          "Her own words"
+        ],
+        "cli_commands": [
+          "sqlite3 aac.db < db/seed_catalogues.sql"
+        ],
+        "storage_keys": [
+          "metrics_catalog",
+          "insights_catalog",
+          "schema://dictionary",
+          "schema://insights"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "analytics/data-dictionary.md",
+        "analytics/metric-readers.md",
+        "dashboard/student-overview.md",
+        "database/insight-views.md",
+        "database/metric-views.md",
+        "mcp/stdio-server.md",
+        "mcp/tool-surface.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "database/connection-layer.md",
+      "name": "Connection Layer",
+      "domain": "database",
+      "sources": [
+        "lib/db.ts",
+        "lib/sqlite.ts"
+      ],
+      "source_hashes": {
+        "lib/db.ts": "bf1ed895714ec289b93a93e5352f663d0a8e59a0",
+        "lib/sqlite.ts": "a5759375f393f0dc43ef7a7f04c3db3a8508b07a"
+      },
+      "symbols": {
+        "functions": [
+          "connect",
+          "closeAll",
+          "identity",
+          "readDb",
+          "writeDb",
+          "plain",
+          "all",
+          "one",
+          "scalar",
+          "write",
+          "latestDay",
+          "windowOf",
+          "previousWindow"
+        ],
+        "constants": {
+          "DB_PATH": "process.env.AAC_DB ?? path.join(process.cwd(), 'aac.db')",
+          "WRITABLE": "/^\\s*(update\\s+fired_rules|insert\\s+into\\s+board_change_proposals|update\\s+board_change_proposals|insert\\s+into\\s+reports)\\b/i",
+          "read handle pragmas": "PRAGMA busy_timeout = 5000",
+          "write handle pragmas": "PRAGMA busy_timeout = 5000, PRAGMA foreign_keys = ON",
+          "write() error message": "Refused: the dashboard may only write fired_rules dismissals, board_change_proposals and reports. Got: <sql.slice(0,60)>",
+          "minimum Node version": ">= 22.5 (node:sqlite builtin)",
+          "latestDay() fallback": "new Date().toISOString().slice(0, 10)",
+          "cache entry shape": "{ db: DatabaseSync; ino: number; dev: number }",
+          "stat cost per call": "about a microsecond",
+          "observed bug this fixes": "POST /api/events answered accepted: 1 and the row was not in the database"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "AAC_DB",
+          "AAC_APP_DB",
+          "aac:read",
+          "aac:write",
+          "aac:ingest",
+          "app:categories",
+          "aac.db",
+          "aac_app.db",
+          "fired_rules",
+          "board_change_proposals",
+          "reports",
+          "events"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "analytics/data-dictionary.md",
+        "analytics/metric-readers.md",
+        "api/event-ingest.md",
+        "dashboard/insight-cards.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md",
+        "kid-app/category-folders.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "database/insight-views.md",
+      "name": "Insight Rule Views",
+      "domain": "database",
+      "sources": [
+        "db/views_insights.sql"
+      ],
+      "source_hashes": {
+        "db/views_insights.sql": "321a02957e0b0e2cf1a4f5713d7b398f71a32cdc"
+      },
+      "symbols": {
+        "functions": [
+          "v_window",
+          "v_i1_mistap_classification",
+          "v_i1_evidence_cells",
+          "v_i2_scanning_load",
+          "v_i3_buried_words",
+          "v_i4_unused_vocabulary",
+          "v_i5_missing_combinations",
+          "v_i5_summary",
+          "v_i6_scene_bound",
+          "v_i7_modeling_gap",
+          "v_i8_layout_disruption",
+          "v_insights_fired"
+        ],
+        "constants": {
+          "v_window.w_end": "(SELECT MAX(day_local) FROM events)",
+          "v_window.w_start": "date(w_end, '-13 days')",
+          "v_window.w_start_28": "date(w_end, '-27 days')",
+          "v_window.w_start_7": "date(w_end, '-6 days') (unused)",
+          "v_window.prev_end_7": "date(w_end, '-13 days') (unused, identical to w_start)",
+          "I1 threshold_mistap_rate": "0.08",
+          "I1 threshold_min_days": "5",
+          "I1 threshold_adjacent_motor": "0.60",
+          "I1 semantic cut-off": "0.35",
+          "I1 mistap_threshold_ms": "1500",
+          "I2 threshold_latency_ms": "5000",
+          "I2 threshold_clean_share": "0.80",
+          "I2 partner_wait_concern_ms": "2000",
+          "I3 threshold_percentile": "0.95",
+          "I3 threshold_nav_depth": "3",
+          "I3 row filter": "pct_rank >= 0.90",
+          "I4 case A threshold_days": "30",
+          "I4 case B protest_taps": ">= 10",
+          "I4 case B total_taps": ">= 50",
+          "I4 case B card categories": "food, drink",
+          "I5 threshold_min_solo": "20",
+          "I5 threshold_max_mlu": "1.30",
+          "I6 threshold_therapy_taps": "10",
+          "I6 minimum active scenes": "3",
+          "I7 threshold_modeling_per_day": "3",
+          "I8 threshold_delta": "0.0",
+          "I8 window each side": "7 days",
+          "I8 minimum days each side": "3",
+          "I8 disruptive change kinds": "move, resize, remove",
+          "I2 likely_cause values": "partner_may_not_be_waiting | child_scanning_load",
+          "I1 classification values": "motor | semantic | ambiguous",
+          "I7 modeling_mode_never_used on committed build": "0 for all 5 rows (flag can never be 1)"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "sqlite3 aac.db < db/views_insights.sql"
+        ],
+        "storage_keys": [
+          "fired_rules",
+          "insights_catalog",
+          "board_revisions",
+          "events",
+          "utterances",
+          "partner_turns",
+          "boards",
+          "board_cells",
+          "cards",
+          "children"
+        ]
+      },
+      "depends_on": [
+        "database/catalogues.md",
+        "database/metric-views.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "dashboard/insight-cards.md",
+        "mcp/tool-surface.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/verification-gate.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "database/metric-views.md",
+      "name": "Metric Views",
+      "domain": "database",
+      "sources": [
+        "db/views_metrics.sql"
+      ],
+      "source_hashes": {
+        "db/views_metrics.sql": "7ca9088ac5aa6c88facba7abe1498004389d38bd"
+      },
+      "symbols": {
+        "functions": [
+          "v_tap_sequence",
+          "v_mistaps",
+          "v_m_taps_per_utterance",
+          "v_m_composition_time",
+          "v_m_time_to_first_tap",
+          "v_m_words_per_minute",
+          "v_m_mistap_rate",
+          "v_m_correction_adjacent_rate",
+          "v_m_abandonment_rate",
+          "v_cell_heat",
+          "v_m_utterances_per_day",
+          "v_m_silence_streak",
+          "v_m_ndw",
+          "v_m_mlu",
+          "v_m_core_fringe_ratio",
+          "v_first_uses",
+          "v_m_new_words",
+          "v_new_words_count",
+          "v_card_stats",
+          "v_unused_cards",
+          "v_word_pairs",
+          "v_surviving_taps",
+          "v_scene_matrix",
+          "v_m_layout_stability",
+          "v_m_position_consistency",
+          "v_m_independence_rate",
+          "v_m_teacher_modeling",
+          "v_function_mix",
+          "v_m_taps_saved",
+          "v_m_partner_wait_time",
+          "v_m_partner_interruption_rate",
+          "v_m_repeat_tap_rate",
+          "v_repeat_runs_by_card",
+          "v_feeling_words",
+          "v_feeling_words_available",
+          "v_m_feeling_words",
+          "v_sentence_shapes",
+          "v_m_sentence_shapes",
+          "v_m_answers_vs_starts",
+          "v_session_summary",
+          "v_daily_metrics_all"
+        ],
+        "constants": {
+          "mistap threshold (hard-coded)": "1500 ms",
+          "scalar views": "24",
+          "dimensional views": "17",
+          "metrics in v_daily_metrics_all": "24",
+          "v_word_pairs minimum solo uses": "10 for both words",
+          "v_unused_cards days_since_last default": "9999",
+          "v_m_silence_streak fallback date": "1970-01-01",
+          "v_m_answers_vs_starts answer window": "30000 ms",
+          "repeat run definition": "card_id = prev1 AND card_id = prev2 AND (prev3 IS NULL OR prev3 <> card_id)",
+          "median idiom": "rn IN ((cnt + 1) / 2, (cnt + 2) / 2)",
+          "correction_adjacent neighbourhood": "abs(next_row - grid_row) <= 1 AND abs(next_col - grid_col) <= 1",
+          "wpm conversion factor": "60000.0",
+          "v_surviving_taps rows on committed build": "11446 of 18594 child card_taps (808 mis-taps + 6340 last-in-partition dropped)",
+          "performance note": "correlated subqueries were 40x slower on 27k events"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "sqlite3 aac.db < db/views_metrics.sql"
+        ],
+        "storage_keys": [
+          "events",
+          "utterances",
+          "partner_turns",
+          "cards",
+          "boards",
+          "board_cells",
+          "board_revisions",
+          "child_vocabulary",
+          "mode_selection",
+          "children",
+          "emotion_lexicon",
+          "syntax_patterns",
+          "utterance_structures",
+          "sessions",
+          "agg_daily_metric"
+        ]
+      },
+      "depends_on": [
+        "database/catalogues.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "analytics/metric-readers.md",
+        "database/insight-views.md",
+        "mcp/tool-surface.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/verification-gate.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "database/schema.md",
+      "name": "Analytics Schema and Indices",
+      "domain": "database",
+      "sources": [
+        "db/schema.sql",
+        "db/indices.sql"
+      ],
+      "source_hashes": {
+        "db/schema.sql": "a21567fec73c1f294d3f1596b357537ccc1e82ef",
+        "db/indices.sql": "d40c1cad54b3e6ac0954821d468f527e15705281"
+      },
+      "symbols": {
+        "functions": [],
+        "constants": {
+          "PRAGMA journal_mode": "WAL",
+          "PRAGMA foreign_keys": "ON",
+          "PRAGMA busy_timeout": "5000",
+          "schema_version.version": "2",
+          "schema_version.note": "v2 \u2014 sessions, feeling words, sentence shapes, reports; 8-metric report set",
+          "minimum SQLite version": "3.37 (STRICT tables)",
+          "table count": "31",
+          "index count": "33 (11 partial)",
+          "index sizing assumption": "5 children x 6 weeks ~= 180k events, ~7.5k utterances",
+          "index performance target": "no metric view > 50 ms",
+          "events volume": "~1,800 rows per child per week \u2248 90k tokens",
+          "utterances volume": "~250 rows per child per week \u2248 7k tokens",
+          "L2 aggregate volume": "~1.2k tokens per child-week",
+          "agg_daily_metric.value NULL rule": "NULL when n < metrics_catalog.min_n",
+          "agg_card_stats.repeat_runs": "runs of >=3 consecutive taps, NO delete (C1)",
+          "sessions.fatigue_ratio concern level": "~1.5",
+          "insights.narration length (comment only)": "<=500 chars",
+          "board_change_proposals.status default": "pending",
+          "metrics_catalog.min_n default": "1",
+          "metrics_catalog.feeds_insights default": "[]",
+          "insights_catalog.forbidden_actions default": "[]",
+          "reports.metrics_used default": "[]",
+          "agg_card_stats.scenes_used default": "[]"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "sqlite3 aac.db < db/schema.sql",
+          "sqlite3 aac.db < db/indices.sql"
+        ],
+        "storage_keys": [
+          "schema_version",
+          "orgs",
+          "classes",
+          "children",
+          "adults",
+          "roster",
+          "consent",
+          "cards",
+          "core_word_list",
+          "boards",
+          "board_cells",
+          "child_vocabulary",
+          "mode_selection",
+          "board_revisions",
+          "events",
+          "utterances",
+          "partner_turns",
+          "agg_daily_metric",
+          "agg_card_stats",
+          "agg_cell_heat",
+          "agg_word_pairs",
+          "metrics_catalog",
+          "insights_catalog",
+          "fired_rules",
+          "insights",
+          "board_change_proposals",
+          "sessions",
+          "emotion_lexicon",
+          "syntax_patterns",
+          "utterance_structures",
+          "reports",
+          "ix_events_child_ts",
+          "ix_events_child_type_day",
+          "ix_events_utterance",
+          "ix_events_child_card_ts",
+          "ix_events_heat",
+          "ix_events_child_scene_day",
+          "ix_events_adult",
+          "ix_events_navdepth",
+          "ix_utt_child_day",
+          "ix_utt_child_spoken_ts",
+          "ix_utt_child_scene_function",
+          "ix_utt_child_suggestion",
+          "ix_partner_child_day",
+          "ix_partner_interruptions",
+          "ix_board_cells_card",
+          "ix_child_vocab_depth",
+          "ix_boards_child_kind",
+          "ix_revisions_board_day",
+          "ix_revisions_disruptive",
+          "ix_agg_daily_metric_lookup",
+          "ix_agg_card_stats_window",
+          "ix_agg_word_pairs_missing",
+          "ix_roster_adult",
+          "ix_consent_active",
+          "ix_children_class",
+          "ix_fired_rules_open",
+          "ix_fired_rules_dismissed",
+          "ix_insights_by_rule",
+          "ix_proposals_pending",
+          "ix_sessions_child_day",
+          "ix_sessions_worst",
+          "ix_utt_structures_pattern",
+          "ix_reports_child_period",
+          "schema://ddl",
+          "AAC_DB"
+        ]
+      },
+      "depends_on": [],
+      "depended_on_by": [
+        "api/event-ingest.md",
+        "auth/role-consent-scoping.md",
+        "database/catalogues.md",
+        "database/connection-layer.md",
+        "database/insight-views.md",
+        "database/metric-views.md",
+        "mcp/tool-surface.md",
+        "pipeline/build-pipeline.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "deploy/cloudflare-tunnel-ingress.md",
+      "name": "Cloudflare Tunnel Ingress",
+      "domain": "deploy",
+      "sources": [
+        "deploy/aac.yml",
+        "deploy/app.kason.aac.tunnel.plist"
+      ],
+      "source_hashes": {
+        "deploy/aac.yml": "93f8c36be83dd43514bf2a793538a7023ffbb000",
+        "deploy/app.kason.aac.tunnel.plist": "0d353ca2ae0cc4e8acacbcf42e35daf7fd9004c4"
+      },
+      "symbols": {
+        "functions": [
+          "surfaceFor",
+          "allowed",
+          "middleware"
+        ],
+        "constants": {
+          "tunnel": "aac",
+          "credentials-file": "/Users/kasonzhan/.cloudflared/f50f1ef0-ea82-4ec2-953b-93404512a766.json",
+          "ingress rule 1": "aac.kason.app -> http://localhost:3000",
+          "ingress rule 2": "aac-dashboard.kason.app -> http://localhost:3000",
+          "ingress rule 3": "aac-mcp.kason.app -> http://localhost:3000",
+          "ingress catch-all": "http_status:404",
+          "Label": "app.kason.aac.tunnel",
+          "ProgramArguments": "/opt/homebrew/bin/cloudflared tunnel --config /Users/kasonzhan/Documents/AI-Hackathon-AAC/deploy/aac.yml run aac",
+          "WorkingDirectory": "/Users/kasonzhan/Documents/AI-Hackathon-AAC",
+          "RunAtLoad": "true",
+          "KeepAlive": "true",
+          "ThrottleInterval": "10",
+          "StandardOutPath": "/Users/kasonzhan/Documents/AI-Hackathon-AAC/deploy/logs/tunnel.log",
+          "StandardErrorPath": "/Users/kasonzhan/Documents/AI-Hackathon-AAC/deploy/logs/tunnel.err.log",
+          "Surface type": "'kid' | 'dashboard' | 'mcp' | 'any'",
+          "SHARED": "['/manifest.webmanifest', '/icon.svg', '/sw.js', '/favicon.ico', '/robots.txt']",
+          "KID_PREFIXES": "['/who', '/api/session', '/api/events', '/api/cards', '/api/visuals', '/api/categories']",
+          "DASH_PREFIXES": "['/dashboard', '/login', '/api/dashboard', '/api/auth', '/api/chat', '/api/reports']",
+          "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet",
+          "denied-path response": "404 'Not found' (never a redirect)"
+        },
+        "endpoints": [
+          "/api/mcp",
+          "/api/session",
+          "/api/events",
+          "/api/cards",
+          "/api/visuals",
+          "/api/categories",
+          "/api/dashboard",
+          "/api/auth",
+          "/api/chat",
+          "/api/reports"
+        ],
+        "ui_elements": [],
+        "cli_commands": [
+          "cloudflared tunnel --config deploy/aac.yml run aac",
+          "launchctl load ~/Library/LaunchAgents/app.kason.aac.tunnel.plist",
+          "launchctl unload ~/Library/LaunchAgents/app.kason.aac.tunnel.plist"
+        ],
+        "storage_keys": [
+          "AAC_MCP_TOKEN",
+          "deploy/logs/tunnel.log",
+          "deploy/logs/tunnel.err.log",
+          "aac_adult"
+        ]
+      },
+      "depends_on": [
+        "auth/host-surface-routing.md",
+        "deploy/production-web-service.md",
+        "mcp/stdio-server.md"
+      ],
+      "depended_on_by": [
+        "dashboard/dashboard-shell.md",
+        "kid-app/communication-board.md",
+        "mcp/stdio-server.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "deploy/next-build-config.md",
+      "name": "Next.js Build Configuration",
+      "domain": "deploy",
+      "sources": [
+        "next.config.ts"
+      ],
+      "source_hashes": {
+        "next.config.ts": "bfaa7f857f0509f65e3dda436b09bef323a615d7"
+      },
+      "symbols": {
+        "functions": [
+          "dismissAction",
+          "generateReportAction",
+          "readDb",
+          "writeDb"
+        ],
+        "constants": {
+          "serverExternalPackages": "['node:sqlite']",
+          "experimental.serverActions.bodySizeLimit": "1mb",
+          "DB_PATH": "process.env.AAC_DB ?? path.join(process.cwd(), 'aac.db')",
+          "PRAGMA busy_timeout": "5000",
+          "generateReportAction days default": "28",
+          "X-Robots-Tag (set in middleware.ts, not here)": "noindex, nofollow, noarchive, nosnippet"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "next build",
+          "next start"
+        ],
+        "storage_keys": [
+          "AAC_DB",
+          "AAC_VIEWER",
+          "AAC_MCP_TOKEN",
+          "CHAT_PROVIDER",
+          "CHAT_MODEL",
+          "OPENAI_API_KEY",
+          "GEMINI_API_KEY",
+          ".next/BUILD_ID"
+        ]
+      },
+      "depends_on": [
+        "database/connection-layer.md",
+        "deploy/npm-scripts.md"
+      ],
+      "depended_on_by": [
+        "auth/host-surface-routing.md",
+        "dashboard/insight-cards.md",
+        "deploy/production-web-service.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "deploy/npm-scripts.md",
+      "name": "Package Manifest and npm Scripts",
+      "domain": "deploy",
+      "sources": [
+        "package.json"
+      ],
+      "source_hashes": {
+        "package.json": "a704687f4b72d0a2e363489ccde163dba2c7d98f"
+      },
+      "symbols": {
+        "functions": [],
+        "constants": {
+          "name": "aac-analytics",
+          "type": "module",
+          "private": "true",
+          "engines.node": ">=24",
+          "next": "^15.5.4",
+          "react": "^19.1.1",
+          "react-dom": "^19.1.1",
+          "tailwindcss": "^4.1.13",
+          "@tailwindcss/postcss": "^4.1.13",
+          "typescript": "^5.9.2",
+          "@types/node": "^24.5.2",
+          "@types/react": "^19.1.13",
+          "@types/react-dom": "^19.1.9",
+          "installed node (workspace)": "v26.5.0",
+          "installed next (workspace)": "15.5.23"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "npm run build",
+          "npm run build:web",
+          "npm run dev",
+          "npm run start",
+          "npm run mcp",
+          "npm run verify",
+          "npm run concurrency",
+          "npm run typecheck",
+          "./tools/build.sh aac.db",
+          "next build",
+          "next start",
+          "next dev",
+          "node mcp/server.ts --db aac.db",
+          "python3 tools/verify.py --db aac.db",
+          "python3 tools/concurrency_test.py --db aac.db",
+          "tsc --noEmit",
+          "npx next build"
+        ],
+        "storage_keys": [
+          "aac.db",
+          "aac.db-wal",
+          "aac.db-shm",
+          ".mcp.json",
+          "node_modules/next/dist/bin/next"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md",
+        "mcp/stdio-server.md",
+        "pipeline/build-pipeline.md"
+      ],
+      "depended_on_by": [
+        "deploy/next-build-config.md",
+        "deploy/production-web-service.md",
+        "deploy/typescript-and-css-toolchain.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "deploy/production-web-service.md",
+      "name": "Production Web Service (launchd)",
+      "domain": "deploy",
+      "sources": [
+        "deploy/run-web.sh",
+        "deploy/app.kason.aac.web.plist"
+      ],
+      "source_hashes": {
+        "deploy/run-web.sh": "0b0e30474d482ab9af2afd63085b24020af69eb3",
+        "deploy/app.kason.aac.web.plist": "c24efdce7ba2e2321202407d767149fbdcfa6a1b"
+      },
+      "symbols": {
+        "functions": [],
+        "constants": {
+          "Label": "app.kason.aac.web",
+          "ProgramArguments": "[\"/Users/kasonzhan/Documents/AI-Hackathon-AAC/deploy/run-web.sh\"]",
+          "WorkingDirectory": "/Users/kasonzhan/Documents/AI-Hackathon-AAC",
+          "RunAtLoad": "true",
+          "KeepAlive": "true",
+          "ThrottleInterval": "10",
+          "StandardOutPath": "/Users/kasonzhan/Documents/AI-Hackathon-AAC/deploy/logs/web.log",
+          "StandardErrorPath": "/Users/kasonzhan/Documents/AI-Hackathon-AAC/deploy/logs/web.err.log",
+          "PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+          "NODE_ENV": "production",
+          "AAC_VIEWER": "adult_patel",
+          "AAC_MCP_TOKEN": "43-character bearer token, plaintext in the gitignored plist (value redacted from docs)",
+          "listen port": "3000",
+          "shell options": "set -euo pipefail",
+          "build guard file": ".next/BUILD_ID",
+          "guard failure message": "[run-web] No production build. Run: npx next build",
+          "start log line": "[run-web] starting next on :3000 (build $(cat .next/BUILD_ID))",
+          "AAC_DB default (.env.example)": "./aac.db"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "node node_modules/next/dist/bin/next start --port 3000",
+          "npx next build",
+          "launchctl load ~/Library/LaunchAgents/app.kason.aac.web.plist",
+          "launchctl unload ~/Library/LaunchAgents/app.kason.aac.web.plist",
+          "tail -f deploy/logs/web.log deploy/logs/web.err.log",
+          "./deploy/run-web.sh"
+        ],
+        "storage_keys": [
+          ".env.local",
+          "NODE_ENV",
+          "PATH",
+          "AAC_MCP_TOKEN",
+          "AAC_VIEWER",
+          "AAC_DB",
+          "CHAT_PROVIDER",
+          "CHAT_MODEL",
+          "OPENAI_API_KEY",
+          "GEMINI_API_KEY",
+          ".next/BUILD_ID",
+          "deploy/logs/web.log",
+          "deploy/logs/web.err.log",
+          "aac.db",
+          "aac.db-wal",
+          "aac.db-shm",
+          "aac_app.db"
+        ]
+      },
+      "depends_on": [
+        "deploy/next-build-config.md",
+        "deploy/npm-scripts.md",
+        "pipeline/build-pipeline.md"
+      ],
+      "depended_on_by": [
+        "auth/host-surface-routing.md",
+        "dashboard/dashboard-shell.md",
+        "deploy/cloudflare-tunnel-ingress.md",
+        "mcp/stdio-server.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "deploy/typescript-and-css-toolchain.md",
+      "name": "TypeScript and CSS Toolchain",
+      "domain": "deploy",
+      "sources": [
+        "tsconfig.json",
+        "postcss.config.mjs"
+      ],
+      "source_hashes": {
+        "tsconfig.json": "361626675bbf0a35cc9f57c9a03ac1efc34f490b",
+        "postcss.config.mjs": "ae85b2fe4d3c42e9a0a41416bb9a832aab631317"
+      },
+      "symbols": {
+        "functions": [],
+        "constants": {
+          "target": "ES2022",
+          "lib": "[\"dom\", \"dom.iterable\", \"ES2022\"]",
+          "allowJs": "false",
+          "skipLibCheck": "true",
+          "strict": "true",
+          "noEmit": "true",
+          "esModuleInterop": "true",
+          "module": "esnext",
+          "moduleResolution": "bundler",
+          "resolveJsonModule": "true",
+          "allowImportingTsExtensions": "true",
+          "isolatedModules": "true",
+          "jsx": "preserve",
+          "incremental": "true",
+          "plugins": "[{ \"name\": \"next\" }]",
+          "paths": "{ \"@/*\": [\"./*\"] }",
+          "include": "[\"next-env.d.ts\", \"**/*.ts\", \"**/*.tsx\", \".next/types/**/*.ts\"]",
+          "exclude": "[\"node_modules\"]",
+          "postcss plugins": "{ '@tailwindcss/postcss': {} }",
+          "--color-ink": "#10131a",
+          "--color-ink-muted": "#545c6b",
+          "--color-ink-faint": "#8b94a3",
+          "--color-surface": "#ffffff",
+          "--color-surface-sunk": "#f4f6f9",
+          "--color-line": "#dfe3ea",
+          "--color-accent": "#2f5fd0",
+          "--color-accent-soft": "#e8eefc",
+          "--color-good": "#1c7a4a",
+          "--color-good-soft": "#e3f5eb",
+          "--color-warn": "#9a5b00",
+          "--color-warn-soft": "#fdf1de",
+          "--color-alert": "#b3261e",
+          "--color-alert-soft": "#fce9e7",
+          "minimum touch target (kid surface)": "64px",
+          "files importing via @/ alias": "39"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "npm run typecheck",
+          "tsc --noEmit",
+          "npm run build:web"
+        ],
+        "storage_keys": [
+          "tsconfig.tsbuildinfo",
+          ".next/types/**/*.ts",
+          "next-env.d.ts",
+          "app/globals.css"
+        ]
+      },
+      "depends_on": [
+        "deploy/npm-scripts.md"
+      ],
+      "depended_on_by": [
+        "dashboard/dashboard-shell.md",
+        "deploy/next-build-config.md",
+        "kid-app/communication-board.md",
+        "mcp/stdio-server.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "kid-app/card-customisation.md",
+      "name": "Card Customisation (Edit Sheet & Overrides)",
+      "domain": "kid-app",
+      "sources": [
+        "lib/overrides.ts",
+        "components/kid/edit-sheet.tsx"
+      ],
+      "source_hashes": {
+        "lib/overrides.ts": "527364ff767daf956e89868e56f6790f73d3ad3d",
+        "components/kid/edit-sheet.tsx": "51791878407afec07aa853b7e68a6d153dbbe18b"
+      },
+      "symbols": {
+        "functions": [
+          "overridesFor",
+          "saveOverride",
+          "clearOverride",
+          "clearPhoto",
+          "downscale",
+          "EditSheet",
+          "save",
+          "reset"
+        ],
+        "constants": {
+          "MAX_IMAGE_BYTES": "400_000",
+          "downscale max edge": "256 px",
+          "downscale output": "canvas.toDataURL('image/jpeg', 0.82)",
+          "imageData pattern": "/^data:image\\/(png|jpeg|webp);base64,/",
+          "APP_DB": "process.env.AAC_APP_DB ?? path.join(process.cwd(), 'aac_app.db')",
+          "pragmas": "PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000",
+          "symbol picker grid": "grid-cols-5 sm:grid-cols-7, max-h-52",
+          "card_created session_id": "'card-edit'"
+        },
+        "endpoints": [
+          "GET /api/cards?child=<id>",
+          "PUT /api/cards {childId, cardId, label?, wordForm?, spokenText?, symbol?, imageData?, updatedBy?, scene?}",
+          "DELETE /api/cards?child=&card=&photoOnly=1"
+        ],
+        "ui_elements": [
+          "Modal 'Change this card' (aria-label 'Edit <label>')",
+          "Preview + 'This is how it will look on the board. Its position never changes.'",
+          "Field 'Word on the card'",
+          "Field 'In a sentence, this word is'",
+          "Field 'On its own, it says'",
+          "Photo section with 'Take or choose a photo' / 'Change photo' / 'Remove photo'",
+          "hidden input type=file accept=image/* capture=environment",
+          "'Or pick a picture' symbol grid with an 'auto' tile",
+          "Warning 'The photo is used instead. Remove it to use a drawing.'",
+          "Save button",
+          "Reset to default button",
+          "Error 'That image could not be read.'"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "aac_app.db table card_overrides (PK child_id, card_id)",
+          "globalThis.__aacApp",
+          "env AAC_APP_DB"
+        ]
+      },
+      "depends_on": [
+        "api/board-content-endpoints.md",
+        "database/schema.md",
+        "kid-app/symbol-set.md"
+      ],
+      "depended_on_by": [
+        "dashboard/student-overview.md",
+        "kid-app/communication-board.md",
+        "kid-app/utterance-and-speech.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "kid-app/category-folders.md",
+      "name": "Category Folders",
+      "domain": "kid-app",
+      "sources": [
+        "lib/vocabulary/categories.ts",
+        "lib/categories/store.ts",
+        "lib/categories/types.ts",
+        "components/kid/category-drawer.tsx",
+        "components/kid/category-editor.tsx"
+      ],
+      "source_hashes": {
+        "lib/vocabulary/categories.ts": "62f671cb22ed2970408db94d796a3a785f231534",
+        "lib/categories/store.ts": "d14039e85ea123353ecaaba03b53fa80ed74a8c2",
+        "lib/categories/types.ts": "58ecb36a40d826647a9676eeb24dd90ac7b577af",
+        "components/kid/category-drawer.tsx": "2bdff1219e06b47bf879cedf75939b18eddad3f8",
+        "components/kid/category-editor.tsx": "99453ba1319683ffb85ed34e95533bff5e095e8f"
+      },
+      "symbols": {
+        "functions": [
+          "seedIfEmpty",
+          "listCategories",
+          "wordsIn",
+          "categoriesForChild",
+          "createCategory",
+          "renameCategory",
+          "deleteCategory",
+          "addWord",
+          "updateWord",
+          "removeWord",
+          "setShown",
+          "reorderForChild",
+          "categoryByKey",
+          "CategoryDrawer",
+          "CategoryBar",
+          "CategoryEditor",
+          "WordList",
+          "move"
+        ],
+        "constants": {
+          "CATEGORIES seed count": "9 (feelings, food, activities, behaviour, numbers, people, places, body, describing) \u2014 header comments say 'eleven', which is stale",
+          "category id prefix": "cat_<10 hex>",
+          "word id prefix": "w_<12 hex>",
+          "built_in flag for seeded rows": "1 (created_by 'system')",
+          "child_categories default shown": "COALESCE(cc.shown, 1) \u2014 shown when no row exists",
+          "drawer max height": "max-h-[78dvh]",
+          "numbers grid track": "repeat(auto-fill, minmax(84px, 1fr))",
+          "default grid track": "repeat(auto-fill, minmax(112px, 1fr))",
+          "drawer tile min height": "84 px",
+          "Back to board min height": "48 px",
+          "category chip min height": "44 px",
+          "folder-pick log values": "nav_depth = 1, source = 'search', ms_delta = null",
+          "ix_catwords index": "category_words (category_id, sort)",
+          "editor modal max height": "max-h-[92dvh]"
+        },
+        "endpoints": [
+          "GET /api/categories?child=<id>",
+          "POST /api/categories {action: create|rename|delete|show|reorder|add-word|update-word|remove-word, \u2026}"
+        ],
+        "ui_elements": [
+          "CategoryBar pill chips with icon + name",
+          "CategoryDrawer (role=dialog, aria-modal)",
+          "'Back to board' button",
+          "'on board' badge (title 'This word is also on the board')",
+          "Empty state 'No words in here yet.'",
+          "Footer 'Words used often from here can be added to the main board \u2014 the dashboard flags them.'",
+          "CategoryEditor heading 'Categories for <FirstName>'",
+          "Subtitle 'Tick what <FirstName> sees. Editing the words changes them for everyone.'",
+          "Per-category checkbox (aria-label 'Show <name> for <FirstName>')",
+          "\u2191 / \u2193 reorder buttons (aria-label 'Move <name> up/down')",
+          "New category input 'New category \u2014 e.g. Swimming club' + Add",
+          "Category name input + Rename",
+          "Delete button (only when built_in === 0)",
+          "Word rows with Remove (aria-label 'Remove <label>')",
+          "Add-a-word form: 'Word on the card \u2014 e.g. goggles' + 'What it says out loud (optional)'",
+          "Error copy 'That did not work' / 'Could not reach the server'"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "aac_app.db tables categories, category_words, child_categories",
+          "env AAC_APP_DB"
+        ]
+      },
+      "depends_on": [
+        "api/board-content-endpoints.md",
+        "database/schema.md",
+        "kid-app/event-logging.md",
+        "kid-app/symbol-set.md"
+      ],
+      "depended_on_by": [
+        "dashboard/student-overview.md",
+        "kid-app/communication-board.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "kid-app/child-sign-in.md",
+      "name": "Child Sign-In (Who Is Using The Board)",
+      "domain": "kid-app",
+      "sources": [
+        "lib/session.ts",
+        "app/who/page.tsx",
+        "components/kid/who-picker.tsx"
+      ],
+      "source_hashes": {
+        "lib/session.ts": "ae947af6ec47b70045c48ddb18f7994827d8b08e",
+        "app/who/page.tsx": "ff2494a2778c33527a175621d24a6df7d02ffed0",
+        "components/kid/who-picker.tsx": "328a8b620d2e3ca7aca9fbeb435a939eb8d7dba0"
+      },
+      "symbols": {
+        "functions": [
+          "currentChildId",
+          "setCurrentChild",
+          "clearCurrentChild",
+          "signInRoster",
+          "childProfile",
+          "passcodeFor",
+          "setPasscode",
+          "checkPasscode",
+          "WhoPage",
+          "WhoPicker",
+          "signIn",
+          "pick",
+          "tapSymbol"
+        ],
+        "constants": {
+          "COOKIE": "'aac_child'",
+          "MAX_AGE": "60 * 60 * 12 (43200 s)",
+          "cookie flags": "httpOnly: true, sameSite: 'lax', path: '/'",
+          "APP_DB": "process.env.AAC_APP_DB ?? path.join(process.cwd(), 'aac_app.db')",
+          "PIN_SYMBOLS": "['ball','book','home','music','water','apple','play','garden']",
+          "passcode length": "3 (auto-submits when next.length >= 3)",
+          "face tile min height": "160 px",
+          "passcode pad button min height": "96 px"
+        },
+        "endpoints": [
+          "POST /api/session {childId, passcode}",
+          "DELETE /api/session?child=<id>",
+          "GET /who"
+        ],
+        "ui_elements": [
+          "Heading 'Who is using the board?' / 'Tap your picture.'",
+          "Child face tiles with initial circle + first name",
+          "'pictures needed' hint",
+          "Heading 'Hello <FirstName>. Tap your three pictures.'",
+          "Three chosen-symbol slots (aria-label 'pictures chosen so far')",
+          "8-symbol passcode pad",
+          "Retry copy: \"Let's try that again.\"",
+          "'Someone else' button",
+          "Footer: 'Signing in keeps each person's words in their own record, so the reports describe the right child.'"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "cookie aac_child",
+          "aac_app.db table child_passcodes",
+          "globalThis.__aacSession",
+          "env AAC_APP_DB"
+        ]
+      },
+      "depends_on": [
+        "api/sign-in-endpoints.md",
+        "database/schema.md",
+        "kid-app/symbol-set.md"
+      ],
+      "depended_on_by": [
+        "dashboard/attention-queue.md",
+        "kid-app/communication-board.md",
+        "kid-app/event-logging.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "kid-app/communication-board.md",
+      "name": "Communication Board",
+      "domain": "kid-app",
+      "sources": [
+        "app/page.tsx",
+        "components/kid/board-app.tsx"
+      ],
+      "source_hashes": {
+        "app/page.tsx": "a64b516cd623a66547ee691ac9002428998a2935",
+        "components/kid/board-app.tsx": "9af7d1408d300b641edf7d8240cd2ba8adaf76e0"
+      },
+      "symbols": {
+        "functions": [
+          "KidPage",
+          "Fallback",
+          "applyOverride",
+          "BoardApp",
+          "tap",
+          "pickFromCategory",
+          "doSpeak",
+          "deleteLast",
+          "clear",
+          "switchMode",
+          "applyEdit",
+          "touchModeling",
+          "CardButton",
+          "ModeChip"
+        ],
+        "constants": {
+          "SCENES": "classroom 'Classroom' | therapy 'Therapy' | free_play 'Free play' | home 'Home' | community 'Out'",
+          "modeling auto-exit timer": "90_000 ms",
+          "speaking flag timeout": "Math.min(6000, 800 + text.length * 60) ms",
+          "card min height": "max(64px, 14vh)",
+          "essential rail button min height / min width": "64 px / 84 px",
+          "sentence-bar button min height": "64 px",
+          "dimmed card opacity": "opacity-35",
+          "dynamic": "'force-dynamic'"
+        },
+        "endpoints": [
+          "GET / (app/page.tsx)",
+          "DELETE /api/session?child=<id>",
+          "POST /api/events (via EventLogger)"
+        ],
+        "ui_elements": [
+          "Signed-in chip (initial + first name, title 'Not you? Sign in as someone else')",
+          "Mode chips 'All words' + one per mode name",
+          "Scene select (aria-label 'Where are we?')",
+          "Categories button (edit mode only)",
+          "Voice button",
+          "Edit cards / Done editing toggle (aria-pressed)",
+          "I am modelling / Stop modelling toggle",
+          "Private / Private \u2014 nothing recorded toggle (aria-pressed)",
+          "Sentence bar chips + 'Press a word to begin'",
+          "Will say: \"<text>\" preview",
+          "Speak button (flex-[3])",
+          "Undo button",
+          "Clear button",
+          "Stop button",
+          "Masked cell dashed placeholder",
+          "Essential rail nav (aria-label 'Always available')",
+          "Modelling banner: 'Adult is modelling \u2014 these presses are recorded as the grown-up's, not <FirstName>'s'",
+          "Editing banner: 'Editing \u2014 press any card to change its picture or words. Nothing is spoken or recorded.'",
+          "Speech-unavailable banner: 'This browser cannot speak\u2026'",
+          "Fallback: '<name> has no robust board.'"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "aac.db tables: children, boards, board_cells, cards, mode_selection",
+          "cookie aac_child"
+        ]
+      },
+      "depends_on": [
+        "api/sign-in-endpoints.md",
+        "database/schema.md",
+        "kid-app/card-customisation.md",
+        "kid-app/category-folders.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/event-logging.md",
+        "kid-app/offline-pwa.md",
+        "kid-app/symbol-set.md",
+        "kid-app/utterance-and-speech.md"
+      ],
+      "depended_on_by": [
+        "analytics/metric-readers.md",
+        "dashboard/student-overview.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "kid-app/event-logging.md",
+      "name": "Event Logging & Private Mode",
+      "domain": "kid-app",
+      "sources": [
+        "lib/kid/log.ts"
+      ],
+      "source_hashes": {
+        "lib/kid/log.ts": "68fa4c3afc6a96879408c2c9a9f042a02fa0424c"
+      },
+      "symbols": {
+        "functions": [
+          "localDay",
+          "openDb",
+          "isPrivate",
+          "setPrivate",
+          "EventLogger",
+          "EventLogger.setScene",
+          "EventLogger.setActor",
+          "EventLogger.tapDelta",
+          "EventLogger.resetTapClock",
+          "EventLogger.log",
+          "EventLogger.logTap",
+          "EventLogger.persist",
+          "EventLogger.drain",
+          "EventLogger.clear",
+          "EventLogger.flush",
+          "EventLogger.flushBeacon"
+        ],
+        "constants": {
+          "DB_NAME": "'aac-events'",
+          "STORE": "'queue' (keyPath 'event_id')",
+          "VERSION": "1",
+          "PRIVATE_KEY": "'aac.private-mode'",
+          "flush interval": "15_000 ms",
+          "Scene enum": "therapy | classroom | free_play | home | community | unknown",
+          "Actor enum": "child | adult",
+          "tz_offset_min": "-now.getTimezoneOffset()"
+        },
+        "endpoints": [
+          "POST /api/events {events: LoggedEvent[]}",
+          "navigator.sendBeacon('/api/events', Blob)"
+        ],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "IndexedDB aac-events / object store queue",
+          "localStorage aac.private-mode"
+        ]
+      },
+      "depends_on": [
+        "api/event-ingest.md",
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "analytics/metric-readers.md",
+        "kid-app/communication-board.md",
+        "pipeline/rule-materialisation.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "kid-app/offline-pwa.md",
+      "name": "Offline & PWA Shell",
+      "domain": "kid-app",
+      "sources": [
+        "app/layout.tsx",
+        "components/kid/register-sw.tsx",
+        "public/sw.js",
+        "public/manifest.webmanifest",
+        "public/icon.svg"
+      ],
+      "source_hashes": {
+        "app/layout.tsx": "fd1d55d443a752cc120790340153b705e35f56c6",
+        "components/kid/register-sw.tsx": "19952d043c8ff791305a7d9f2fa3a3d9be429609",
+        "public/sw.js": "68c96bb240e413816413eea23ef89c9cd2ac2ffc",
+        "public/manifest.webmanifest": "79e77af9e4431c9536a2570c2853a849d9cbf940",
+        "public/icon.svg": "419a8c747839a7dc73e857d0215526471979098d"
+      },
+      "symbols": {
+        "functions": [
+          "RootLayout",
+          "RegisterSW",
+          "install handler",
+          "activate handler",
+          "fetch handler"
+        ],
+        "constants": {
+          "CACHE": "'aac-v2'",
+          "OFFLINE_FALLBACK": "'/'",
+          "metadata.title": "'AAC'",
+          "metadata.description": "'Communication board and communication analytics'",
+          "metadata.manifest": "'/manifest.webmanifest'",
+          "metadata.icons": "{ icon: '/icon.svg', apple: '/icon.svg' }",
+          "appleWebApp": "{ capable: true, statusBarStyle: 'default', title: 'AAC' }",
+          "viewport": "width device-width, initialScale 1, maximumScale 1, viewportFit 'cover'",
+          "cache-first path prefix": "/_next/static/",
+          "never-intercepted paths": "/dashboard*, /api*, non-GET, cross-origin",
+          "offline fallback response": "HTTP 503 inline HTML 'No connection'",
+          "manifest name / short_name": "'AAC Communication Board' / 'AAC'",
+          "manifest display / orientation": "'standalone' / 'any'",
+          "manifest background_color / theme_color": "#f4f6f9 / #2f5fd0",
+          "manifest icon": "/icon.svg, sizes 'any', image/svg+xml, purpose 'any maskable'",
+          "icon.svg geometry": "512\u00d7512, rx 96, four 136\u00d7136 tiles at opacity 1/.72/.72/.45"
+        },
+        "endpoints": [
+          "GET /sw.js",
+          "GET /manifest.webmanifest",
+          "GET /icon.svg"
+        ],
+        "ui_elements": [
+          "Offline fallback page: 'No connection \u2014 The board could not be loaded and nothing was saved offline yet. Reconnect and try again.'"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "Cache Storage bucket aac-v2"
+        ]
+      },
+      "depends_on": [
+        "kid-app/symbol-set.md"
+      ],
+      "depended_on_by": [
+        "dashboard/attention-queue.md",
+        "kid-app/communication-board.md",
+        "kid-app/event-logging.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "kid-app/symbol-set.md",
+      "name": "Symbol Set, Card Faces & Design Tokens",
+      "domain": "kid-app",
+      "sources": [
+        "lib/icons/symbols.tsx",
+        "components/kid/card-face.tsx",
+        "app/globals.css"
+      ],
+      "source_hashes": {
+        "lib/icons/symbols.tsx": "5ab682e4926cfff6d447babec1cd4d9b15de0c47",
+        "components/kid/card-face.tsx": "41663cab89e3bd1e3966c1196f034237d416e736",
+        "app/globals.css": "0a9e4d4ee628ef4b8efd1bf9b58f9f3326057696"
+      },
+      "symbols": {
+        "functions": [
+          "symbolFor",
+          "wordClassFor",
+          "allSymbolNames",
+          "isNumeral",
+          "categoryIcon",
+          "SymbolArt",
+          "CardFace",
+          "faceColours"
+        ],
+        "constants": {
+          "SYMBOLS entry count": "68",
+          "WordClass": "pronoun | verb | descriptor | noun | social | urgent",
+          "CLASS_STYLE.pronoun": "bg #fff8db, fg #7a5c00, border #e8c95a, name 'people'",
+          "CLASS_STYLE.verb": "bg #e6f6ea, fg #1c6b3a, border #7bc396, name 'doing'",
+          "CLASS_STYLE.descriptor": "bg #e8f0fd, fg #1f4f9c, border #8bb0e8, name 'describing'",
+          "CLASS_STYLE.noun": "bg #fdeee0, fg #8a4a12, border #e5a76a, name 'things'",
+          "CLASS_STYLE.social": "bg #fbe9f2, fg #8c2b5c, border #e08cb4, name 'social'",
+          "CLASS_STYLE.urgent": "bg #fdeaea, fg #9c1f1f, border #e08585, name 'important'",
+          "SVG drawing style": "viewBox 0 0 24 24, fill none, stroke currentColor, strokeWidth 2, round caps/joins",
+          "isNumeral pattern": "/^\\d{1,2}$/",
+          "CATEGORY_ICON": "feelings\u2192happy, food\u2192apple, activities\u2192play, behaviour\u2192wait, numbers\u2192more, people\u2192i, places\u2192home, body\u2192hurt, describing\u2192good (9)",
+          "CardFace default size": "40",
+          "letter-tile font size": "size * 0.55",
+          "--radius-card": "0.75rem",
+          "--color-accent": "#2f5fd0 light / #7fa4f5 dark",
+          "--color-surface-sunk": "#f4f6f9 light / #1b1f28 dark",
+          "--color-neutral": "#4a5261 (exists because C1 forbids styling repetition as a problem)",
+          ":focus-visible outline": "3px solid var(--color-accent), offset 2px",
+          "reduced-motion durations": "0.01ms !important",
+          "body touch-action": "manipulation"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "CardFace three-tier render: photo \u2192 SymbolArt \u2192 uppercase first-letter tile",
+          "faceColours background/border/color pair"
+        ],
+        "cli_commands": [],
+        "storage_keys": []
+      },
+      "depends_on": [],
+      "depended_on_by": [
+        "dashboard/student-overview.md",
+        "kid-app/card-customisation.md",
+        "kid-app/category-folders.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/communication-board.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "kid-app/utterance-and-speech.md",
+      "name": "Utterance Assembly & Speech Output",
+      "domain": "kid-app",
+      "sources": [
+        "lib/kid/sentence.ts",
+        "lib/kid/speech.ts",
+        "lib/kid/voice.ts",
+        "components/kid/voice-picker.tsx"
+      ],
+      "source_hashes": {
+        "lib/kid/sentence.ts": "095e05c1ef21f8b1f5f6d67658eeb40f4ec44ad0",
+        "lib/kid/speech.ts": "6f2d34c30166b4bd27ffaf989c4c14f40d32e933",
+        "lib/kid/voice.ts": "6a9ec759355a7bd67101ecb41634ff6cdf102afc",
+        "components/kid/voice-picker.tsx": "492a978f99d2e89798a5cf0e11f99c007273c456"
+      },
+      "symbols": {
+        "functions": [
+          "wordForm",
+          "phraseForm",
+          "needsCapital",
+          "buildUtterance",
+          "previewChips",
+          "seededWordForm",
+          "isSupported",
+          "unlock",
+          "speak",
+          "stop",
+          "voices",
+          "onVoicesReady",
+          "scoreVoice",
+          "rankVoices",
+          "bestVoice",
+          "resolveVoice",
+          "loadVoiceChoice",
+          "saveVoiceChoice",
+          "VoicePicker"
+        ],
+        "constants": {
+          "DEFAULT_VOICE": "{ voiceURI: null, rate: 0.95, pitch: 1 }",
+          "WORD_FORM_OVERRIDES": "toilet\u2192'the toilet', hurt\u2192'hurts', 'all done'\u2192'all done', 'thank you'\u2192'thank you'",
+          "PREFERRED": "samantha, google uk english female, google uk english male, google us english, microsoft aria, microsoft libby, microsoft sonia, daniel, karen, moira, tessa, serena (12)",
+          "AVOID": "albert, bad news, bahh, bells, boing, bubbles, cellos, deranged, good news, jester, organ, superstar, trinoids, whisper, wobble, zarvox, espeak, pipe organ (18)",
+          "localService score bonus": "+100",
+          "PREFERRED score bonus": "+50",
+          "natural|enhanced|premium|neural bonus": "+30",
+          "AVOID penalty": "-80",
+          "lang === pageLang bonus": "+10",
+          "lang startsWith 'en' bonus": "+5",
+          "pageLang default": "'en-GB'",
+          "SAMPLE": "'I want water, please.'",
+          "voices shown in picker": "voices.slice(0, 8)",
+          "rate slider": "min 0.6, max 1.4, step 0.05",
+          "pitch slider": "min 0.6, max 1.6, step 0.1",
+          "KEY": "'aac.voice'",
+          "BETTER_VOICE_HELP": "iPad/iPhone, Android, Mac, Windows OS voice-download paths"
+        },
+        "endpoints": [],
+        "ui_elements": [
+          "Voice modal (aria-label 'Voice for <FirstName>')",
+          "Voice radio rows with lang + '\u00b7 on device' / '\u00b7 needs network'",
+          "Try button per voice",
+          "Speed slider (label 'Speed')",
+          "Pitch slider (label 'Pitch')",
+          "Try: \"I want water, please.\" button",
+          "details: 'This device may have better voices available'",
+          "Use this voice button",
+          "Cancel button",
+          "Empty state: 'No voices found on this device yet.'"
+        ],
+        "cli_commands": [],
+        "storage_keys": [
+          "localStorage aac.voice.<childId>"
+        ]
+      },
+      "depends_on": [],
+      "depended_on_by": [
+        "analytics/metric-readers.md",
+        "kid-app/card-customisation.md",
+        "kid-app/communication-board.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "mcp/argument-validation.md",
+      "name": "Tool Argument Validation",
+      "domain": "mcp",
+      "sources": [
+        "mcp/validate.ts"
+      ],
+      "source_hashes": {
+        "mcp/validate.ts": "995c5896b57a63d2b32ebf0bb8d9c254a44b0359"
+      },
+      "symbols": {
+        "functions": [
+          "validateArgs",
+          "nearest",
+          "distance"
+        ],
+        "constants": {
+          "nearest suggestion threshold": "bestScore <= Math.max(2, Math.floor(a.length / 3))",
+          "boolean string coercion": "v === 'true'",
+          "number handling": "clamp to spec.minimum / spec.maximum rather than reject",
+          "array handling": "slice(0, spec.maxItems) rather than reject",
+          "INVALID_ARGUMENTS retryable": "true"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": []
+      },
+      "depends_on": [],
+      "depended_on_by": [
+        "ai/scoped-tool-bridge.md",
+        "mcp/stdio-server.md",
+        "mcp/tool-surface.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "mcp/read-only-db-access.md",
+      "name": "Read-Only Database Access and the SQL Guard",
+      "domain": "mcp",
+      "sources": [
+        "mcp/db.ts"
+      ],
+      "source_hashes": {
+        "mcp/db.ts": "97b7200d8487175c0dc78e28815d4731922652f2"
+      },
+      "symbols": {
+        "functions": [
+          "Db.all",
+          "Db.one",
+          "Db.scalar",
+          "Db.freeQuery",
+          "Db.exec",
+          "Db.close",
+          "McpError"
+        ],
+        "constants": {
+          "SELECT_ONLY": "/^\\s*(with|select)\\b/i",
+          "BANNED": "/\\b(attach|detach|pragma|insert|update|delete|drop|alter|create|replace|vacuum|reindex|begin|commit|rollback|savepoint)\\b/i",
+          "PRAGMA busy_timeout": "5000",
+          "PRAGMA foreign_keys (write handle)": "ON",
+          "read handle options": "{ readOnly: true }",
+          "freeQuery default limit": "200",
+          "injected LIMIT": "limit + 1",
+          "exec allowlist regex": "/^\\s*insert\\s+into\\s+(insights|board_change_proposals)\\b/i",
+          "McpError.retryable default": "false"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "aac.db",
+          "aac_text.db",
+          "insights",
+          "board_change_proposals",
+          "globalThis.__mcpDb",
+          "globalThis.__aacChatDb"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md"
+      ],
+      "depended_on_by": [
+        "ai/scoped-tool-bridge.md",
+        "api/mcp-http-transport.md",
+        "mcp/stdio-server.md",
+        "mcp/tool-surface.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "mcp/response-fixtures.md",
+      "name": "Captured Response Fixtures",
+      "domain": "mcp",
+      "sources": [
+        "mcp/fixtures/maya_t-last_14d.json",
+        "mcp/fixtures/sofia_r-last_14d.json"
+      ],
+      "source_hashes": {
+        "mcp/fixtures/maya_t-last_14d.json": "431866d91d44649f1dfdcf0e42fcbdb89ab445d9",
+        "mcp/fixtures/sofia_r-last_14d.json": "eb116807bad509721238a81c652f2746705e5a1b"
+      },
+      "symbols": {
+        "functions": [],
+        "constants": {
+          "captured tool count": "14 of 20",
+          "fixture window": "last_14d",
+          "adult_id used": "adult_patel",
+          "class_id used": "class_y3",
+          "database max day_local": "2026-08-07",
+          "maya_t board_mean_error_share": "0.12",
+          "maya_t reach_gradient": "null",
+          "maya_t problem_rows row 2 error_share": "0.175",
+          "maya_t revision": "move of 'water' on 2026-07-30, suggested_by_insight I3, mistap 0.0648 -> 0.1393, delta 0.0745",
+          "maya_t fired rules": "I1, I3, I4, I8 (triggered_count 4)",
+          "sofia_r fired rules": "I4, I6, I7",
+          "maya_t median_wait_ms": "4508",
+          "sofia_r median_wait_ms": "4285",
+          "query sql_executed suffix": "LIMIT 201",
+          "maya fixture size": "122646 bytes",
+          "sofia fixture size": "104373 bytes"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "python3 tools/gen_fixtures.py --db aac.db --child sofia_r --window last_14d",
+          "./tools/build.sh aac.db"
+        ],
+        "storage_keys": [
+          "mcp/fixtures/<child_id>-<window>.json",
+          "_about",
+          "tools.<tool_name>.request",
+          "tools.<tool_name>.response"
+        ]
+      },
+      "depends_on": [
+        "mcp/stdio-server.md",
+        "mcp/tool-surface.md",
+        "pipeline/rule-materialisation.md"
+      ],
+      "depended_on_by": [
+        "ai/scoped-tool-bridge.md",
+        "analytics/metric-readers.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "mcp/stdio-server.md",
+      "name": "MCP stdio Server",
+      "domain": "mcp",
+      "sources": [
+        "mcp/server.ts",
+        ".mcp.json"
+      ],
+      "source_hashes": {
+        "mcp/server.ts": "371b4075ac32ccef20f039e0e267c5f561844a38",
+        ".mcp.json": "37c403f9fec508487801a7b34d6377880fc3befe"
+      },
+      "symbols": {
+        "functions": [
+          "handle",
+          "send"
+        ],
+        "constants": {
+          "PROTOCOL_VERSION": "'2025-06-18'",
+          "ROOT": "resolve(import.meta.dirname, '..')",
+          "RESOURCES": "4 entries: schema://ddl, schema://dictionary, schema://insights, schema://interpretation-guide",
+          "serverInfo.name": "'aac-analytics'",
+          "serverInfo.version": "'1.0.0'",
+          "dbPath default": "resolve(ROOT, 'aac.db')",
+          "JSON-RPC parse error code": "-32700",
+          "JSON-RPC tool error code": "-32000"
+        },
+        "endpoints": [
+          "initialize",
+          "tools/list",
+          "tools/call",
+          "resources/list",
+          "resources/read",
+          "ping"
+        ],
+        "ui_elements": [],
+        "cli_commands": [
+          "node mcp/server.ts --db aac.db",
+          "node mcp/server.ts --db aac.db --allow-writes",
+          "npm run mcp"
+        ],
+        "storage_keys": [
+          "schema://ddl",
+          "schema://dictionary",
+          "schema://insights",
+          "schema://interpretation-guide",
+          "db/schema.sql",
+          "docs/aac-clinical-constraints.md",
+          "aac.db",
+          "metrics_catalog",
+          "insights_catalog"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md",
+        "mcp/argument-validation.md",
+        "mcp/read-only-db-access.md",
+        "mcp/tool-surface.md"
+      ],
+      "depended_on_by": [
+        "api/mcp-http-transport.md",
+        "mcp/response-fixtures.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "mcp/tool-surface.md",
+      "name": "MCP Tool Surface and Guidance Envelope",
+      "domain": "mcp",
+      "sources": [
+        "mcp/tools.ts"
+      ],
+      "source_hashes": {
+        "mcp/tools.ts": "e70ec392940d24facfa0072e4c8b18fb10fa0881"
+      },
+      "symbols": {
+        "functions": [
+          "resolveWindow",
+          "dictionaryFor",
+          "computeGuidance",
+          "base",
+          "bucketExpr",
+          "sliceMetrics"
+        ],
+        "constants": {
+          "WINDOWS": "{ today: 1, last_7d: 7, last_14d: 14, last_28d: 28, term: 90 }",
+          "custom window maximum days": "120",
+          "SLICEABLE_IDS": "['mistap_rate','taps_per_utterance','abandonment_rate','independence_rate','mlu','composition_time','time_to_first_tap','ndw','core_fringe_ratio']",
+          "SPATIAL": "Set(['mistap_rate','correction_adjacent_rate','cell_heat','taps_per_utterance'])",
+          "DIMENSIONAL": "cell_heat, card_frequency, word_pairs, nav_depth_by_card",
+          "BASELINE_THIN threshold": "activeDays < 14",
+          "ABSENCE_IN_WINDOW threshold": "gap >= 2 days",
+          "SCENE_MOSTLY_UNKNOWN threshold": "unknownShare > 0.4",
+          "HIGH_REPETITION_NEUTRAL threshold": "avg repeat_tap_rate > 0.15",
+          "PARTNER_WAIT_SHORT threshold": "wait < 2000 ms",
+          "next_calls mistap_rate threshold": "> 0.08",
+          "next_calls time_to_first_tap threshold": "> 5000 ms",
+          "next_calls abandonment_rate threshold": "> 0.25",
+          "direction unchanged epsilon": "Math.abs(delta) < 1e-9",
+          "get_cell_heat unreached threshold": "row tap share < 0.05 and mistaps > 0",
+          "get_cell_heat error_prone threshold": "errShare > meanErrShare * 1.35 and mistaps >= 5",
+          "reach_gradient conditions": ">= 3 rows, monotonic within 0.01, last/first ratio >= 1.5",
+          "get_card_stats limit": "default 25, max 100",
+          "get_word_pairs min_solo": "default 15, range 5-100",
+          "get_word_pairs limit": "default 20, max 50",
+          "get_utterances limit": "default 50, max 200",
+          "get_attention_queue limit": "default 10, max 30",
+          "get_attention_queue score": "+3 silence>=2d, +2 abandonment_rate>0.25, +2 mistap_rate>0.12, +1 open intervention insight",
+          "get_insight_history limit": "default 30, max 100",
+          "write_insight narration max length": "500 characters",
+          "write_insight actions_suggested maxItems": "6",
+          "propose_board_change rationale max length": "300 characters",
+          "propose_board_change change_kind enum": "['add','add_copy','mask','unmask']",
+          "query limit": "default 200, max 500",
+          "metric_ids maxItems": "40",
+          "rounding": "Math.round(value * 10000) / 10000",
+          "day_of_week bucket labels": "['Sun','Mon','Tue','Wed','Thu','Fri','Sat']",
+          "insight_event_id prefix": "'ie_' + randomUUID().slice(0, 16)",
+          "proposal_id prefix": "'bcp_' + randomUUID().slice(0, 16)",
+          "tool count": "20"
+        },
+        "endpoints": [
+          "list_children",
+          "get_child_profile",
+          "get_metrics",
+          "get_metric_timeseries",
+          "get_card_stats",
+          "get_cell_heat",
+          "get_word_pairs",
+          "get_scene_breakdown",
+          "get_utterances",
+          "get_partner_metrics",
+          "get_board_revisions",
+          "get_fired_rules",
+          "get_attention_queue",
+          "get_report_set",
+          "get_insight_history",
+          "compare_windows",
+          "get_board_layout",
+          "write_insight",
+          "propose_board_change",
+          "query"
+        ],
+        "ui_elements": [],
+        "cli_commands": [],
+        "storage_keys": [
+          "events",
+          "utterances",
+          "partner_turns",
+          "children",
+          "roster",
+          "consent",
+          "boards",
+          "board_cells",
+          "board_revisions",
+          "board_change_proposals",
+          "cards",
+          "child_vocabulary",
+          "mode_selection",
+          "metrics_catalog",
+          "insights_catalog",
+          "fired_rules",
+          "insights",
+          "agg_daily_metric",
+          "agg_card_stats",
+          "agg_cell_heat",
+          "agg_word_pairs",
+          "v_insights_fired",
+          "v_tap_sequence",
+          "v_scene_matrix",
+          "v_function_mix",
+          "v_i6_scene_bound",
+          "v_i8_layout_disruption",
+          "v_card_stats"
+        ]
+      },
+      "depends_on": [
+        "analytics/data-dictionary.md",
+        "analytics/fired-rules-and-evidence.md",
+        "database/schema.md",
+        "mcp/read-only-db-access.md",
+        "pipeline/rule-materialisation.md"
+      ],
+      "depended_on_by": [
+        "ai/scoped-tool-bridge.md",
+        "api/mcp-http-transport.md",
+        "mcp/response-fixtures.md",
+        "mcp/stdio-server.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "pipeline/build-pipeline.md",
+      "name": "Deterministic Build Pipeline",
+      "domain": "pipeline",
+      "sources": [
+        "tools/build.sh"
+      ],
+      "source_hashes": {
+        "tools/build.sh": "340d617264cc09115fc6c7d4a789c62199f35fa7"
+      },
+      "symbols": {
+        "functions": [
+          "step"
+        ],
+        "constants": {
+          "DB": "${1:-aac.db}"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "./tools/build.sh [db_path]",
+          "npm run build",
+          "sqlite3 \"$DB\" < db/schema.sql",
+          "sqlite3 \"$DB\" < db/indices.sql",
+          "sqlite3 \"$DB\" < db/seed_catalogues.sql",
+          "sqlite3 \"$DB\" < db/views_metrics.sql",
+          "sqlite3 \"$DB\" < db/views_insights.sql",
+          "python3 -m tools.seed.generate --db \"$DB\"",
+          "python3 tools/rollup.py --db \"$DB\"",
+          "python3 tools/run_rules.py --db \"$DB\"",
+          "python3 tools/verify.py --db \"$DB\"",
+          "python3 tools/gen_metric_index.py --db \"$DB\"",
+          "python3 tools/gen_fixtures.py --db \"$DB\" --child <child> --window last_14d"
+        ],
+        "storage_keys": [
+          "aac.db",
+          "aac.db-wal",
+          "aac.db-shm",
+          "docs/analytics-metrics.md",
+          "mcp/fixtures/maya_t-last_14d.json",
+          "mcp/fixtures/sofia_r-last_14d.json"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md",
+        "pipeline/generated-artefacts.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/seed-generation.md",
+        "pipeline/verification-gate.md"
+      ],
+      "depended_on_by": [
+        "mcp/stdio-server.md",
+        "pipeline/test-harnesses.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "pipeline/csv-export.md",
+      "name": "CSV Export and Column Dictionaries",
+      "domain": "pipeline",
+      "sources": [
+        "tools/export_csv.py",
+        "tools/csv_docs.py"
+      ],
+      "source_hashes": {
+        "tools/export_csv.py": "32d32aa246e96afc4bdd6272aa9d4b96678ee00d",
+        "tools/csv_docs.py": "a280e9962424ea59bf61d2060c992c3a0813e37c"
+      },
+      "symbols": {
+        "functions": [
+          "write_csv",
+          "q",
+          "export_from_db",
+          "export_from_fixture",
+          "main",
+          "write_dictionaries",
+          "check_coverage"
+        ],
+        "constants": {
+          "BOM": "utf-8-sig",
+          "status CASE": "value NOT NULL -> 'ok'; n = 0 -> 'not_collected'; else 'below_min_n'",
+          "TABULAR": "get_metrics->metrics, get_card_stats->cards, get_cell_heat->cells, get_word_pairs->pairs, get_utterances->utterances, list_children->children, get_attention_queue->queue",
+          "word_pairs filter": "together = 0 AND solo_a >= 10 AND solo_b >= 10",
+          "fired_rules filter": "f.superseded_by IS NULL",
+          "utterances filter": "u.actor = 'child'",
+          "COLUMN_DOCS size": "17 files, 136 column entries",
+          "RESPONSE_FIELDS size": "25 entries",
+          "guidance codes": "SMALL_SAMPLE, NOT_COLLECTED, LAYOUT_CHANGED_MID_WINDOW, GRID_RESIZED_MID_WINDOW, MODE_POSITION_DRIFT, MODELING_MODE_UNUSED, HIGH_REPETITION_NEUTRAL, PARTNER_WAIT_SHORT, ABSENCE_IN_WINDOW, BASELINE_THIN, SCENE_MOSTLY_UNKNOWN, PARTIAL_WINDOW",
+          "undocumented-column exit code": "1"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "python3 tools/export_csv.py --db aac.db --out exports/",
+          "python3 tools/export_csv.py --fixture mcp/fixtures/maya_t-last_14d.json --out exports/",
+          "python3 tools/export_csv.py --db aac.db --child maya_t --excel",
+          "--db",
+          "--fixture",
+          "--child",
+          "--out",
+          "--excel"
+        ],
+        "storage_keys": [
+          "exports/metrics_daily_long.csv",
+          "exports/metrics_daily_wide.csv",
+          "exports/metric_catalog.csv",
+          "exports/insight_catalog.csv",
+          "exports/fired_rules.csv",
+          "exports/card_stats.csv",
+          "exports/cell_heat.csv",
+          "exports/word_pairs.csv",
+          "exports/utterances.csv",
+          "exports/children.csv",
+          "exports/_column_dictionary.csv",
+          "exports/_mcp_response_fields.csv",
+          "exports/fixture_guidance.csv",
+          "agg_daily_metric",
+          "agg_card_stats",
+          "agg_cell_heat",
+          "agg_word_pairs",
+          "fired_rules",
+          "metrics_catalog",
+          "insights_catalog",
+          "utterances",
+          "children",
+          "child_vocabulary"
+        ]
+      },
+      "depends_on": [
+        "analytics/data-dictionary.md",
+        "database/schema.md",
+        "pipeline/generated-artefacts.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/seed-generation.md"
+      ],
+      "depended_on_by": [],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "pipeline/generated-artefacts.md",
+      "name": "Generated Artefacts \u2014 Metric Index and MCP Fixtures",
+      "domain": "pipeline",
+      "sources": [
+        "tools/gen_metric_index.py",
+        "tools/gen_fixtures.py"
+      ],
+      "source_hashes": {
+        "tools/gen_metric_index.py": "ccdfce6920f36d3b8d1660829f80f967007027fc",
+        "tools/gen_fixtures.py": "051b7b57e3fdabfae73acc7d29b02e8b67e3bd7f"
+      },
+      "symbols": {
+        "functions": [
+          "short_audience",
+          "esc",
+          "truncate",
+          "build",
+          "_deny_attach",
+          "main",
+          "build_calls",
+          "run"
+        ],
+        "constants": {
+          "DOC": "docs/analytics-metrics.md",
+          "START": "<!-- METRIC-INDEX:START -->",
+          "END": "<!-- METRIC-INDEX:END -->",
+          "GROUP_NAMES": "A Effort & speed, B Errors & motor, C Volume & vocabulary, D Layout & context, E Whose voice, F AI value, G Communication partner, H Communication style",
+          "STARRED": "taps_per_utterance, taps_saved, vocabulary_gaps, silence_streak, mistap_rate, independence_rate",
+          "AUDIENCE_SHORT": "{teacher: T, parent: P, slt: S}",
+          "polarity_glyph": "{higher_better: \u2191, lower_better: \u2193, neutral: =}",
+          "truncate limits": "110 shown / 100 logged / 90 cut",
+          "--child default": "sofia_r",
+          "--window default": "last_14d",
+          "--class-id default": "class_y3",
+          "--adult default": "adult_patel",
+          "fixture token estimate": "len(json.dumps(body)) // 4"
+        },
+        "endpoints": [
+          "JSON-RPC 2.0 tools/call over stdio to node mcp/server.ts"
+        ],
+        "ui_elements": [],
+        "cli_commands": [
+          "python3 tools/gen_metric_index.py [--db aac.db]",
+          "python3 tools/gen_fixtures.py --db aac.db --child sofia_r --window last_14d",
+          "node mcp/server.ts --db <db>",
+          "--db",
+          "--child",
+          "--window",
+          "--class-id",
+          "--adult",
+          "--out"
+        ],
+        "storage_keys": [
+          "docs/analytics-metrics.md",
+          "mcp/fixtures/maya_t-last_14d.json",
+          "mcp/fixtures/sofia_r-last_14d.json",
+          "metrics_catalog",
+          "aac.db"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md",
+        "mcp/stdio-server.md",
+        "pipeline/build-pipeline.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md"
+      ],
+      "depended_on_by": [
+        "analytics/data-dictionary.md",
+        "analytics/metric-readers.md",
+        "pipeline/csv-export.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "pipeline/l2-rollup.md",
+      "name": "L2 Rollup",
+      "domain": "pipeline",
+      "sources": [
+        "tools/rollup.py"
+      ],
+      "source_hashes": {
+        "tools/rollup.py": "2eaf02c711eb1e067cb9dfd869005d0c714ae6cc"
+      },
+      "symbols": {
+        "functions": [
+          "rollup_daily_metrics",
+          "rollup_card_stats",
+          "rollup_cell_heat",
+          "rollup_word_pairs",
+          "main"
+        ],
+        "constants": {
+          "--window-days default": "28",
+          "window_start expression": "date((SELECT MAX(day_local) FROM events), '-{window_days - 1} days')",
+          "window_end expression": "(SELECT MAX(day_local) FROM events)",
+          "scenes_used default": "'[]'",
+          "suppression rule": "CASE WHEN v.n >= mc.min_n THEN v.value ELSE NULL END"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "python3 tools/rollup.py --db aac.db [--window-days 14]",
+          "--db",
+          "--window-days"
+        ],
+        "storage_keys": [
+          "agg_daily_metric",
+          "agg_card_stats",
+          "agg_cell_heat",
+          "agg_word_pairs",
+          "metrics_catalog",
+          "v_daily_metrics_all",
+          "v_card_stats",
+          "v_mistaps",
+          "v_repeat_runs_by_card",
+          "v_scene_matrix",
+          "v_cell_heat",
+          "v_word_pairs"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md",
+        "pipeline/build-pipeline.md",
+        "pipeline/seed-generation.md"
+      ],
+      "depended_on_by": [
+        "analytics/metric-readers.md",
+        "mcp/stdio-server.md",
+        "pipeline/csv-export.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/test-harnesses.md",
+        "pipeline/verification-gate.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "pipeline/rule-materialisation.md",
+      "name": "Nightly Rule Materialisation",
+      "domain": "pipeline",
+      "sources": [
+        "tools/run_rules.py"
+      ],
+      "source_hashes": {
+        "tools/run_rules.py": "9a18557544c8800a6183432c99ba7c996b9f2e87"
+      },
+      "symbols": {
+        "functions": [
+          "rows_as_dicts",
+          "main"
+        ],
+        "constants": {
+          "RULES": "I1:(v_i1_mistap_classification,1) I2:(v_i2_scanning_load,1) I3:(v_i3_buried_words,10) I4:(v_i4_unused_vocabulary,15) I5:(v_i5_summary,1) I6:(v_i6_scene_bound,10) I7:(v_i7_modeling_gap,1) I8:(v_i8_layout_disruption,10)",
+          "fired_rule_id format": "fr_{uuid4().hex[:16]}",
+          "supersede sentinel": "'pending'",
+          "thresholds fallback": "\"{}\"",
+          "v_window w_start": "date(MAX(day_local), '-13 days')"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "python3 tools/run_rules.py --db aac.db",
+          "--db",
+          "--keep-dismissed"
+        ],
+        "storage_keys": [
+          "fired_rules",
+          "insights_catalog",
+          "v_window",
+          "v_i1_mistap_classification",
+          "v_i2_scanning_load",
+          "v_i3_buried_words",
+          "v_i4_unused_vocabulary",
+          "v_i5_summary",
+          "v_i6_scene_bound",
+          "v_i7_modeling_gap",
+          "v_i8_layout_disruption"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md",
+        "pipeline/build-pipeline.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/seed-generation.md"
+      ],
+      "depended_on_by": [
+        "analytics/fired-rules-and-evidence.md",
+        "dashboard/attention-queue.md",
+        "mcp/stdio-server.md",
+        "pipeline/csv-export.md",
+        "pipeline/test-harnesses.md",
+        "pipeline/verification-gate.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "pipeline/seed-generation.md",
+      "name": "Seed Cohort Generation",
+      "domain": "pipeline",
+      "sources": [
+        "tools/seed/generate.py",
+        "tools/seed/personas.py",
+        "tools/seed/vocab.py"
+      ],
+      "source_hashes": {
+        "tools/seed/generate.py": "e2e0655e8cecafd1aaa6a721c3ba8c4824f1a568",
+        "tools/seed/personas.py": "717ce10a57ed50e748a787ce4a6f48fa20436e8f",
+        "tools/seed/vocab.py": "fea9deb326be2bd0193ca9acce3189bd45b7b994"
+      },
+      "symbols": {
+        "functions": [
+          "uid",
+          "epoch_ms",
+          "weighted_vocab",
+          "pick",
+          "Layout.position",
+          "Layout.nav_depth",
+          "Layout.available",
+          "Layout.neighbours",
+          "Generator.write_reference",
+          "Generator.add_event",
+          "Generator.generate_child",
+          "Generator.generate_utterance",
+          "Generator.generate_modeling",
+          "Generator.generate_partner_turns",
+          "Generator.flush",
+          "Generator.materialise_sessions",
+          "vocab.is_core",
+          "vocab.grid_cards",
+          "main"
+        ],
+        "constants": {
+          "TZ_OFFSET_MIN": "720",
+          "IDLE_GAP_MS": "20 * 60 * 1000",
+          "ORG_ID": "org_demo",
+          "CLASS_ID": "class_y3",
+          "SCHOOL_SCENES": "(8,home) (9,classroom) (10,therapy) (11,classroom) (12,free_play) (13,classroom) (14,classroom) (15,free_play) (16,home) (17,home) (18,home)",
+          "WEEKEND_SCENES": "(9,home) (11,community) (13,home) (15,free_play) (17,home)",
+          "PERSONAS": "maya_t seed=1001, jonah_k seed=1002, amara_o seed=1003, liam_w seed=1004, sofia_r seed=1005",
+          "EXPECTED_FIRING": "{I1:[maya_t], I3:[maya_t], I4:[maya_t, liam_w], I8:[maya_t], I2:[jonah_k], I5:[liam_w], I6:[sofia_r], I7:[sofia_r]}",
+          "ALL_INSIGHTS": "[I1, I2, I3, I4, I5, I6, I7, I8]",
+          "CORE_WORDS": "30 (word, rank, word_class) tuples",
+          "CARDS": "49 Card rows, 6 essential",
+          "EMOTION_LEXICON": "11 (word, category) pairs",
+          "SYNTAX_PATTERNS": "6 patterns across 3 stages",
+          "FEELINGS": "{happy:2, sad:2, tired:2, scared:3, excited:3}",
+          "MAYA_GRID": "4x4, (3,3) empty, row 3 is the dead zone",
+          "JONAH_GRID": "6x6",
+          "AMARA_GRID": "JONAH_GRID",
+          "LIAM_GRID": "4x5",
+          "SOFIA_GRID": "4x5",
+          "Layout.swapped": "(\"water\", \"more\")",
+          "maya_t layout_change_day": "33",
+          "jonah_k silence_from_day": "38",
+          "answered partner-turn share": "0.62",
+          "fatigue": "1.0 + 0.9 * (minutes_into_session / 45.0)",
+          "post-layout-change mistap multiplier": "2.3",
+          "dead-row mistap multiplier": "5.5",
+          "repeat run probability": "0.11 for maya_t, 0.05 otherwise",
+          "repeat run length": "rng.randint(3, 5)",
+          "inter-symbol delay": "rng.randint(2000, 6500) ms",
+          "core word weight": "3.2",
+          "essential weight": "2.4",
+          "maya_t snack weight": "22.0",
+          "never_combine weight": "9.0",
+          "scene_bound weight": "14.0 in scene, 0.0 elsewhere",
+          "buried depth decay": "0.45 ** depth",
+          "mistap delete threshold": "ms_delta < 1500",
+          "sitting minimum taps": "HAVING SUM(card_tap) >= 3",
+          "fatigue_ratio gate": "minutes >= 10 AND taps >= 20"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "python3 -m tools.seed.generate --db aac.db --days 42 --end 2026-08-07",
+          "--db",
+          "--days",
+          "--end"
+        ],
+        "storage_keys": [
+          "events",
+          "utterances",
+          "partner_turns",
+          "board_revisions",
+          "utterance_structures",
+          "sessions",
+          "orgs",
+          "classes",
+          "adults",
+          "children",
+          "roster",
+          "consent",
+          "cards",
+          "core_word_list",
+          "emotion_lexicon",
+          "syntax_patterns",
+          "boards",
+          "board_cells",
+          "child_vocabulary",
+          "mode_selection",
+          "aac.db"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md",
+        "pipeline/build-pipeline.md"
+      ],
+      "depended_on_by": [
+        "pipeline/csv-export.md",
+        "pipeline/generated-artefacts.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/test-harnesses.md",
+        "pipeline/verification-gate.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "pipeline/test-harnesses.md",
+      "name": "Pre-Demo Test Harnesses",
+      "domain": "pipeline",
+      "sources": [
+        "tools/concurrency_test.py",
+        "tools/test-api.sh"
+      ],
+      "source_hashes": {
+        "tools/concurrency_test.py": "2f117243e36c889824094c4506ea19fdb1c5c9cf",
+        "tools/test-api.sh": "633bd5d98bc9211037a0d4b42b8e4e7865ab10b9"
+      },
+      "symbols": {
+        "functions": [
+          "Stats.record",
+          "Stats.fail",
+          "Stats.p",
+          "writer",
+          "reader",
+          "main",
+          "ok",
+          "no",
+          "bl",
+          "eq"
+        ],
+        "constants": {
+          "--seconds default": "15",
+          "--readers default": "3",
+          "busy_timeout": "5000",
+          "sqlite3.connect timeout": "5.0",
+          "writer batch size": "20",
+          "reader p99 budget": "1000 ms",
+          "events insert placeholders": "21",
+          "BASE": "http://localhost:3000",
+          "MCP tool count assertion": ">= 14",
+          "unauthenticated redirect status": "307",
+          "unauthenticated MCP status": "401",
+          "categories seeded": "10",
+          "Feelings word count": "8",
+          "children offered on /who": "5"
+        },
+        "endpoints": [
+          "POST /api/visuals",
+          "POST /api/session",
+          "POST /api/events",
+          "POST /api/mcp",
+          "GET /api/categories?child=<id>",
+          "POST /api/categories",
+          "GET /",
+          "GET /who",
+          "GET /dashboard",
+          "GET /dashboard/student/maya_t"
+        ],
+        "ui_elements": [],
+        "cli_commands": [
+          "python3 tools/concurrency_test.py --db aac.db --seconds 15",
+          "npm run concurrency",
+          "./tools/test-api.sh",
+          "--db",
+          "--seconds",
+          "--readers"
+        ],
+        "storage_keys": [
+          "aac.db",
+          "agg_daily_metric",
+          "agg_card_stats",
+          "agg_cell_heat",
+          "agg_word_pairs",
+          "fired_rules",
+          "children",
+          "events",
+          ".env.local",
+          "AAC_MCP_TOKEN",
+          "/tmp/t.jar",
+          "BASE"
+        ]
+      },
+      "depends_on": [
+        "api/board-content-endpoints.md",
+        "api/event-ingest.md",
+        "api/visual-resolution-endpoint.md",
+        "auth/adult-sign-in.md",
+        "database/schema.md",
+        "kid-app/child-sign-in.md",
+        "mcp/stdio-server.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/seed-generation.md"
+      ],
+      "depended_on_by": [
+        "pipeline/build-pipeline.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    },
+    {
+      "doc": "pipeline/verification-gate.md",
+      "name": "Clinical Safety Verification Gate",
+      "domain": "pipeline",
+      "sources": [
+        "tools/verify.py"
+      ],
+      "source_hashes": {
+        "tools/verify.py": "ca5ac39572e77bde5a82f11daf62f6cab14ebd63"
+      },
+      "symbols": {
+        "functions": [
+          "Report.check",
+          "Report.warn",
+          "check_safety",
+          "check_coverage",
+          "check_restraint",
+          "check_integrity",
+          "main"
+        ],
+        "constants": {
+          "CONTROL_CHILD": "amara_o",
+          "ALL_INSIGHTS": "[I1, I2, I3, I4, I5, I6, I7, I8]",
+          "repetition_terms": "(\"reduc\", \"discourag\", \"stop the repet\", \"limit repet\", \"extinguish\", \"prevent repet\")",
+          "DIMENSIONAL": "cell_heat, card_frequency, zero_activation_days, word_pairs, nav_depth_by_card, scene_distribution, pragmatic_function_mix",
+          "NOT_YET_GENERATED": "suggestion_acceptance, vocabulary_gaps, visual_source_split, keyboard_use",
+          "baseline history threshold": "COUNT(DISTINCT day_local) FROM events >= 28",
+          "C2/C3 probe kinds": "move, resize, remove",
+          "exit code on failure": "1"
+        },
+        "endpoints": [],
+        "ui_elements": [],
+        "cli_commands": [
+          "python3 tools/verify.py --db aac.db",
+          "npm run verify",
+          "--db"
+        ],
+        "storage_keys": [
+          "metrics_catalog",
+          "insights_catalog",
+          "agg_daily_metric",
+          "agg_card_stats",
+          "agg_cell_heat",
+          "agg_word_pairs",
+          "board_change_proposals",
+          "board_cells",
+          "boards",
+          "events",
+          "children",
+          "v_insights_fired",
+          "v_i4_unused_vocabulary",
+          "v_card_stats",
+          "v_scene_matrix",
+          "v_function_mix"
+        ]
+      },
+      "depends_on": [
+        "database/schema.md",
+        "pipeline/build-pipeline.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/seed-generation.md"
+      ],
+      "depended_on_by": [
+        "pipeline/build-pipeline.md"
+      ],
+      "last_updated": "2026-08-07T11:16:46Z",
+      "last_aligned": "2026-08-07T11:16:46Z"
+    }
+  ],
+  "impact_matrix": [
+    {
+      "change": ".mcp.json",
+      "check": [
+        "api/mcp-http-transport.md",
+        "mcp/response-fixtures.md",
+        "mcp/stdio-server.md"
+      ]
+    },
+    {
+      "change": "app/actions.ts",
+      "check": [
+        "api/insight-dismissal-action.md",
+        "dashboard/attention-queue.md",
+        "dashboard/insight-cards.md",
+        "dashboard/student-overview.md",
+        "mcp/tool-surface.md"
+      ]
+    },
+    {
+      "change": "app/api/auth/route.ts",
+      "check": [
+        "api/sign-in-endpoints.md",
+        "auth/login-page.md",
+        "auth/role-consent-scoping.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "app/api/cards/route.ts",
+      "check": [
+        "api/board-content-endpoints.md",
+        "dashboard/student-overview.md",
+        "kid-app/card-customisation.md",
+        "kid-app/category-folders.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "app/api/categories/route.ts",
+      "check": [
+        "api/board-content-endpoints.md",
+        "dashboard/student-overview.md",
+        "kid-app/card-customisation.md",
+        "kid-app/category-folders.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "app/api/chat/route.ts",
+      "check": [
+        "api/ask-chat-endpoint.md",
+        "dashboard/ask-panel.md"
+      ]
+    },
+    {
+      "change": "app/api/events/route.ts",
+      "check": [
+        "api/board-content-endpoints.md",
+        "api/event-ingest.md",
+        "api/sign-in-endpoints.md",
+        "api/visual-resolution-endpoint.md",
+        "kid-app/event-logging.md",
+        "pipeline/l2-rollup.md"
+      ]
+    },
+    {
+      "change": "app/api/mcp/route.ts",
+      "check": [
+        "api/mcp-http-transport.md",
+        "mcp/stdio-server.md"
+      ]
+    },
+    {
+      "change": "app/api/reports/[id]/print/route.ts",
+      "check": [
+        "api/print-and-generate.md",
+        "dashboard/progress-reports.md"
+      ]
+    },
+    {
+      "change": "app/api/reports/route.ts",
+      "check": [
+        "api/print-and-generate.md",
+        "dashboard/progress-reports.md"
+      ]
+    },
+    {
+      "change": "app/api/session/route.ts",
+      "check": [
+        "api/sign-in-endpoints.md",
+        "auth/login-page.md",
+        "auth/role-consent-scoping.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "app/api/visuals/route.ts",
+      "check": [
+        "api/visual-resolution-endpoint.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/ask/page.tsx",
+      "check": [
+        "dashboard/ask-panel.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/error.tsx",
+      "check": [
+        "dashboard/ask-panel.md",
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/insight-cards.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md",
+        "dashboard/sittings.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/layout.tsx",
+      "check": [
+        "dashboard/ask-panel.md",
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/insight-cards.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md",
+        "dashboard/sittings.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/page.tsx",
+      "check": [
+        "dashboard/ask-panel.md",
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/reports/*",
+      "check": [
+        "api/print-and-generate.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "dashboard/sittings.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/reports/[id]/page.tsx",
+      "check": [
+        "api/print-and-generate.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "dashboard/sittings.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/sessions/page.tsx",
+      "check": [
+        "dashboard/progress-reports.md",
+        "dashboard/sittings.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/student/[id]/access/page.tsx",
+      "check": [
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/student/[id]/ai-impact/page.tsx",
+      "check": [
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/sittings.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/student/[id]/ask/page.tsx",
+      "check": [
+        "dashboard/ask-panel.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/student/[id]/page.tsx",
+      "check": [
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/sittings.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "app/dashboard/student/[id]/report/page.tsx",
+      "check": [
+        "api/print-and-generate.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "dashboard/sittings.md"
+      ]
+    },
+    {
+      "change": "app/error.tsx",
+      "check": [
+        "dashboard/ask-panel.md",
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/insight-cards.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md",
+        "dashboard/sittings.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "app/globals.css",
+      "check": [
+        "dashboard/student-overview.md",
+        "kid-app/card-customisation.md",
+        "kid-app/category-folders.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/communication-board.md",
+        "kid-app/symbol-set.md"
+      ]
+    },
+    {
+      "change": "app/layout.tsx",
+      "check": [
+        "dashboard/attention-queue.md",
+        "kid-app/communication-board.md",
+        "kid-app/event-logging.md",
+        "kid-app/offline-pwa.md"
+      ]
+    },
+    {
+      "change": "app/login/page.tsx",
+      "check": [
+        "auth/host-surface-routing.md",
+        "auth/login-page.md",
+        "dashboard/dashboard-shell.md"
+      ]
+    },
+    {
+      "change": "app/page.tsx",
+      "check": [
+        "analytics/metric-readers.md",
+        "dashboard/student-overview.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "app/who/page.tsx",
+      "check": [
+        "dashboard/attention-queue.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/communication-board.md",
+        "kid-app/event-logging.md"
+      ]
+    },
+    {
+      "change": "components/charts.tsx",
+      "check": [
+        "api/print-and-generate.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "dashboard/sittings.md"
+      ]
+    },
+    {
+      "change": "components/chat/ask-panel.tsx",
+      "check": [
+        "dashboard/ask-panel.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md"
+      ]
+    },
+    {
+      "change": "components/heat-grid.tsx",
+      "check": [
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md"
+      ]
+    },
+    {
+      "change": "components/insight-card.tsx",
+      "check": [
+        "dashboard/attention-queue.md",
+        "dashboard/insight-cards.md",
+        "dashboard/student-overview.md",
+        "mcp/tool-surface.md"
+      ]
+    },
+    {
+      "change": "components/insight-list.tsx",
+      "check": [
+        "dashboard/attention-queue.md",
+        "dashboard/insight-cards.md",
+        "dashboard/student-overview.md",
+        "mcp/tool-surface.md"
+      ]
+    },
+    {
+      "change": "components/kid/board-app.tsx",
+      "check": [
+        "analytics/metric-readers.md",
+        "dashboard/student-overview.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "components/kid/card-face.tsx",
+      "check": [
+        "dashboard/student-overview.md",
+        "kid-app/card-customisation.md",
+        "kid-app/category-folders.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/communication-board.md",
+        "kid-app/symbol-set.md"
+      ]
+    },
+    {
+      "change": "components/kid/category-drawer.tsx",
+      "check": [
+        "dashboard/student-overview.md",
+        "kid-app/category-folders.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "components/kid/category-editor.tsx",
+      "check": [
+        "dashboard/student-overview.md",
+        "kid-app/category-folders.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "components/kid/edit-sheet.tsx",
+      "check": [
+        "dashboard/student-overview.md",
+        "kid-app/card-customisation.md",
+        "kid-app/communication-board.md",
+        "kid-app/utterance-and-speech.md"
+      ]
+    },
+    {
+      "change": "components/kid/register-sw.tsx",
+      "check": [
+        "dashboard/attention-queue.md",
+        "kid-app/communication-board.md",
+        "kid-app/event-logging.md",
+        "kid-app/offline-pwa.md"
+      ]
+    },
+    {
+      "change": "components/kid/voice-picker.tsx",
+      "check": [
+        "analytics/metric-readers.md",
+        "kid-app/card-customisation.md",
+        "kid-app/communication-board.md",
+        "kid-app/utterance-and-speech.md"
+      ]
+    },
+    {
+      "change": "components/kid/who-picker.tsx",
+      "check": [
+        "dashboard/attention-queue.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/communication-board.md",
+        "kid-app/event-logging.md"
+      ]
+    },
+    {
+      "change": "components/kpi-tile.tsx",
+      "check": [
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/sittings.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "components/login-form.tsx",
+      "check": [
+        "auth/host-surface-routing.md",
+        "auth/login-page.md",
+        "dashboard/dashboard-shell.md"
+      ]
+    },
+    {
+      "change": "components/metric-card.tsx",
+      "check": [
+        "api/print-and-generate.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "dashboard/sittings.md"
+      ]
+    },
+    {
+      "change": "components/status.tsx",
+      "check": [
+        "dashboard/ask-panel.md",
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/insight-cards.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md",
+        "dashboard/sittings.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "components/ui.tsx",
+      "check": [
+        "dashboard/ask-panel.md",
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/insight-cards.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md",
+        "dashboard/sittings.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "db/indices.sql",
+      "check": [
+        "api/event-ingest.md",
+        "auth/role-consent-scoping.md",
+        "database/catalogues.md",
+        "database/connection-layer.md",
+        "database/insight-views.md",
+        "database/metric-views.md",
+        "database/schema.md",
+        "mcp/tool-surface.md",
+        "pipeline/build-pipeline.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md"
+      ]
+    },
+    {
+      "change": "db/schema.sql",
+      "check": [
+        "api/event-ingest.md",
+        "auth/role-consent-scoping.md",
+        "database/catalogues.md",
+        "database/connection-layer.md",
+        "database/insight-views.md",
+        "database/metric-views.md",
+        "database/schema.md",
+        "mcp/tool-surface.md",
+        "pipeline/build-pipeline.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md"
+      ]
+    },
+    {
+      "change": "db/seed_catalogues.sql",
+      "check": [
+        "analytics/data-dictionary.md",
+        "analytics/metric-readers.md",
+        "dashboard/student-overview.md",
+        "database/catalogues.md",
+        "database/insight-views.md",
+        "database/metric-views.md",
+        "mcp/stdio-server.md",
+        "mcp/tool-surface.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md"
+      ]
+    },
+    {
+      "change": "db/views_insights.sql",
+      "check": [
+        "dashboard/insight-cards.md",
+        "database/insight-views.md",
+        "mcp/tool-surface.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/verification-gate.md"
+      ]
+    },
+    {
+      "change": "db/views_metrics.sql",
+      "check": [
+        "analytics/metric-readers.md",
+        "database/insight-views.md",
+        "database/metric-views.md",
+        "mcp/tool-surface.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/verification-gate.md"
+      ]
+    },
+    {
+      "change": "deploy/aac.yml",
+      "check": [
+        "dashboard/dashboard-shell.md",
+        "deploy/cloudflare-tunnel-ingress.md",
+        "kid-app/communication-board.md",
+        "mcp/stdio-server.md"
+      ]
+    },
+    {
+      "change": "deploy/app.kason.aac.tunnel.plist",
+      "check": [
+        "dashboard/dashboard-shell.md",
+        "deploy/cloudflare-tunnel-ingress.md",
+        "kid-app/communication-board.md",
+        "mcp/stdio-server.md"
+      ]
+    },
+    {
+      "change": "deploy/app.kason.aac.web.plist",
+      "check": [
+        "auth/host-surface-routing.md",
+        "dashboard/dashboard-shell.md",
+        "deploy/cloudflare-tunnel-ingress.md",
+        "deploy/production-web-service.md",
+        "mcp/stdio-server.md"
+      ]
+    },
+    {
+      "change": "deploy/run-web.sh",
+      "check": [
+        "auth/host-surface-routing.md",
+        "dashboard/dashboard-shell.md",
+        "deploy/cloudflare-tunnel-ingress.md",
+        "deploy/production-web-service.md",
+        "mcp/stdio-server.md"
+      ]
+    },
+    {
+      "change": "lib/access.ts",
+      "check": [
+        "auth/role-consent-scoping.md",
+        "dashboard/ask-panel.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "mcp/tool-surface.md"
+      ]
+    },
+    {
+      "change": "lib/auth.ts",
+      "check": [
+        "api/sign-in-endpoints.md",
+        "auth/adult-sign-in.md",
+        "auth/host-surface-routing.md",
+        "auth/login-page.md",
+        "auth/role-consent-scoping.md"
+      ]
+    },
+    {
+      "change": "lib/baseline.ts",
+      "check": [
+        "analytics/baseline-gating.md",
+        "dashboard/attention-queue.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "lib/catalog.ts",
+      "check": [
+        "analytics/data-dictionary.md",
+        "analytics/fired-rules-and-evidence.md",
+        "analytics/metric-readers.md",
+        "dashboard/attention-queue.md",
+        "dashboard/reach-and-errors.md",
+        "dashboard/student-overview.md",
+        "mcp/tool-surface.md"
+      ]
+    },
+    {
+      "change": "lib/categories/*",
+      "check": [
+        "dashboard/student-overview.md",
+        "kid-app/category-folders.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "lib/chat/agent.ts",
+      "check": [
+        "ai/ask-agent.md",
+        "api/ask-chat-endpoint.md",
+        "dashboard/ask-panel.md"
+      ]
+    },
+    {
+      "change": "lib/chat/gemini.ts",
+      "check": [
+        "ai/ask-agent.md",
+        "ai/chat-providers.md",
+        "ai/image-providers.md",
+        "ai/scoped-tool-bridge.md",
+        "api/ask-chat-endpoint.md"
+      ]
+    },
+    {
+      "change": "lib/chat/guard.ts",
+      "check": [
+        "ai/ask-agent.md",
+        "ai/forbidden-action-guard.md"
+      ]
+    },
+    {
+      "change": "lib/chat/openai.ts",
+      "check": [
+        "ai/ask-agent.md",
+        "ai/chat-providers.md",
+        "ai/image-providers.md",
+        "ai/scoped-tool-bridge.md",
+        "api/ask-chat-endpoint.md"
+      ]
+    },
+    {
+      "change": "lib/chat/provider.ts",
+      "check": [
+        "ai/ask-agent.md",
+        "ai/chat-providers.md",
+        "ai/image-providers.md",
+        "ai/scoped-tool-bridge.md",
+        "api/ask-chat-endpoint.md"
+      ]
+    },
+    {
+      "change": "lib/chat/schema-adapter.ts",
+      "check": [
+        "ai/ask-agent.md",
+        "ai/chat-providers.md",
+        "ai/image-providers.md",
+        "ai/scoped-tool-bridge.md",
+        "api/ask-chat-endpoint.md"
+      ]
+    },
+    {
+      "change": "lib/chat/tools.ts",
+      "check": [
+        "ai/ask-agent.md",
+        "ai/scoped-tool-bridge.md",
+        "api/ask-chat-endpoint.md"
+      ]
+    },
+    {
+      "change": "lib/db.ts",
+      "check": [
+        "analytics/data-dictionary.md",
+        "analytics/metric-readers.md",
+        "api/event-ingest.md",
+        "dashboard/insight-cards.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md",
+        "database/connection-layer.md",
+        "kid-app/category-folders.md"
+      ]
+    },
+    {
+      "change": "lib/dismiss.ts",
+      "check": [
+        "dashboard/attention-queue.md",
+        "dashboard/insight-cards.md",
+        "dashboard/student-overview.md",
+        "mcp/tool-surface.md"
+      ]
+    },
+    {
+      "change": "lib/icons/symbols.tsx",
+      "check": [
+        "dashboard/student-overview.md",
+        "kid-app/card-customisation.md",
+        "kid-app/category-folders.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/communication-board.md",
+        "kid-app/symbol-set.md"
+      ]
+    },
+    {
+      "change": "lib/ingest.ts",
+      "check": [
+        "api/board-content-endpoints.md",
+        "api/event-ingest.md",
+        "api/sign-in-endpoints.md",
+        "api/visual-resolution-endpoint.md",
+        "kid-app/event-logging.md",
+        "pipeline/l2-rollup.md"
+      ]
+    },
+    {
+      "change": "lib/insights.ts",
+      "check": [
+        "analytics/fired-rules-and-evidence.md",
+        "api/insight-dismissal-action.md",
+        "dashboard/attention-queue.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "lib/kid/log.ts",
+      "check": [
+        "analytics/metric-readers.md",
+        "kid-app/communication-board.md",
+        "kid-app/event-logging.md",
+        "pipeline/rule-materialisation.md"
+      ]
+    },
+    {
+      "change": "lib/kid/sentence.ts",
+      "check": [
+        "analytics/metric-readers.md",
+        "kid-app/card-customisation.md",
+        "kid-app/communication-board.md",
+        "kid-app/utterance-and-speech.md"
+      ]
+    },
+    {
+      "change": "lib/kid/speech.ts",
+      "check": [
+        "analytics/metric-readers.md",
+        "kid-app/card-customisation.md",
+        "kid-app/communication-board.md",
+        "kid-app/utterance-and-speech.md"
+      ]
+    },
+    {
+      "change": "lib/kid/voice.ts",
+      "check": [
+        "analytics/metric-readers.md",
+        "kid-app/card-customisation.md",
+        "kid-app/communication-board.md",
+        "kid-app/utterance-and-speech.md"
+      ]
+    },
+    {
+      "change": "lib/metrics.ts",
+      "check": [
+        "analytics/metric-readers.md",
+        "dashboard/attention-queue.md",
+        "dashboard/reach-and-errors.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "lib/overrides.ts",
+      "check": [
+        "dashboard/student-overview.md",
+        "kid-app/card-customisation.md",
+        "kid-app/communication-board.md",
+        "kid-app/utterance-and-speech.md"
+      ]
+    },
+    {
+      "change": "lib/queue.ts",
+      "check": [
+        "dashboard/ask-panel.md",
+        "dashboard/attention-queue.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "lib/report-store.ts",
+      "check": [
+        "api/print-and-generate.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "dashboard/sittings.md"
+      ]
+    },
+    {
+      "change": "lib/report.ts",
+      "check": [
+        "api/print-and-generate.md",
+        "dashboard/dashboard-shell.md",
+        "dashboard/progress-reports.md",
+        "dashboard/sittings.md"
+      ]
+    },
+    {
+      "change": "lib/session.ts",
+      "check": [
+        "dashboard/attention-queue.md",
+        "kid-app/child-sign-in.md",
+        "kid-app/communication-board.md",
+        "kid-app/event-logging.md"
+      ]
+    },
+    {
+      "change": "lib/sittings.ts",
+      "check": [
+        "dashboard/progress-reports.md",
+        "dashboard/sittings.md"
+      ]
+    },
+    {
+      "change": "lib/sqlite.ts",
+      "check": [
+        "analytics/data-dictionary.md",
+        "analytics/metric-readers.md",
+        "api/event-ingest.md",
+        "dashboard/insight-cards.md",
+        "dashboard/progress-reports.md",
+        "dashboard/reach-and-errors.md",
+        "database/connection-layer.md",
+        "kid-app/category-folders.md"
+      ]
+    },
+    {
+      "change": "lib/visuals/gemini.ts",
+      "check": [
+        "ai/image-providers.md",
+        "ai/visual-cache.md",
+        "ai/visual-resolution-ladder.md"
+      ]
+    },
+    {
+      "change": "lib/visuals/ladder.ts",
+      "check": [
+        "ai/visual-resolution-ladder.md",
+        "analytics/metric-readers.md",
+        "api/visual-resolution-endpoint.md",
+        "dashboard/attention-queue.md",
+        "dashboard/student-overview.md"
+      ]
+    },
+    {
+      "change": "lib/visuals/openai.ts",
+      "check": [
+        "ai/image-providers.md",
+        "ai/visual-cache.md",
+        "ai/visual-resolution-ladder.md"
+      ]
+    },
+    {
+      "change": "lib/visuals/prompt.ts",
+      "check": [
+        "ai/image-providers.md",
+        "ai/visual-cache.md",
+        "ai/visual-prompt-and-sanitisation.md",
+        "ai/visual-resolution-ladder.md"
+      ]
+    },
+    {
+      "change": "lib/visuals/provider.ts",
+      "check": [
+        "ai/image-providers.md",
+        "ai/visual-cache.md",
+        "ai/visual-resolution-ladder.md"
+      ]
+    },
+    {
+      "change": "lib/visuals/sanitize.ts",
+      "check": [
+        "ai/image-providers.md",
+        "ai/visual-cache.md",
+        "ai/visual-prompt-and-sanitisation.md",
+        "ai/visual-resolution-ladder.md"
+      ]
+    },
+    {
+      "change": "lib/visuals/store.ts",
+      "check": [
+        "ai/visual-cache.md",
+        "ai/visual-resolution-ladder.md"
+      ]
+    },
+    {
+      "change": "lib/visuals/vertex.ts",
+      "check": [
+        "ai/image-providers.md",
+        "ai/visual-cache.md",
+        "ai/visual-resolution-ladder.md"
+      ]
+    },
+    {
+      "change": "lib/vocabulary/categories.ts",
+      "check": [
+        "dashboard/student-overview.md",
+        "kid-app/category-folders.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "mcp/db.ts",
+      "check": [
+        "ai/scoped-tool-bridge.md",
+        "api/mcp-http-transport.md",
+        "mcp/read-only-db-access.md",
+        "mcp/stdio-server.md",
+        "mcp/tool-surface.md"
+      ]
+    },
+    {
+      "change": "mcp/fixtures/*",
+      "check": [
+        "ai/scoped-tool-bridge.md",
+        "analytics/metric-readers.md",
+        "mcp/response-fixtures.md"
+      ]
+    },
+    {
+      "change": "mcp/server.ts",
+      "check": [
+        "api/mcp-http-transport.md",
+        "mcp/response-fixtures.md",
+        "mcp/stdio-server.md"
+      ]
+    },
+    {
+      "change": "mcp/tools.ts",
+      "check": [
+        "ai/scoped-tool-bridge.md",
+        "api/mcp-http-transport.md",
+        "mcp/response-fixtures.md",
+        "mcp/stdio-server.md",
+        "mcp/tool-surface.md"
+      ]
+    },
+    {
+      "change": "mcp/validate.ts",
+      "check": [
+        "ai/scoped-tool-bridge.md",
+        "mcp/argument-validation.md",
+        "mcp/stdio-server.md",
+        "mcp/tool-surface.md"
+      ]
+    },
+    {
+      "change": "middleware.ts",
+      "check": [
+        "api/event-ingest.md",
+        "api/mcp-http-transport.md",
+        "auth/host-surface-routing.md",
+        "auth/login-page.md",
+        "dashboard/dashboard-shell.md",
+        "kid-app/communication-board.md"
+      ]
+    },
+    {
+      "change": "next.config.ts",
+      "check": [
+        "auth/host-surface-routing.md",
+        "dashboard/insight-cards.md",
+        "deploy/next-build-config.md",
+        "deploy/production-web-service.md"
+      ]
+    },
+    {
+      "change": "package.json",
+      "check": [
+        "deploy/next-build-config.md",
+        "deploy/npm-scripts.md",
+        "deploy/production-web-service.md",
+        "deploy/typescript-and-css-toolchain.md"
+      ]
+    },
+    {
+      "change": "postcss.config.mjs",
+      "check": [
+        "dashboard/dashboard-shell.md",
+        "deploy/next-build-config.md",
+        "deploy/typescript-and-css-toolchain.md",
+        "kid-app/communication-board.md",
+        "mcp/stdio-server.md"
+      ]
+    },
+    {
+      "change": "public/*",
+      "check": [
+        "dashboard/attention-queue.md",
+        "kid-app/communication-board.md",
+        "kid-app/event-logging.md",
+        "kid-app/offline-pwa.md"
+      ]
+    },
+    {
+      "change": "tools/build.sh",
+      "check": [
+        "mcp/stdio-server.md",
+        "pipeline/build-pipeline.md",
+        "pipeline/test-harnesses.md"
+      ]
+    },
+    {
+      "change": "tools/concurrency_test.py",
+      "check": [
+        "pipeline/build-pipeline.md",
+        "pipeline/test-harnesses.md"
+      ]
+    },
+    {
+      "change": "tools/csv_docs.py",
+      "check": [
+        "pipeline/csv-export.md"
+      ]
+    },
+    {
+      "change": "tools/export_csv.py",
+      "check": [
+        "pipeline/csv-export.md"
+      ]
+    },
+    {
+      "change": "tools/gen_fixtures.py",
+      "check": [
+        "analytics/data-dictionary.md",
+        "analytics/metric-readers.md",
+        "pipeline/csv-export.md",
+        "pipeline/generated-artefacts.md"
+      ]
+    },
+    {
+      "change": "tools/gen_metric_index.py",
+      "check": [
+        "analytics/data-dictionary.md",
+        "analytics/metric-readers.md",
+        "pipeline/csv-export.md",
+        "pipeline/generated-artefacts.md"
+      ]
+    },
+    {
+      "change": "tools/rollup.py",
+      "check": [
+        "analytics/metric-readers.md",
+        "mcp/stdio-server.md",
+        "pipeline/csv-export.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/test-harnesses.md",
+        "pipeline/verification-gate.md"
+      ]
+    },
+    {
+      "change": "tools/run_rules.py",
+      "check": [
+        "analytics/fired-rules-and-evidence.md",
+        "dashboard/attention-queue.md",
+        "mcp/stdio-server.md",
+        "pipeline/csv-export.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/test-harnesses.md",
+        "pipeline/verification-gate.md"
+      ]
+    },
+    {
+      "change": "tools/seed/*",
+      "check": [
+        "pipeline/csv-export.md",
+        "pipeline/generated-artefacts.md",
+        "pipeline/l2-rollup.md",
+        "pipeline/rule-materialisation.md",
+        "pipeline/seed-generation.md",
+        "pipeline/test-harnesses.md",
+        "pipeline/verification-gate.md"
+      ]
+    },
+    {
+      "change": "tools/test-api.sh",
+      "check": [
+        "pipeline/build-pipeline.md",
+        "pipeline/test-harnesses.md"
+      ]
+    },
+    {
+      "change": "tools/verify.py",
+      "check": [
+        "pipeline/build-pipeline.md",
+        "pipeline/verification-gate.md"
+      ]
+    },
+    {
+      "change": "tsconfig.json",
+      "check": [
+        "dashboard/dashboard-shell.md",
+        "deploy/next-build-config.md",
+        "deploy/typescript-and-css-toolchain.md",
+        "kid-app/communication-board.md",
+        "mcp/stdio-server.md"
+      ]
+    }
+  ]
+}

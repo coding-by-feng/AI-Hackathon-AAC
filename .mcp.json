@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "aac-analytics": {
+      "command": "node",
+      "args": ["mcp/server.ts", "--db", "aac.db"],
+      "env": {}
+    }
+  }
+}

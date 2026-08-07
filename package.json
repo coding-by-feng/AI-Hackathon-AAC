@@ -1,0 +1,30 @@
+{
+  "name": "aac-analytics",
+  "private": true,
+  "type": "module",
+  "description": "AAC analytics database, rule engine, MCP server, dashboard and kids PWA",
+  "scripts": {
+    "build": "./tools/build.sh aac.db",
+    "mcp": "node mcp/server.ts --db aac.db",
+    "verify": "python3 tools/verify.py --db aac.db",
+    "concurrency": "python3 tools/concurrency_test.py --db aac.db",
+    "dev": "next dev",
+    "build:web": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^15.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "@types/node": "^24.5.2",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.2"
+  },
+  "engines": { "node": ">=24" }
+}

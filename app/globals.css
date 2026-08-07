@@ -1,0 +1,118 @@
+@import 'tailwindcss';
+
+/*
+ * Two surfaces share this stylesheet:
+ *   - the dashboard, read by adults on a laptop
+ *   - the kid PWA, used on a phone, tablet, iPad or laptop
+ *
+ * The kid surface drives the hard constraints: 64px minimum touch targets,
+ * high contrast, and no colour that carries meaning on its own.
+ */
+
+@theme {
+  --color-ink: #10131a;
+  --color-ink-muted: #545c6b;
+  --color-ink-faint: #8b94a3;
+  --color-surface: #ffffff;
+  --color-surface-sunk: #f4f6f9;
+  --color-line: #dfe3ea;
+
+  --color-accent: #2f5fd0;
+  --color-accent-soft: #e8eefc;
+
+  /* Semantic states. `neutral` exists because clinical constraint C1 forbids
+     styling repetition or stimming as a problem — see docs/aac-clinical-constraints.md. */
+  --color-good: #1c7a4a;
+  --color-good-soft: #e3f5eb;
+  --color-warn: #9a5b00;
+  --color-warn-soft: #fdf1de;
+  --color-alert: #b3261e;
+  --color-alert-soft: #fce9e7;
+  --color-neutral: #4a5261;
+  --color-neutral-soft: #eef0f4;
+
+  --radius-card: 0.75rem;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-ink: #eef1f6;
+    --color-ink-muted: #a3abb9;
+    --color-ink-faint: #6f7889;
+    --color-surface: #14171e;
+    --color-surface-sunk: #1b1f28;
+    --color-line: #2a2f3a;
+    --color-accent: #7fa4f5;
+    --color-accent-soft: #1c2740;
+    --color-good-soft: #14301f;
+    --color-warn-soft: #322414;
+    --color-alert-soft: #351a17;
+    --color-neutral-soft: #212632;
+  }
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--color-surface-sunk);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* iOS Safari: stop double-tap zoom eating the second tap on an AAC card. */
+  touch-action: manipulation;
+}
+
+/* Focus must be obvious — the laptop build supports keyboard and switch
+   scanning, which is only usable if the focused cell is unmistakable. */
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Dashboard dark theme — APPENDED, scoped to `.dash`.
+ *
+ * The dashboard is fixed dark per the approved mockup. Everything above this
+ * block belongs to the kid surface and its adaptive theme; nothing above may
+ * change. Scoping via a wrapper class means the same token names resolve to
+ * dashboard values only inside `.dash`.
+ * ------------------------------------------------------------------------- */
+.dash {
+  --color-ink: #eef1f6;
+  --color-ink-muted: #98a0b0;
+  --color-ink-faint: #667084;
+  --color-surface: #1a1e27;
+  --color-surface-sunk: #12151c;
+  --color-line: #272c38;
+  --color-accent: #5b8def;
+  --color-accent-soft: #1d2840;
+  --color-good: #6fbb92;
+  --color-good-soft: #16281f;
+  --color-warn: #d3a35f;
+  --color-warn-soft: #2b2214;
+  --color-alert: #d47f78;
+  --color-alert-soft: #2c1a18;
+  --color-neutral: #4d5668;
+  --color-neutral-soft: #212632;
+  --radius-card: 12px;
+
+  background: #12151c;
+  color: var(--color-ink);
+  color-scheme: dark;
+}
+.dash ::selection {
+  background: rgba(91, 141, 239, 0.35);
+}

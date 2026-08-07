@@ -1,0 +1,33 @@
+# Cloudflare Tunnel for the AAC project.
+#
+# Always run with an explicit --config. A ~/.cloudflared/config.yml, if one is
+# ever created, overrides the tunnel named on the command line without saying so.
+#
+#   cloudflared tunnel --config deploy/aac.yml run aac
+#
+# All three hostnames point at the SAME origin. The split between them happens
+# in middleware.ts, using the Host header that cloudflared passes through.
+# One Next.js process serves all three because both databases are SQLite in WAL
+# mode, and a WAL writer and its readers must share a filesystem.
+
+tunnel: aac
+credentials-file: /Users/kasonzhan/.cloudflared/f50f1ef0-ea82-4ec2-953b-93404512a766.json
+
+ingress:
+  # The communication board. No Access policy: a child cannot complete an email
+  # one-time-code, and a login between someone and their voice is the wrong
+  # trade. It holds one child's own vocabulary and nothing about anyone else.
+  - hostname: aac.kason.app
+    service: http://localhost:3000
+
+  # Teacher and SLT analytics.
+  - hostname: aac-dashboard.kason.app
+    service: http://localhost:3000
+
+  # MCP analytics tools. Guarded by a bearer token checked in the route itself
+  # (AAC_MCP_TOKEN), so this hostname is never open even without Access.
+  - hostname: aac-mcp.kason.app
+    service: http://localhost:3000
+
+  # Anything else that resolves here.
+  - service: http_status:404

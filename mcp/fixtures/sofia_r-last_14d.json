@@ -1,0 +1,2870 @@
+{
+  "_about": {
+    "description": "Real MCP responses captured from the seeded database. Not hand-written — regenerate with tools/gen_fixtures.py so this can never drift from the server.",
+    "child_id": "sofia_r",
+    "window": "last_14d",
+    "generated_from": "aac.db",
+    "envelope": {
+      "data": "tool-specific payload",
+      "meta": "window, row_count, truncated, data_freshness",
+      "dictionary": "one metrics_catalog entry per metric present — unit, polarity, min_n, caveat",
+      "guidance": "warnings computed for THIS result. Read before the numbers.",
+      "forbidden_actions": "recommendations that must never be made, whatever the evidence suggests",
+      "next_calls": "what the MCP CLIENT should fetch next. Not a hint to the model."
+    },
+    "null_semantics": {
+      "value null + n > 0": "measured, but below min_n. NOT zero.",
+      "value null + n = 0": "never observed. The feature is not in use for this child.",
+      "direction not_applicable": "the metric's polarity is neutral — it is neither good nor bad."
+    },
+    "read_first": [
+      "docs/aac-clinical-constraints.md — the eight clinical constraints",
+      "docs/mcp-api.md — the full contract"
+    ]
+  },
+  "tools": {
+    "list_children": {
+      "request": {
+        "adult_id": "adult_patel"
+      },
+      "response": {
+        "data": {
+          "children": [
+            {
+              "child_id": "jonah_k",
+              "display_name": "Jonah K.",
+              "year_group": "Year 3",
+              "profile_note": "CP / cortical visual impairment",
+              "relation": "teacher",
+              "active_days_last_14": 10,
+              "silence_streak_days": 4,
+              "open_insight_count": 2
+            },
+            {
+              "child_id": "amara_o",
+              "display_name": "Amara O.",
+              "year_group": "Year 4",
+              "profile_note": "Dysarthria",
+              "relation": "teacher",
+              "active_days_last_14": 14,
+              "silence_streak_days": 0,
+              "open_insight_count": 1
+            },
+            {
+              "child_id": "liam_w",
+              "display_name": "Liam W.",
+              "year_group": "Year 2",
+              "profile_note": "CP / apraxia",
+              "relation": "teacher",
+              "active_days_last_14": 14,
+              "silence_streak_days": 0,
+              "open_insight_count": 2
+            },
+            {
+              "child_id": "maya_t",
+              "display_name": "Maya T.",
+              "year_group": "Year 3",
+              "profile_note": "CP / dysarthria",
+              "relation": "teacher",
+              "active_days_last_14": 14,
+              "silence_streak_days": 0,
+              "open_insight_count": 4
+            },
+            {
+              "child_id": "sofia_r",
+              "display_name": "Sofia R.",
+              "year_group": "Year 2",
+              "profile_note": "Nonspeaking / autistic",
+              "relation": "teacher",
+              "active_days_last_14": 14,
+              "silence_streak_days": 0,
+              "open_insight_count": 3
+            }
+          ]
+        },
+        "meta": {
+          "child_id": null,
+          "window": {
+            "start": "2026-07-25",
+            "end": "2026-08-07",
+            "days": 14
+          },
+          "row_count": 5,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        }
+      }
+    },
+    "get_child_profile": {
+      "request": {
+        "child_id": "sofia_r"
+      },
+      "response": {
+        "data": {
+          "child_id": "sofia_r",
+          "display_name": "Sofia R.",
+          "year_group": "Year 2",
+          "profile_note": "Nonspeaking / autistic",
+          "robust_board": {
+            "board_id": "board_sofia_r",
+            "grid_rows": 4,
+            "grid_cols": 5,
+            "total_cells": 20,
+            "masked_cells": 0,
+            "cards_placed": 20,
+            "vocabulary_size": 35
+          },
+          "active_modes": [
+            {
+              "board_id": "mode_sofia_r_snack",
+              "name": "Snack time",
+              "card_count": 6,
+              "position_consistency": 1
+            }
+          ],
+          "baseline_4w": {
+            "abandonment_rate": {
+              "mean": 0.0787,
+              "days": 27
+            },
+            "answers_vs_starts": {
+              "mean": 0.6422,
+              "days": 12
+            },
+            "composition_time": {
+              "mean": 10879.0179,
+              "days": 28
+            },
+            "core_fringe_ratio": {
+              "mean": 0.8797,
+              "days": 14
+            },
+            "feeling_words": {
+              "mean": 0.521,
+              "days": 14
+            },
+            "independence_rate": {
+              "mean": 0.8238,
+              "days": 27
+            },
+            "mistap_rate": {
+              "mean": 0.0369,
+              "days": 25
+            },
+            "mlu": {
+              "mean": 1.9035,
+              "days": 12
+            },
+            "ndw": {
+              "mean": 17.68,
+              "days": 25
+            },
+            "partner_interruption_rate": {
+              "mean": 0.0189,
+              "days": 27
+            },
+            "position_consistency": {
+              "mean": 1,
+              "days": 1
+            },
+            "repeat_tap_rate": {
+              "mean": 0.1069,
+              "days": 27
+            },
+            "silence_streak": {
+              "mean": 0,
+              "days": 1
+            },
+            "taps_per_utterance": {
+              "mean": 2,
+              "days": 28
+            },
+            "taps_saved": {
+              "mean": -0.6011,
+              "days": 12
+            },
+            "teacher_modeling": {
+              "mean": 1,
+              "days": 12
+            },
+            "time_to_first_tap": {
+              "mean": 3199.2857,
+              "days": 28
+            },
+            "utterances_per_day": {
+              "mean": 19.3571,
+              "days": 28
+            },
+            "words_per_minute": {
+              "mean": 11.6946,
+              "days": 12
+            }
+          },
+          "first_day": "2026-06-27",
+          "last_day": "2026-08-07",
+          "active_days": 42,
+          "consent_tiers": [
+            "aggregate",
+            "card_labels"
+          ],
+          "modeling_mode_used_days": 20
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-07-11",
+            "end": "2026-08-07",
+            "days": 28
+          },
+          "row_count": 1,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "guidance": [
+          {
+            "level": "info",
+            "code": "PARTIAL_WINDOW",
+            "detail": "2026-08-07 may be incomplete."
+          }
+        ]
+      }
+    },
+    "get_metrics": {
+      "request": {
+        "child_id": "sofia_r",
+        "window": "last_14d"
+      },
+      "response": {
+        "data": {
+          "metrics": [
+            {
+              "metric_id": "composition_time",
+              "value": 10661.7857,
+              "n": 258,
+              "comparison_value": 11096.25,
+              "delta": -434.4643,
+              "direction": "not_applicable",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "taps_per_utterance",
+              "value": 2,
+              "n": 283,
+              "comparison_value": 2,
+              "delta": 0,
+              "direction": "unchanged",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "time_to_first_tap",
+              "value": 3212.1071,
+              "n": 283,
+              "comparison_value": 3186.4643,
+              "delta": 25.6429,
+              "direction": "not_applicable",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "abandonment_rate",
+              "value": 0.0799,
+              "n": 283,
+              "comparison_value": 0.0774,
+              "delta": 0.0025,
+              "direction": "worsened",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "cell_heat",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "correction_adjacent_rate",
+              "value": null,
+              "n": 25,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 11,
+              "suppressed_reason": "small_sample"
+            },
+            {
+              "metric_id": "mistap_rate",
+              "value": 0.0378,
+              "n": 645,
+              "comparison_value": 0.0361,
+              "delta": 0.0017,
+              "direction": "worsened",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "card_frequency",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "core_fringe_ratio",
+              "value": 0.8962,
+              "n": 645,
+              "comparison_value": 0.8632,
+              "delta": 0.033,
+              "direction": "not_applicable",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "mlu",
+              "value": 1.8926,
+              "n": 258,
+              "comparison_value": 1.9112,
+              "delta": -0.0186,
+              "direction": "worsened",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "ndw",
+              "value": 17.8333,
+              "n": 645,
+              "comparison_value": 17.5385,
+              "delta": 0.2949,
+              "direction": "improved",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "new_words",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "sentence_shapes",
+              "value": null,
+              "n": 59,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 13,
+              "suppressed_reason": "small_sample"
+            },
+            {
+              "metric_id": "silence_streak",
+              "value": 0,
+              "n": 860,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 1,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "word_pairs",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "zero_activation_days",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "layout_stability",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "nav_depth_by_card",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "position_consistency",
+              "value": 1,
+              "n": 6,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 1,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "scene_distribution",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "answers_vs_starts",
+              "value": 0.5924,
+              "n": 258,
+              "comparison_value": 0.6777,
+              "delta": -0.0853,
+              "direction": "not_applicable",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "independence_rate",
+              "value": 0.8455,
+              "n": 258,
+              "comparison_value": 0.8004,
+              "delta": 0.0452,
+              "direction": "improved",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "pragmatic_function_mix",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "teacher_modeling",
+              "value": 1,
+              "n": 6,
+              "comparison_value": 1,
+              "delta": 0,
+              "direction": "unchanged",
+              "days_with_data": 6,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "suggestion_acceptance",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "taps_saved",
+              "value": 2.1405,
+              "n": 239,
+              "comparison_value": -2.5593,
+              "delta": 4.6998,
+              "direction": "improved",
+              "days_with_data": 13,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "visual_source_split",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "vocabulary_gaps",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "partner_interruption_rate",
+              "value": 0.0181,
+              "n": 254,
+              "comparison_value": 0.0197,
+              "delta": -0.0016,
+              "direction": "improved",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "partner_wait_time",
+              "value": null,
+              "n": 78,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 14,
+              "suppressed_reason": "small_sample"
+            },
+            {
+              "metric_id": "feeling_words",
+              "value": 0.4476,
+              "n": 51,
+              "comparison_value": 0.5618,
+              "delta": -0.1142,
+              "direction": "not_applicable",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            },
+            {
+              "metric_id": "keyboard_use",
+              "value": null,
+              "n": 0,
+              "comparison_value": null,
+              "delta": null,
+              "direction": "not_applicable",
+              "days_with_data": 0,
+              "suppressed_reason": "not_collected"
+            },
+            {
+              "metric_id": "repeat_tap_rate",
+              "value": 0.1078,
+              "n": 283,
+              "comparison_value": 0.106,
+              "delta": 0.0018,
+              "direction": "not_applicable",
+              "days_with_data": 14,
+              "suppressed_reason": null
+            }
+          ]
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-07-25",
+            "end": "2026-08-07",
+            "days": 14
+          },
+          "row_count": 33,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "dictionary": {
+          "taps_per_utterance": {
+            "metric_id": "taps_per_utterance",
+            "name": "Buttons to say one thing",
+            "group_code": "A",
+            "plain_explanation": "How many buttons the child presses to say one thing.",
+            "formula": "median(count of card_tap events grouped by utterance_id), per day, child actor only",
+            "unit": "count",
+            "polarity": "lower_better",
+            "tier": "P0",
+            "min_n": 5,
+            "caveat": "Use the MEDIAN, never the mean: one 12-tap struggle distorts an average. A rise is not automatically bad - it can mean the child is building longer, richer sentences. Always read alongside mlu and independence_rate before concluding anything."
+          },
+          "composition_time": {
+            "metric_id": "composition_time",
+            "name": "Composition time",
+            "group_code": "A",
+            "plain_explanation": "Seconds from the first button press to pressing Speak.",
+            "formula": "median(utterances.ms_compose) per day, spoken utterances only",
+            "unit": "ms",
+            "polarity": "neutral",
+            "tier": "P0",
+            "min_n": 5,
+            "caveat": "Neutral on purpose. Slow with FEW taps suggests scanning or thinking; slow with MANY taps suggests fighting the layout. Faster is not a goal in itself - a child taking longer to say something better has improved."
+          },
+          "time_to_first_tap": {
+            "metric_id": "time_to_first_tap",
+            "name": "Time to start answering",
+            "group_code": "A",
+            "plain_explanation": "The pause between someone finishing speaking and the child starting to answer.",
+            "formula": "median(utterances.ms_to_first_tap) where a partner_turn ended within 30s before",
+            "unit": "ms",
+            "polarity": "neutral",
+            "tier": "P0",
+            "min_n": 5,
+            "caveat": "A HIGH value may not be about the child. AAC users produce ~15 words per minute against 150-170 for speech; partners are expected to wait. Before reading this as slow processing, check partner_wait_time - the adult may have filled the silence or changed the subject."
+          },
+          "mistap_rate": {
+            "metric_id": "mistap_rate",
+            "name": "Presses she did not mean",
+            "group_code": "B",
+            "plain_explanation": "How often a button was pressed and then deleted almost immediately - a press the child did not mean.",
+            "formula": "count(delete_last where ms_delta < mistap_threshold_ms) / count(card_tap), per day",
+            "unit": "ratio",
+            "polarity": "lower_better",
+            "tier": "P0",
+            "min_n": 30,
+            "caveat": "REQUIRES A DELETE. Repeated pressing WITHOUT a delete is never counted here - that is repeat_tap_rate, and it is normal communication, not error. The 1500ms threshold is a starting default: for athetoid cerebral palsy 2500ms is often more accurate. Sustained above ~10% points at layout or physical access, not at learning."
+          },
+          "abandonment_rate": {
+            "metric_id": "abandonment_rate",
+            "name": "Built but not spoken",
+            "group_code": "B",
+            "plain_explanation": "How often the child builds a sentence and then gives up without speaking it.",
+            "formula": "count(utterances where spoken = 0) / count(all utterances), per day",
+            "unit": "ratio",
+            "polarity": "lower_better",
+            "tier": "P0",
+            "min_n": 10,
+            "caveat": "The quietest failure mode in AAC: the child tried, nothing was said, so nobody noticed. Often more urgent than low volume. Check abandon_reason - \"timeout\" and \"navigated_away\" suggest the partner moved on, which makes this a partner metric too."
+          },
+          "silence_streak": {
+            "metric_id": "silence_streak",
+            "name": "Days since she last spoke",
+            "group_code": "C",
+            "plain_explanation": "Days since the child last said anything at all.",
+            "formula": "days between today and max(utterances.day_local where spoken = 1)",
+            "unit": "days",
+            "polarity": "lower_better",
+            "tier": "P0",
+            "min_n": 1,
+            "caveat": "The most urgent number in the system and the main driver of the attention queue. A child who stops communicating needs a person today. Totals-based views hide them because their historical average still looks healthy."
+          },
+          "ndw": {
+            "metric_id": "ndw",
+            "name": "Number of different words",
+            "group_code": "C",
+            "plain_explanation": "How many distinct words the child used.",
+            "formula": "count(distinct label) across spoken utterances in the window",
+            "unit": "count",
+            "polarity": "higher_better",
+            "tier": "P1",
+            "min_n": 30,
+            "caveat": "Standard AAC language-sampling measure. Strongly affected by window length - never compare a 3-day window to a 14-day one."
+          },
+          "mlu": {
+            "metric_id": "mlu",
+            "name": "Words per utterance (MLU)",
+            "group_code": "C",
+            "plain_explanation": "Average sentence length in symbols.",
+            "formula": "avg(utterances.symbol_count) across spoken utterances",
+            "unit": "count",
+            "polarity": "higher_better",
+            "tier": "P1",
+            "min_n": 20,
+            "caveat": "Parked near 1.0 for weeks is the classic syntax plateau. IMPORTANT EXCEPTION: gestalt language processors use whole memorised phrases, which can read as a single long utterance or as many short ones depending on how cards are built. Check with the SLT before treating a low MLU as a deficit."
+          },
+          "core_fringe_ratio": {
+            "metric_id": "core_fringe_ratio",
+            "name": "Flexible words vs naming",
+            "group_code": "C",
+            "plain_explanation": "How much of the child's output is flexible core vocabulary versus specific nouns.",
+            "formula": "count(taps where cards.is_core = 1) / count(all taps), resolved against core_word_list",
+            "unit": "ratio",
+            "polarity": "neutral",
+            "tier": "P1",
+            "min_n": 50,
+            "caveat": "About 200 core words account for roughly 80% of everyday communication. A fringe-heavy profile means the child can name things but not combine, refuse or negotiate - the board becomes a picture menu. Neutral rather than higher-better because the right balance depends on the child and the day."
+          },
+          "position_consistency": {
+            "metric_id": "position_consistency",
+            "name": "Position consistency",
+            "group_code": "D",
+            "plain_explanation": "Whether AI-generated modes keep cards where the child already learned them.",
+            "formula": "count(cards in an active mode sitting at their canonical board position) / count(cards in that mode)",
+            "unit": "ratio",
+            "polarity": "higher_better",
+            "tier": "P1",
+            "min_n": 5,
+            "caveat": "Target is exactly 1.0. A mode is meant to be a filtered VIEW of the robust board - highlighting relevant words while leaving every position untouched. Anything below 1.0 means our own AI is teaching a second, conflicting motor plan. This is a product defect metric, not a child metric."
+          },
+          "independence_rate": {
+            "metric_id": "independence_rate",
+            "name": "Her own words",
+            "group_code": "E",
+            "plain_explanation": "Share of sentences the child built themselves, without taking an AI suggestion.",
+            "formula": "count(utterances where used_suggestion = 0 and actor = child) / count(utterances where actor = child)",
+            "unit": "ratio",
+            "polarity": "higher_better",
+            "tier": "P0",
+            "min_n": 10,
+            "caveat": "The guardrail against the AI quietly becoming the speaker. Independence RISING while taps_per_utterance FALLS is the product working. Independence falling means the AI is over-reaching, no matter how good suggestion_acceptance looks. Read the two together, never separately."
+          },
+          "teacher_modeling": {
+            "metric_id": "teacher_modeling",
+            "name": "Adult demonstrating",
+            "group_code": "E",
+            "plain_explanation": "How often the grown-up demonstrates on the device (aided language input).",
+            "formula": "count(card_tap where actor = adult) per day, optionally grouped by card category",
+            "unit": "count",
+            "polarity": "higher_better",
+            "tier": "P1",
+            "min_n": 1,
+            "caveat": "The only signal in the system about the adult, and among the strongest predictors of AAC progress. Requires Modeling Mode to be switched on, so a zero may mean \"did not model\" OR \"modelled without switching the mode on\" - check before concluding. Model without expectation: this metric must never be used to argue the child should have responded."
+          },
+          "taps_saved": {
+            "metric_id": "taps_saved",
+            "name": "Taps saved",
+            "group_code": "F",
+            "plain_explanation": "How many button presses the AI spared the child.",
+            "formula": "(median taps_per_utterance without a suggestion - median with) * count(utterances that used one)",
+            "unit": "count",
+            "polarity": "higher_better",
+            "tier": "P0",
+            "min_n": 20,
+            "caveat": "The product claim in the unit that matters to someone with a motor impairment: physical effort not spent. Requires at least 20 utterances in each arm to mean anything. Do not report if either arm is thin."
+          },
+          "partner_interruption_rate": {
+            "metric_id": "partner_interruption_rate",
+            "name": "Partner interruptions",
+            "group_code": "G",
+            "plain_explanation": "How often an adult starts talking while the child is mid-sentence.",
+            "formula": "count(partner_turns where interrupted_utterance_id is not null) / count(partner_turns)",
+            "unit": "ratio",
+            "polarity": "lower_better",
+            "tier": "P2",
+            "min_n": 10,
+            "caveat": "Strongly linked to abandonment_rate: a child interrupted mid-composition often gives up. If both are high, the intervention is partner coaching, not anything aimed at the child."
+          },
+          "repeat_tap_rate": {
+            "metric_id": "repeat_tap_rate",
+            "name": "Repeated pressing",
+            "group_code": "H",
+            "plain_explanation": "How often the child presses the same button several times in a row.",
+            "formula": "count(runs of >= 3 consecutive card_tap on the same card_id with NO delete) / count(utterances)",
+            "unit": "count",
+            "polarity": "neutral",
+            "tier": "P0",
+            "min_n": 10,
+            "caveat": "THIS IS NOT AN ERROR AND MUST NEVER BE STYLED AS ONE. Repetition has four normal causes: communicating something there is no word for, learning where a button is (repetition is how motor automaticity forms), language development including gestalt processing, and stimming for self-regulation. Trying to reduce repetition reduces overall communication. If repetition is high in a scene where vocabulary coverage is thin, treat it as a VOCABULARY GAP signal - the child may be reaching for a word that does not exist."
+          },
+          "feeling_words": {
+            "metric_id": "feeling_words",
+            "name": "Feeling words",
+            "group_code": "H",
+            "plain_explanation": "Which feeling words the child used, grouped as positive, neutral or upset.",
+            "formula": "count(card_tap) joined to emotion_lexicon, grouped by category, over the window",
+            "unit": "ratio",
+            "polarity": "neutral",
+            "tier": "P1",
+            "min_n": 5,
+            "caveat": "A LOW-FREQUENCY metric — a child may use two feeling words in a day, so the card reads a whole window, not a single day. COUNTS WORDS USED — it does not measure how the child feels. An AAC user can only express feelings their board contains, so a board with no \"frustrated\" card reads positive whatever is going on. Always show how many feeling words were available alongside the mix."
+          },
+          "answers_vs_starts": {
+            "metric_id": "answers_vs_starts",
+            "name": "Answers and topic starts",
+            "group_code": "E",
+            "plain_explanation": "How often the child answers someone, and how often they start a topic themselves.",
+            "formula": "utterances within 30s of a partner_turn = answer; otherwise = self-started",
+            "unit": "ratio",
+            "polarity": "neutral",
+            "tier": "P2",
+            "min_n": 20,
+            "caveat": "NEITHER END IS BETTER, which is why this is a split and not a score. Starting a topic is a higher-order skill than answering, so a rising share of self-started turns is growth — but a child who answers well is also communicating. Never render this as a gauge."
+          }
+        },
+        "guidance": [
+          {
+            "level": "warning",
+            "code": "SMALL_SAMPLE",
+            "detail": "3 metric(s) returned null because n < min_n — measured, but too few observations to report. NOT zero, and NOT \"did not happen\".",
+            "affects": [
+              "correction_adjacent_rate",
+              "sentence_shapes",
+              "partner_wait_time"
+            ]
+          },
+          {
+            "level": "info",
+            "code": "NOT_COLLECTED",
+            "detail": "13 metric(s) have no observations at all: the feature that produces them is not in use for this child. Draw no conclusion from their absence.",
+            "affects": [
+              "cell_heat",
+              "card_frequency",
+              "new_words",
+              "word_pairs",
+              "zero_activation_days",
+              "layout_stability",
+              "nav_depth_by_card",
+              "scene_distribution",
+              "pragmatic_function_mix",
+              "suggestion_acceptance",
+              "visual_source_split",
+              "vocabulary_gaps",
+              "keyboard_use"
+            ]
+          },
+          {
+            "level": "info",
+            "code": "PARTIAL_WINDOW",
+            "detail": "2026-08-07 may be incomplete."
+          }
+        ]
+      }
+    },
+    "get_metric_timeseries": {
+      "request": {
+        "child_id": "sofia_r",
+        "metric_id": "mistap_rate"
+      },
+      "response": {
+        "data": {
+          "metric_id": "mistap_rate",
+          "granularity": "day",
+          "points": [
+            {
+              "period": "2026-07-11",
+              "value": null,
+              "n": 28,
+              "days": 1,
+              "period_start": "2026-07-11",
+              "period_end": "2026-07-11"
+            },
+            {
+              "period": "2026-07-12",
+              "value": 0.0294,
+              "n": 34,
+              "days": 1,
+              "period_start": "2026-07-12",
+              "period_end": "2026-07-12"
+            },
+            {
+              "period": "2026-07-13",
+              "value": 0.087,
+              "n": 46,
+              "days": 1,
+              "period_start": "2026-07-13",
+              "period_end": "2026-07-13"
+            },
+            {
+              "period": "2026-07-14",
+              "value": 0.0588,
+              "n": 51,
+              "days": 1,
+              "period_start": "2026-07-14",
+              "period_end": "2026-07-14"
+            },
+            {
+              "period": "2026-07-15",
+              "value": 0.0698,
+              "n": 43,
+              "days": 1,
+              "period_start": "2026-07-15",
+              "period_end": "2026-07-15"
+            },
+            {
+              "period": "2026-07-16",
+              "value": 0.0204,
+              "n": 49,
+              "days": 1,
+              "period_start": "2026-07-16",
+              "period_end": "2026-07-16"
+            },
+            {
+              "period": "2026-07-17",
+              "value": 0.0556,
+              "n": 90,
+              "days": 1,
+              "period_start": "2026-07-17",
+              "period_end": "2026-07-17"
+            },
+            {
+              "period": "2026-07-18",
+              "value": 0.0323,
+              "n": 31,
+              "days": 1,
+              "period_start": "2026-07-18",
+              "period_end": "2026-07-18"
+            },
+            {
+              "period": "2026-07-19",
+              "value": 0,
+              "n": 37,
+              "days": 1,
+              "period_start": "2026-07-19",
+              "period_end": "2026-07-19"
+            },
+            {
+              "period": "2026-07-20",
+              "value": 0.0278,
+              "n": 72,
+              "days": 1,
+              "period_start": "2026-07-20",
+              "period_end": "2026-07-20"
+            },
+            {
+              "period": "2026-07-21",
+              "value": 0.0577,
+              "n": 52,
+              "days": 1,
+              "period_start": "2026-07-21",
+              "period_end": "2026-07-21"
+            },
+            {
+              "period": "2026-07-22",
+              "value": 0,
+              "n": 53,
+              "days": 1,
+              "period_start": "2026-07-22",
+              "period_end": "2026-07-22"
+            },
+            {
+              "period": "2026-07-23",
+              "value": 0.0143,
+              "n": 70,
+              "days": 1,
+              "period_start": "2026-07-23",
+              "period_end": "2026-07-23"
+            },
+            {
+              "period": "2026-07-24",
+              "value": 0.0159,
+              "n": 63,
+              "days": 1,
+              "period_start": "2026-07-24",
+              "period_end": "2026-07-24"
+            },
+            {
+              "period": "2026-07-25",
+              "value": null,
+              "n": 29,
+              "days": 1,
+              "period_start": "2026-07-25",
+              "period_end": "2026-07-25"
+            },
+            {
+              "period": "2026-07-26",
+              "value": null,
+              "n": 19,
+              "days": 1,
+              "period_start": "2026-07-26",
+              "period_end": "2026-07-26"
+            },
+            {
+              "period": "2026-07-27",
+              "value": 0.0286,
+              "n": 35,
+              "days": 1,
+              "period_start": "2026-07-27",
+              "period_end": "2026-07-27"
+            },
+            {
+              "period": "2026-07-28",
+              "value": 0.0833,
+              "n": 60,
+              "days": 1,
+              "period_start": "2026-07-28",
+              "period_end": "2026-07-28"
+            },
+            {
+              "period": "2026-07-29",
+              "value": 0.0149,
+              "n": 67,
+              "days": 1,
+              "period_start": "2026-07-29",
+              "period_end": "2026-07-29"
+            },
+            {
+              "period": "2026-07-30",
+              "value": 0.0645,
+              "n": 62,
+              "days": 1,
+              "period_start": "2026-07-30",
+              "period_end": "2026-07-30"
+            },
+            {
+              "period": "2026-07-31",
+              "value": 0.0317,
+              "n": 63,
+              "days": 1,
+              "period_start": "2026-07-31",
+              "period_end": "2026-07-31"
+            },
+            {
+              "period": "2026-08-01",
+              "value": 0,
+              "n": 36,
+              "days": 1,
+              "period_start": "2026-08-01",
+              "period_end": "2026-08-01"
+            },
+            {
+              "period": "2026-08-02",
+              "value": 0.0323,
+              "n": 31,
+              "days": 1,
+              "period_start": "2026-08-02",
+              "period_end": "2026-08-02"
+            },
+            {
+              "period": "2026-08-03",
+              "value": 0.0541,
+              "n": 37,
+              "days": 1,
+              "period_start": "2026-08-03",
+              "period_end": "2026-08-03"
+            },
+            {
+              "period": "2026-08-04",
+              "value": 0.0345,
+              "n": 58,
+              "days": 1,
+              "period_start": "2026-08-04",
+              "period_end": "2026-08-04"
+            },
+            {
+              "period": "2026-08-05",
+              "value": 0,
+              "n": 56,
+              "days": 1,
+              "period_start": "2026-08-05",
+              "period_end": "2026-08-05"
+            },
+            {
+              "period": "2026-08-06",
+              "value": 0.0556,
+              "n": 36,
+              "days": 1,
+              "period_start": "2026-08-06",
+              "period_end": "2026-08-06"
+            },
+            {
+              "period": "2026-08-07",
+              "value": 0.0536,
+              "n": 56,
+              "days": 1,
+              "period_start": "2026-08-07",
+              "period_end": "2026-08-07"
+            }
+          ],
+          "annotations": []
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-07-11",
+            "end": "2026-08-07",
+            "days": 28
+          },
+          "row_count": 28,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "dictionary": {
+          "mistap_rate": {
+            "metric_id": "mistap_rate",
+            "name": "Presses she did not mean",
+            "group_code": "B",
+            "plain_explanation": "How often a button was pressed and then deleted almost immediately - a press the child did not mean.",
+            "formula": "count(delete_last where ms_delta < mistap_threshold_ms) / count(card_tap), per day",
+            "unit": "ratio",
+            "polarity": "lower_better",
+            "tier": "P0",
+            "min_n": 30,
+            "caveat": "REQUIRES A DELETE. Repeated pressing WITHOUT a delete is never counted here - that is repeat_tap_rate, and it is normal communication, not error. The 1500ms threshold is a starting default: for athetoid cerebral palsy 2500ms is often more accurate. Sustained above ~10% points at layout or physical access, not at learning."
+          }
+        },
+        "guidance": [
+          {
+            "level": "info",
+            "code": "PARTIAL_WINDOW",
+            "detail": "2026-08-07 may be incomplete."
+          }
+        ]
+      }
+    },
+    "get_card_stats": {
+      "request": {
+        "child_id": "sofia_r",
+        "limit": 12,
+        "order_by": "taps_desc"
+      },
+      "response": {
+        "data": {
+          "cards": [
+            {
+              "card_id": "no",
+              "label": "no",
+              "is_core": 1,
+              "is_essential": 1,
+              "default_function": "protest",
+              "taps": 216,
+              "mistaps": 4,
+              "adjacent_corrections": 3,
+              "repeat_runs": 8,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "stop",
+              "label": "stop",
+              "is_core": 1,
+              "is_essential": 1,
+              "default_function": "direct",
+              "taps": 214,
+              "mistaps": 3,
+              "adjacent_corrections": 3,
+              "repeat_runs": 7,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "help",
+              "label": "help",
+              "is_core": 1,
+              "is_essential": 1,
+              "default_function": "request",
+              "taps": 210,
+              "mistaps": 5,
+              "adjacent_corrections": 3,
+              "repeat_runs": 8,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "yes",
+              "label": "yes",
+              "is_core": 1,
+              "is_essential": 1,
+              "default_function": "give_opinion",
+              "taps": 209,
+              "mistaps": 5,
+              "adjacent_corrections": 3,
+              "repeat_runs": 11,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "go",
+              "label": "go",
+              "is_core": 1,
+              "is_essential": 0,
+              "default_function": "direct",
+              "taps": 106,
+              "mistaps": 4,
+              "adjacent_corrections": 2,
+              "repeat_runs": 9,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "please",
+              "label": "please",
+              "is_core": 1,
+              "is_essential": 0,
+              "default_function": "request",
+              "taps": 106,
+              "mistaps": 6,
+              "adjacent_corrections": 1,
+              "repeat_runs": 4,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "again",
+              "label": "again",
+              "is_core": 1,
+              "is_essential": 0,
+              "default_function": "request",
+              "taps": 104,
+              "mistaps": 4,
+              "adjacent_corrections": 3,
+              "repeat_runs": 4,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "want",
+              "label": "want",
+              "is_core": 1,
+              "is_essential": 0,
+              "default_function": "request",
+              "taps": 101,
+              "mistaps": 5,
+              "adjacent_corrections": 2,
+              "repeat_runs": 7,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "you",
+              "label": "you",
+              "is_core": 1,
+              "is_essential": 0,
+              "default_function": null,
+              "taps": 98,
+              "mistaps": 3,
+              "adjacent_corrections": 2,
+              "repeat_runs": 6,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "finished",
+              "label": "finished",
+              "is_core": 1,
+              "is_essential": 0,
+              "default_function": "comment",
+              "taps": 87,
+              "mistaps": 3,
+              "adjacent_corrections": 1,
+              "repeat_runs": 4,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "like",
+              "label": "like",
+              "is_core": 1,
+              "is_essential": 0,
+              "default_function": "give_opinion",
+              "taps": 81,
+              "mistaps": 3,
+              "adjacent_corrections": 1,
+              "repeat_runs": 3,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            },
+            {
+              "card_id": "I",
+              "label": "I",
+              "is_core": 1,
+              "is_essential": 0,
+              "default_function": null,
+              "taps": 79,
+              "mistaps": 5,
+              "adjacent_corrections": 1,
+              "repeat_runs": 3,
+              "zero_days": 0,
+              "last_used_day": "2026-08-07",
+              "scenes_used": "[\"classroom\",\"community\",\"free_play\",\"home\",\"therapy\"]",
+              "nav_depth": 0
+            }
+          ]
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-07-11",
+            "end": "2026-08-07",
+            "days": 28
+          },
+          "row_count": 12,
+          "truncated": true,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "dictionary": {
+          "card_frequency": {
+            "metric_id": "card_frequency",
+            "name": "Her go-to words",
+            "group_code": "C",
+            "plain_explanation": "Which cards the child actually uses, ranked.",
+            "formula": "count(card_tap) grouped by card_id / label, over the window, child actor only",
+            "unit": "count",
+            "polarity": "neutral",
+            "tier": "P0",
+            "min_n": 20,
+            "caveat": "Read forwards for go-to vocabulary and backwards for dead weight. Beware survivorship: a card can be low-frequency because it is hard to reach (check nav_depth_by_card and cell_heat) rather than because the child does not want it."
+          },
+          "repeat_tap_rate": {
+            "metric_id": "repeat_tap_rate",
+            "name": "Repeated pressing",
+            "group_code": "H",
+            "plain_explanation": "How often the child presses the same button several times in a row.",
+            "formula": "count(runs of >= 3 consecutive card_tap on the same card_id with NO delete) / count(utterances)",
+            "unit": "count",
+            "polarity": "neutral",
+            "tier": "P0",
+            "min_n": 10,
+            "caveat": "THIS IS NOT AN ERROR AND MUST NEVER BE STYLED AS ONE. Repetition has four normal causes: communicating something there is no word for, learning where a button is (repetition is how motor automaticity forms), language development including gestalt processing, and stimming for self-regulation. Trying to reduce repetition reduces overall communication. If repetition is high in a scene where vocabulary coverage is thin, treat it as a VOCABULARY GAP signal - the child may be reaching for a word that does not exist."
+          },
+          "zero_activation_days": {
+            "metric_id": "zero_activation_days",
+            "name": "Days at zero",
+            "group_code": "C",
+            "plain_explanation": "How long a card has gone unused, and in which situations.",
+            "formula": "per card: consecutive days with zero taps, plus the distinct scenes it has ever been used in",
+            "unit": "days",
+            "polarity": "neutral",
+            "tier": "P0",
+            "min_n": 1,
+            "caveat": "Neutral, not bad. Zero everywhere for 30 days suggests the card is obsolete. Zero in ONE scene while the child is otherwise active there may simply mean they do not want that thing - a preference, not a gap. Never route a preference to retraining."
+          }
+        },
+        "guidance": [
+          {
+            "level": "info",
+            "code": "PARTIAL_WINDOW",
+            "detail": "2026-08-07 may be incomplete."
+          }
+        ]
+      }
+    },
+    "get_cell_heat": {
+      "request": {
+        "child_id": "sofia_r"
+      },
+      "response": {
+        "data": {
+          "board_id": "board_sofia_r",
+          "cells": [
+            {
+              "grid_row": 0,
+              "grid_col": 0,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 61,
+              "mistaps": 4,
+              "card_id": "I",
+              "label": "I",
+              "masked": 0,
+              "mistap_share": 0.062
+            },
+            {
+              "grid_row": 0,
+              "grid_col": 1,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 56,
+              "mistaps": 3,
+              "card_id": "want",
+              "label": "want",
+              "masked": 0,
+              "mistap_share": 0.051
+            },
+            {
+              "grid_row": 0,
+              "grid_col": 2,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 49,
+              "mistaps": 0,
+              "card_id": "more",
+              "label": "more",
+              "masked": 0,
+              "mistap_share": 0
+            },
+            {
+              "grid_row": 0,
+              "grid_col": 3,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 130,
+              "mistaps": 5,
+              "card_id": "help",
+              "label": "help",
+              "masked": 0,
+              "mistap_share": 0.037
+            },
+            {
+              "grid_row": 0,
+              "grid_col": 4,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 72,
+              "mistaps": 2,
+              "card_id": "go",
+              "label": "go",
+              "masked": 0,
+              "mistap_share": 0.027
+            },
+            {
+              "grid_row": 1,
+              "grid_col": 0,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 69,
+              "mistaps": 1,
+              "card_id": "you",
+              "label": "you",
+              "masked": 0,
+              "mistap_share": 0.014
+            },
+            {
+              "grid_row": 1,
+              "grid_col": 1,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 122,
+              "mistaps": 2,
+              "card_id": "yes",
+              "label": "yes",
+              "masked": 0,
+              "mistap_share": 0.016
+            },
+            {
+              "grid_row": 1,
+              "grid_col": 2,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 133,
+              "mistaps": 3,
+              "card_id": "no",
+              "label": "no",
+              "masked": 0,
+              "mistap_share": 0.022
+            },
+            {
+              "grid_row": 1,
+              "grid_col": 3,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 127,
+              "mistaps": 3,
+              "card_id": "stop",
+              "label": "stop",
+              "masked": 0,
+              "mistap_share": 0.023
+            },
+            {
+              "grid_row": 1,
+              "grid_col": 4,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 56,
+              "mistaps": 2,
+              "card_id": "like",
+              "label": "like",
+              "masked": 0,
+              "mistap_share": 0.034
+            },
+            {
+              "grid_row": 2,
+              "grid_col": 0,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 58,
+              "mistaps": 1,
+              "card_id": "please",
+              "label": "please",
+              "masked": 0,
+              "mistap_share": 0.017
+            },
+            {
+              "grid_row": 2,
+              "grid_col": 1,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 22,
+              "mistaps": 0,
+              "card_id": "thank you",
+              "label": "thank you",
+              "masked": 0,
+              "mistap_share": 0
+            },
+            {
+              "grid_row": 2,
+              "grid_col": 2,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 47,
+              "mistaps": 2,
+              "card_id": "good",
+              "label": "good",
+              "masked": 0,
+              "mistap_share": 0.041
+            },
+            {
+              "grid_row": 2,
+              "grid_col": 3,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 75,
+              "mistaps": 2,
+              "card_id": "again",
+              "label": "again",
+              "masked": 0,
+              "mistap_share": 0.026
+            },
+            {
+              "grid_row": 2,
+              "grid_col": 4,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 51,
+              "mistaps": 3,
+              "card_id": "what",
+              "label": "what",
+              "masked": 0,
+              "mistap_share": 0.056
+            },
+            {
+              "grid_row": 3,
+              "grid_col": 0,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 34,
+              "mistaps": 1,
+              "card_id": "toilet",
+              "label": "toilet",
+              "masked": 0,
+              "mistap_share": 0.029
+            },
+            {
+              "grid_row": 3,
+              "grid_col": 1,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 50,
+              "mistaps": 5,
+              "card_id": "pain",
+              "label": "hurt",
+              "masked": 0,
+              "mistap_share": 0.091
+            },
+            {
+              "grid_row": 3,
+              "grid_col": 2,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 59,
+              "mistaps": 3,
+              "card_id": "finished",
+              "label": "finished",
+              "masked": 0,
+              "mistap_share": 0.048
+            },
+            {
+              "grid_row": 3,
+              "grid_col": 3,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 26,
+              "mistaps": 5,
+              "card_id": "water",
+              "label": "water",
+              "masked": 0,
+              "mistap_share": 0.161
+            },
+            {
+              "grid_row": 3,
+              "grid_col": 4,
+              "grid_rows": 4,
+              "grid_cols": 5,
+              "taps": 18,
+              "mistaps": 4,
+              "card_id": "snack",
+              "label": "snack",
+              "masked": 0,
+              "mistap_share": 0.182
+            }
+          ],
+          "dead_zones": [],
+          "problem_rows": [
+            {
+              "row": 3,
+              "kind": "error_prone",
+              "taps": 187,
+              "mistaps": 18,
+              "error_share": 0.088,
+              "note": "unintended presses here are 2.4x the board average — the child reaches this row and misses"
+            }
+          ],
+          "reach_gradient": null,
+          "board_mean_error_share": 0.037
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-07-11",
+            "end": "2026-08-07",
+            "days": 28
+          },
+          "row_count": 20,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "dictionary": {
+          "cell_heat": {
+            "metric_id": "cell_heat",
+            "name": "Which buttons get reached",
+            "group_code": "B",
+            "plain_explanation": "Which grid positions get pressed, and where mistakes cluster.",
+            "formula": "count(card_tap) and count(mis-taps) grouped by (board_id, grid_rows, grid_cols, grid_row, grid_col)",
+            "unit": "count",
+            "polarity": "neutral",
+            "tier": "P1",
+            "min_n": 50,
+            "caveat": "Read the two layers TOGETHER. A cold cell surrounded by hot mis-taps is a physically hard target, not an unknown word. Never merge results across different grid sizes - the coordinates mean different things. If the layout changed during the window, split the window at the change."
+          },
+          "mistap_rate": {
+            "metric_id": "mistap_rate",
+            "name": "Presses she did not mean",
+            "group_code": "B",
+            "plain_explanation": "How often a button was pressed and then deleted almost immediately - a press the child did not mean.",
+            "formula": "count(delete_last where ms_delta < mistap_threshold_ms) / count(card_tap), per day",
+            "unit": "ratio",
+            "polarity": "lower_better",
+            "tier": "P0",
+            "min_n": 30,
+            "caveat": "REQUIRES A DELETE. Repeated pressing WITHOUT a delete is never counted here - that is repeat_tap_rate, and it is normal communication, not error. The 1500ms threshold is a starting default: for athetoid cerebral palsy 2500ms is often more accurate. Sustained above ~10% points at layout or physical access, not at learning."
+          }
+        },
+        "guidance": [
+          {
+            "level": "info",
+            "code": "PARTIAL_WINDOW",
+            "detail": "2026-08-07 may be incomplete."
+          }
+        ],
+        "forbidden_actions": [
+          "resize_grid",
+          "move_card"
+        ]
+      }
+    },
+    "get_word_pairs": {
+      "request": {
+        "child_id": "sofia_r",
+        "limit": 8
+      },
+      "response": {
+        "data": {
+          "pairs": [
+            {
+              "word_a": "I",
+              "word_b": "what",
+              "solo_a": 79,
+              "solo_b": 77,
+              "together": 0,
+              "weaker_solo": 77
+            },
+            {
+              "word_a": "good",
+              "word_b": "what",
+              "solo_a": 79,
+              "solo_b": 77,
+              "together": 0,
+              "weaker_solo": 77
+            },
+            {
+              "word_a": "more",
+              "word_b": "you",
+              "solo_a": 75,
+              "solo_b": 98,
+              "together": 0,
+              "weaker_solo": 75
+            },
+            {
+              "word_a": "go",
+              "word_b": "hurt",
+              "solo_a": 106,
+              "solo_b": 68,
+              "together": 0,
+              "weaker_solo": 68
+            },
+            {
+              "word_a": "like",
+              "word_b": "toilet",
+              "solo_a": 81,
+              "solo_b": 58,
+              "together": 0,
+              "weaker_solo": 58
+            },
+            {
+              "word_a": "good",
+              "word_b": "thank you",
+              "solo_a": 79,
+              "solo_b": 47,
+              "together": 0,
+              "weaker_solo": 47
+            },
+            {
+              "word_a": "hurt",
+              "word_b": "thank you",
+              "solo_a": 68,
+              "solo_b": 47,
+              "together": 0,
+              "weaker_solo": 47
+            },
+            {
+              "word_a": "like",
+              "word_b": "thank you",
+              "solo_a": 81,
+              "solo_b": 47,
+              "together": 0,
+              "weaker_solo": 47
+            }
+          ],
+          "note": "Target a named pair. \"Make longer sentences\" is not teachable; \"want + biscuit\" is."
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-07-11",
+            "end": "2026-08-07",
+            "days": 28
+          },
+          "row_count": 8,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "dictionary": {
+          "mlu": {
+            "metric_id": "mlu",
+            "name": "Words per utterance (MLU)",
+            "group_code": "C",
+            "plain_explanation": "Average sentence length in symbols.",
+            "formula": "avg(utterances.symbol_count) across spoken utterances",
+            "unit": "count",
+            "polarity": "higher_better",
+            "tier": "P1",
+            "min_n": 20,
+            "caveat": "Parked near 1.0 for weeks is the classic syntax plateau. IMPORTANT EXCEPTION: gestalt language processors use whole memorised phrases, which can read as a single long utterance or as many short ones depending on how cards are built. Check with the SLT before treating a low MLU as a deficit."
+          },
+          "word_pairs": {
+            "metric_id": "word_pairs",
+            "name": "Words not yet paired",
+            "group_code": "C",
+            "plain_explanation": "Which two words the child uses often but never together.",
+            "formula": "co-occurrence counts over utterances.labels; only pairs where both words have >= 10 solo uses",
+            "unit": "count",
+            "polarity": "neutral",
+            "tier": "P1",
+            "min_n": 10,
+            "caveat": "This is what makes the syntax plateau actionable. MLU tells you sentences are short; only this tells you WHICH combination is missing. Order-independent - (want, biscuit) and (biscuit, want) are one row."
+          }
+        },
+        "forbidden_actions": [
+          "demand_imitation",
+          "test_the_child"
+        ]
+      }
+    },
+    "get_scene_breakdown": {
+      "request": {
+        "child_id": "sofia_r",
+        "by": "function"
+      },
+      "response": {
+        "data": {
+          "by": "function",
+          "rows": [
+            {
+              "scene": "home",
+              "function": "request",
+              "utterances": 128
+            },
+            {
+              "scene": "classroom",
+              "function": "request",
+              "utterances": 95
+            },
+            {
+              "scene": "home",
+              "function": "give_opinion",
+              "utterances": 66
+            },
+            {
+              "scene": "free_play",
+              "function": "request",
+              "utterances": 62
+            },
+            {
+              "scene": "home",
+              "function": "direct",
+              "utterances": 47
+            },
+            {
+              "scene": "classroom",
+              "function": "give_opinion",
+              "utterances": 42
+            },
+            {
+              "scene": "home",
+              "function": "protest",
+              "utterances": 36
+            },
+            {
+              "scene": "classroom",
+              "function": "direct",
+              "utterances": 35
+            },
+            {
+              "scene": "free_play",
+              "function": "give_opinion",
+              "utterances": 31
+            },
+            {
+              "scene": "home",
+              "function": "comment",
+              "utterances": 29
+            },
+            {
+              "scene": "classroom",
+              "function": "protest",
+              "utterances": 23
+            },
+            {
+              "scene": "therapy",
+              "function": "request",
+              "utterances": 20
+            },
+            {
+              "scene": "free_play",
+              "function": "direct",
+              "utterances": 19
+            },
+            {
+              "scene": "classroom",
+              "function": "comment",
+              "utterances": 17
+            },
+            {
+              "scene": "free_play",
+              "function": "protest",
+              "utterances": 17
+            },
+            {
+              "scene": "therapy",
+              "function": "start_conversation",
+              "utterances": 17
+            },
+            {
+              "scene": "home",
+              "function": "ask_question",
+              "utterances": 15
+            },
+            {
+              "scene": "free_play",
+              "function": "comment",
+              "utterances": 14
+            },
+            {
+              "scene": "therapy",
+              "function": "give_opinion",
+              "utterances": 14
+            },
+            {
+              "scene": "classroom",
+              "function": "ask_question",
+              "utterances": 12
+            },
+            {
+              "scene": "therapy",
+              "function": "direct",
+              "utterances": 10
+            },
+            {
+              "scene": "free_play",
+              "function": "ask_question",
+              "utterances": 5
+            },
+            {
+              "scene": "therapy",
+              "function": "protest",
+              "utterances": 5
+            },
+            {
+              "scene": "community",
+              "function": "direct",
+              "utterances": 4
+            },
+            {
+              "scene": "community",
+              "function": "give_opinion",
+              "utterances": 4
+            },
+            {
+              "scene": "community",
+              "function": "request",
+              "utterances": 4
+            },
+            {
+              "scene": "community",
+              "function": "protest",
+              "utterances": 3
+            },
+            {
+              "scene": "therapy",
+              "function": "comment",
+              "utterances": 3
+            },
+            {
+              "scene": "therapy",
+              "function": "ask_question",
+              "utterances": 2
+            },
+            {
+              "scene": "classroom",
+              "function": "share_news",
+              "utterances": 1
+            },
+            {
+              "scene": "community",
+              "function": "comment",
+              "utterances": 1
+            },
+            {
+              "scene": "home",
+              "function": "share_news",
+              "utterances": 1
+            }
+          ],
+          "scene_bound_items": [
+            {
+              "label": "thank you",
+              "therapy_taps": 23,
+              "other_taps": 0
+            }
+          ]
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-07-11",
+            "end": "2026-08-07",
+            "days": 28
+          },
+          "row_count": 32,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "dictionary": {
+          "pragmatic_function_mix": {
+            "metric_id": "pragmatic_function_mix",
+            "name": "What language is used for",
+            "group_code": "E",
+            "plain_explanation": "The balance across the eight reasons people communicate.",
+            "formula": "count(utterances) grouped by function: request, protest, comment, direct, ask_question, give_opinion, share_news, start_conversation",
+            "unit": "ratio",
+            "polarity": "neutral",
+            "tier": "P1",
+            "min_n": 20,
+            "caveat": "The single most-cited roadblock in AAC practice is that the system gets used for requesting and nothing else. Most AAC users sit near 90% requesting. Growth looks like commenting, protesting and questioning APPEARING - not like requesting decreasing. Frame any imbalance as a goal to set, never as a failure to report."
+          },
+          "scene_distribution": {
+            "metric_id": "scene_distribution",
+            "name": "Scene distribution",
+            "group_code": "D",
+            "plain_explanation": "Where the child communicates, and where they go quiet.",
+            "formula": "count(utterances) grouped by scene; also per-label and per-function breakdowns",
+            "unit": "count",
+            "polarity": "neutral",
+            "tier": "P1",
+            "min_n": 20,
+            "caveat": "Uneven distribution is expected - a child talks more in class than in a car. What matters is a word or function that appears in ONE scene and nowhere else, which points at a skill bound to the setting it was taught in."
+          }
+        },
+        "guidance": [
+          {
+            "level": "info",
+            "code": "PARTIAL_WINDOW",
+            "detail": "2026-08-07 may be incomplete."
+          }
+        ]
+      }
+    },
+    "get_utterances": {
+      "request": {
+        "child_id": "sofia_r",
+        "limit": 5
+      },
+      "response": {
+        "data": {
+          "utterances": [
+            {
+              "utterance_id": "utt_901f16975e8d",
+              "day_local": "2026-08-07",
+              "scene": "home",
+              "labels": "[\"toilet\", \"swimming\"]",
+              "symbol_count": 2,
+              "word_count": 2,
+              "tap_count": 2,
+              "delete_count": 0,
+              "ms_compose": 12235,
+              "ms_to_first_tap": 3738,
+              "used_suggestion": 0,
+              "spoken": 1,
+              "abandon_reason": null,
+              "function": "request"
+            },
+            {
+              "utterance_id": "utt_b4328fab3918",
+              "day_local": "2026-08-07",
+              "scene": "home",
+              "labels": "[\"again\", \"help\"]",
+              "symbol_count": 2,
+              "word_count": 2,
+              "tap_count": 2,
+              "delete_count": 0,
+              "ms_compose": 12281,
+              "ms_to_first_tap": 4243,
+              "used_suggestion": 0,
+              "spoken": 1,
+              "abandon_reason": null,
+              "function": "request"
+            },
+            {
+              "utterance_id": "utt_546254f9fa77",
+              "day_local": "2026-08-07",
+              "scene": "home",
+              "labels": "[\"no\"]",
+              "symbol_count": 1,
+              "word_count": 1,
+              "tap_count": 1,
+              "delete_count": 0,
+              "ms_compose": 6336,
+              "ms_to_first_tap": 3168,
+              "used_suggestion": 0,
+              "spoken": 1,
+              "abandon_reason": null,
+              "function": "protest"
+            },
+            {
+              "utterance_id": "utt_c46b44e91e8e",
+              "day_local": "2026-08-07",
+              "scene": "home",
+              "labels": "[\"what\"]",
+              "symbol_count": 1,
+              "word_count": 3,
+              "tap_count": 1,
+              "delete_count": 0,
+              "ms_compose": null,
+              "ms_to_first_tap": 3554,
+              "used_suggestion": 0,
+              "spoken": 0,
+              "abandon_reason": "timeout",
+              "function": "ask_question"
+            },
+            {
+              "utterance_id": "utt_1ba726e4f48c",
+              "day_local": "2026-08-07",
+              "scene": "home",
+              "labels": "[\"want\", \"please\", \"help\"]",
+              "symbol_count": 3,
+              "word_count": 3,
+              "tap_count": 4,
+              "delete_count": 1,
+              "ms_compose": 17275,
+              "ms_to_first_tap": 3331,
+              "used_suggestion": 0,
+              "spoken": 1,
+              "abandon_reason": null,
+              "function": "request"
+            }
+          ]
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-08-01",
+            "end": "2026-08-07",
+            "days": 7
+          },
+          "row_count": 5,
+          "truncated": true,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "guidance": [
+          {
+            "level": "info",
+            "code": "PARTIAL_WINDOW",
+            "detail": "2026-08-07 may be incomplete."
+          }
+        ]
+      }
+    },
+    "get_partner_metrics": {
+      "request": {
+        "child_id": "sofia_r"
+      },
+      "response": {
+        "data": {
+          "partner_turns": 254,
+          "median_wait_ms": 4285,
+          "interruptions": 5,
+          "interruption_rate": 0.02,
+          "turns_with_no_child_response": 78,
+          "modeling_taps": 6,
+          "modeling_days": 6,
+          "note": "AAC output runs around 15 words per minute. A median wait under 2000 ms means any \"the child is slow\" finding is confounded by the adult."
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-07-25",
+            "end": "2026-08-07",
+            "days": 14
+          },
+          "row_count": 1,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "dictionary": {
+          "partner_interruption_rate": {
+            "metric_id": "partner_interruption_rate",
+            "name": "Partner interruptions",
+            "group_code": "G",
+            "plain_explanation": "How often an adult starts talking while the child is mid-sentence.",
+            "formula": "count(partner_turns where interrupted_utterance_id is not null) / count(partner_turns)",
+            "unit": "ratio",
+            "polarity": "lower_better",
+            "tier": "P2",
+            "min_n": 10,
+            "caveat": "Strongly linked to abandonment_rate: a child interrupted mid-composition often gives up. If both are high, the intervention is partner coaching, not anything aimed at the child."
+          },
+          "partner_wait_time": {
+            "metric_id": "partner_wait_time",
+            "name": "How long the adult waits",
+            "group_code": "G",
+            "plain_explanation": "How long the adult waits before speaking again when the child has not yet responded.",
+            "formula": "median(partner_turns.ms_to_next_partner_turn) where child_responded = 0",
+            "unit": "ms",
+            "polarity": "higher_better",
+            "tier": "P2",
+            "min_n": 10,
+            "caveat": "AAC users produce around 15 words per minute; partners routinely give under two seconds. A low value here means the adult filled the silence, and it will show up as the CHILD looking slow or unresponsive. Always show this next to time_to_first_tap so the adult sees their own number beside the child's."
+          },
+          "teacher_modeling": {
+            "metric_id": "teacher_modeling",
+            "name": "Adult demonstrating",
+            "group_code": "E",
+            "plain_explanation": "How often the grown-up demonstrates on the device (aided language input).",
+            "formula": "count(card_tap where actor = adult) per day, optionally grouped by card category",
+            "unit": "count",
+            "polarity": "higher_better",
+            "tier": "P1",
+            "min_n": 1,
+            "caveat": "The only signal in the system about the adult, and among the strongest predictors of AAC progress. Requires Modeling Mode to be switched on, so a zero may mean \"did not model\" OR \"modelled without switching the mode on\" - check before concluding. Model without expectation: this metric must never be used to argue the child should have responded."
+          }
+        },
+        "guidance": [
+          {
+            "level": "info",
+            "code": "PARTIAL_WINDOW",
+            "detail": "2026-08-07 may be incomplete."
+          }
+        ]
+      }
+    },
+    "get_board_revisions": {
+      "request": {
+        "child_id": "sofia_r"
+      },
+      "response": {
+        "data": {
+          "revisions": []
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-07-11",
+            "end": "2026-08-07",
+            "days": 28
+          },
+          "row_count": 0,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "dictionary": {
+          "layout_stability": {
+            "metric_id": "layout_stability",
+            "name": "Layout stability",
+            "group_code": "D",
+            "plain_explanation": "How often button positions have changed, and whether errors rose afterwards.",
+            "formula": "count(board_revisions where change_kind in (move, resize, remove)) per window, plus the mistap_rate delta in the 7 days after each",
+            "unit": "count",
+            "polarity": "higher_better",
+            "tier": "P1",
+            "min_n": 1,
+            "caveat": "Motor plans depend on buttons staying put - every relocation forces relearning. This metric holds the SYSTEM accountable: if the dashboard recommends a layout change, this measures the damage that advice caused. Higher stability is better. A spike in changes with a following rise in mis-taps is a self-inflicted regression, not the child declining."
+          },
+          "mistap_rate": {
+            "metric_id": "mistap_rate",
+            "name": "Presses she did not mean",
+            "group_code": "B",
+            "plain_explanation": "How often a button was pressed and then deleted almost immediately - a press the child did not mean.",
+            "formula": "count(delete_last where ms_delta < mistap_threshold_ms) / count(card_tap), per day",
+            "unit": "ratio",
+            "polarity": "lower_better",
+            "tier": "P0",
+            "min_n": 30,
+            "caveat": "REQUIRES A DELETE. Repeated pressing WITHOUT a delete is never counted here - that is repeat_tap_rate, and it is normal communication, not error. The 1500ms threshold is a starting default: for athetoid cerebral palsy 2500ms is often more accurate. Sustained above ~10% points at layout or physical access, not at learning."
+          }
+        },
+        "forbidden_actions": [
+          "blame_the_child",
+          "frame_as_regression",
+          "recommend_further_layout_change"
+        ]
+      }
+    },
+    "get_fired_rules": {
+      "request": {
+        "child_id": "sofia_r"
+      },
+      "response": {
+        "data": {
+          "candidates": [
+            {
+              "fired_rule_id": "fr_31bbfd0975904a5b",
+              "fired_at": 1786098761396,
+              "classification": null,
+              "insight_id": "I4",
+              "name": "Unused word: obsolete, or simply not wanted?",
+              "plain_statement": "A card is going unused. Whether that means remove it or leave it alone depends entirely on which.",
+              "triggered": true,
+              "evidence": [
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "helicopter",
+                  "label": "helicopter",
+                  "case_kind": "obsolete",
+                  "scene": null,
+                  "taps_in_scene": 0,
+                  "days_since_last": 9999,
+                  "threshold_days": 30,
+                  "triggered": 1,
+                  "suggested_disposition": "replace"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "water",
+                  "label": "water",
+                  "case_kind": "preference",
+                  "scene": "free_play",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "water",
+                  "label": "water",
+                  "case_kind": "preference",
+                  "scene": "therapy",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "biscuit",
+                  "label": "biscuit",
+                  "case_kind": "preference",
+                  "scene": "therapy",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "milkshake",
+                  "label": "milkshake",
+                  "case_kind": "preference",
+                  "scene": "classroom",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "milkshake",
+                  "label": "milkshake",
+                  "case_kind": "preference",
+                  "scene": "free_play",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "milkshake",
+                  "label": "milkshake",
+                  "case_kind": "preference",
+                  "scene": "home",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "milkshake",
+                  "label": "milkshake",
+                  "case_kind": "preference",
+                  "scene": "therapy",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "snack",
+                  "label": "snack",
+                  "case_kind": "preference",
+                  "scene": "therapy",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "cookie",
+                  "label": "cookie",
+                  "case_kind": "preference",
+                  "scene": "classroom",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "cookie",
+                  "label": "cookie",
+                  "case_kind": "preference",
+                  "scene": "free_play",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                },
+                {
+                  "child_id": "sofia_r",
+                  "card_id": "cookie",
+                  "label": "cookie",
+                  "case_kind": "preference",
+                  "scene": "therapy",
+                  "taps_in_scene": 0,
+                  "days_since_last": null,
+                  "threshold_days": 10,
+                  "triggered": 1,
+                  "suggested_disposition": "no_action"
+                }
+              ],
+              "thresholds_applied": {
+                "obsolete_days": 30,
+                "min_scene_activity": 10
+              },
+              "recommended_actions": [
+                "CASE A: propose replacing the card with something currently relevant",
+                "CASE B: no action - record the preference and move on"
+              ],
+              "forbidden_actions": [
+                "retrain_preference",
+                "reintroduce_refused_item",
+                "treat_refusal_as_deficit"
+              ],
+              "safety_note": "Case B must never route to retraining. Drilling a child to request something they have refused teaches them their \"no\" does not count. The refusal is successful communication.",
+              "target_audience": "adult",
+              "action_kind": "informational",
+              "input_metrics": [
+                "zero_activation_days",
+                "card_frequency",
+                "scene_distribution",
+                "repeat_tap_rate",
+                "pragmatic_function_mix"
+              ],
+              "previously_dismissed": null
+            },
+            {
+              "fired_rule_id": "fr_888a090966d145ae",
+              "fired_at": 1786098761396,
+              "classification": null,
+              "insight_id": "I6",
+              "name": "Works in one place, not another",
+              "plain_statement": "A word or a whole communication function appears in therapy and nowhere else.",
+              "triggered": true,
+              "evidence": [
+                {
+                  "child_id": "sofia_r",
+                  "label": "thank you",
+                  "therapy_taps": 23,
+                  "other_taps": 0,
+                  "total_taps": 23,
+                  "scenes": 1,
+                  "child_active_scenes": 5,
+                  "threshold_therapy_taps": 10,
+                  "triggered": 1
+                }
+              ],
+              "thresholds_applied": {
+                "weeks": 2,
+                "therapy_min_count": 10
+              },
+              "recommended_actions": [
+                "Coach the partner in the other setting - the child already has the skill",
+                "Create real reasons to use the word there, rather than practising it",
+                "Model the same word in the new setting before expecting it"
+              ],
+              "forbidden_actions": [
+                "test_generalisation",
+                "demand_transfer",
+                "drill_in_therapy"
+              ],
+              "safety_note": "The intervention targets the adults in the other setting, never the child. A skill that has not generalised is an opportunity that has not been offered.",
+              "target_audience": "adult",
+              "action_kind": "intervention",
+              "input_metrics": [
+                "scene_distribution",
+                "card_frequency",
+                "pragmatic_function_mix",
+                "teacher_modeling"
+              ],
+              "previously_dismissed": null
+            },
+            {
+              "fired_rule_id": "fr_372d9597c41b43b3",
+              "fired_at": 1786098761396,
+              "classification": null,
+              "insight_id": "I7",
+              "name": "The adult has stopped modelling",
+              "plain_statement": "The child's progress in a vocabulary area is falling while nobody has been demonstrating those words.",
+              "triggered": true,
+              "evidence": [
+                {
+                  "child_id": "sofia_r",
+                  "modeling_per_day_recent": 1,
+                  "modeling_per_day_prior": 1,
+                  "new_words_recent": 0,
+                  "new_words_prior": 0.7272097326557132,
+                  "days_with_any_modeling": 20,
+                  "threshold_modeling_per_day": 3,
+                  "triggered": 1,
+                  "modeling_mode_never_used": 0
+                }
+              ],
+              "thresholds_applied": {
+                "weeks": 2,
+                "modeling_threshold": 3
+              },
+              "recommended_actions": [
+                "Increase aided language input in that domain",
+                "Model without expectation - no requirement for the child to respond",
+                "Any modelling is better than none; model throughout the day, not only in sessions"
+              ],
+              "forbidden_actions": [
+                "blame_the_child",
+                "demand_output",
+                "test_the_child"
+              ],
+              "safety_note": "The only insight aimed squarely at a grown-up, and the one most likely to be resisted. Present evidence, never a verdict. Check whether Modeling Mode was simply left switched off before concluding no modelling happened.",
+              "target_audience": "adult",
+              "action_kind": "intervention",
+              "input_metrics": [
+                "teacher_modeling",
+                "card_frequency",
+                "new_words",
+                "pragmatic_function_mix"
+              ],
+              "previously_dismissed": null
+            }
+          ],
+          "not_triggered": [
+            {
+              "insight_id": "I1",
+              "name": "Unintended presses: physical or conceptual?",
+              "triggered": false
+            },
+            {
+              "insight_id": "I2",
+              "name": "Slow to start, or not given time?",
+              "triggered": false
+            },
+            {
+              "insight_id": "I3",
+              "name": "A much-used word is buried",
+              "triggered": false
+            },
+            {
+              "insight_id": "I5",
+              "name": "Words known, not yet combined",
+              "triggered": false
+            },
+            {
+              "insight_id": "I8",
+              "name": "Our own change broke something",
+              "triggered": false
+            }
+          ],
+          "triggered_count": 3,
+          "note": "Thresholds are given to you, not applied for you. A rule that fired just over its threshold deserves hedging, not a confident diagnosis."
+        },
+        "meta": {
+          "child_id": "sofia_r",
+          "window": {
+            "start": "2026-07-25",
+            "end": "2026-08-07",
+            "days": 14
+          },
+          "row_count": 8,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        },
+        "dictionary": {
+          "card_frequency": {
+            "metric_id": "card_frequency",
+            "name": "Her go-to words",
+            "group_code": "C",
+            "plain_explanation": "Which cards the child actually uses, ranked.",
+            "formula": "count(card_tap) grouped by card_id / label, over the window, child actor only",
+            "unit": "count",
+            "polarity": "neutral",
+            "tier": "P0",
+            "min_n": 20,
+            "caveat": "Read forwards for go-to vocabulary and backwards for dead weight. Beware survivorship: a card can be low-frequency because it is hard to reach (check nav_depth_by_card and cell_heat) rather than because the child does not want it."
+          },
+          "new_words": {
+            "metric_id": "new_words",
+            "name": "New words",
+            "group_code": "C",
+            "plain_explanation": "Cards used for the very first time during this window.",
+            "formula": "labels whose earliest ever card_tap falls inside the window",
+            "unit": "count",
+            "polarity": "higher_better",
+            "tier": "P0",
+            "min_n": 1,
+            "caveat": "Also a feedback loop on the adults' own work: when someone adds five cards, this shows whether any were ever used. A zero here after a batch of additions means the additions missed."
+          },
+          "pragmatic_function_mix": {
+            "metric_id": "pragmatic_function_mix",
+            "name": "What language is used for",
+            "group_code": "E",
+            "plain_explanation": "The balance across the eight reasons people communicate.",
+            "formula": "count(utterances) grouped by function: request, protest, comment, direct, ask_question, give_opinion, share_news, start_conversation",
+            "unit": "ratio",
+            "polarity": "neutral",
+            "tier": "P1",
+            "min_n": 20,
+            "caveat": "The single most-cited roadblock in AAC practice is that the system gets used for requesting and nothing else. Most AAC users sit near 90% requesting. Growth looks like commenting, protesting and questioning APPEARING - not like requesting decreasing. Frame any imbalance as a goal to set, never as a failure to report."
+          },
+          "repeat_tap_rate": {
+            "metric_id": "repeat_tap_rate",
+            "name": "Repeated pressing",
+            "group_code": "H",
+            "plain_explanation": "How often the child presses the same button several times in a row.",
+            "formula": "count(runs of >= 3 consecutive card_tap on the same card_id with NO delete) / count(utterances)",
+            "unit": "count",
+            "polarity": "neutral",
+            "tier": "P0",
+            "min_n": 10,
+            "caveat": "THIS IS NOT AN ERROR AND MUST NEVER BE STYLED AS ONE. Repetition has four normal causes: communicating something there is no word for, learning where a button is (repetition is how motor automaticity forms), language development including gestalt processing, and stimming for self-regulation. Trying to reduce repetition reduces overall communication. If repetition is high in a scene where vocabulary coverage is thin, treat it as a VOCABULARY GAP signal - the child may be reaching for a word that does not exist."
+          },
+          "scene_distribution": {
+            "metric_id": "scene_distribution",
+            "name": "Scene distribution",
+            "group_code": "D",
+            "plain_explanation": "Where the child communicates, and where they go quiet.",
+            "formula": "count(utterances) grouped by scene; also per-label and per-function breakdowns",
+            "unit": "count",
+            "polarity": "neutral",
+            "tier": "P1",
+            "min_n": 20,
+            "caveat": "Uneven distribution is expected - a child talks more in class than in a car. What matters is a word or function that appears in ONE scene and nowhere else, which points at a skill bound to the setting it was taught in."
+          },
+          "teacher_modeling": {
+            "metric_id": "teacher_modeling",
+            "name": "Adult demonstrating",
+            "group_code": "E",
+            "plain_explanation": "How often the grown-up demonstrates on the device (aided language input).",
+            "formula": "count(card_tap where actor = adult) per day, optionally grouped by card category",
+            "unit": "count",
+            "polarity": "higher_better",
+            "tier": "P1",
+            "min_n": 1,
+            "caveat": "The only signal in the system about the adult, and among the strongest predictors of AAC progress. Requires Modeling Mode to be switched on, so a zero may mean \"did not model\" OR \"modelled without switching the mode on\" - check before concluding. Model without expectation: this metric must never be used to argue the child should have responded."
+          },
+          "zero_activation_days": {
+            "metric_id": "zero_activation_days",
+            "name": "Days at zero",
+            "group_code": "C",
+            "plain_explanation": "How long a card has gone unused, and in which situations.",
+            "formula": "per card: consecutive days with zero taps, plus the distinct scenes it has ever been used in",
+            "unit": "days",
+            "polarity": "neutral",
+            "tier": "P0",
+            "min_n": 1,
+            "caveat": "Neutral, not bad. Zero everywhere for 30 days suggests the card is obsolete. Zero in ONE scene while the child is otherwise active there may simply mean they do not want that thing - a preference, not a gap. Never route a preference to retraining."
+          }
+        },
+        "guidance": [
+          {
+            "level": "info",
+            "code": "PARTIAL_WINDOW",
+            "detail": "2026-08-07 may be incomplete."
+          }
+        ],
+        "forbidden_actions": [
+          "retrain_preference",
+          "reintroduce_refused_item",
+          "treat_refusal_as_deficit",
+          "test_generalisation",
+          "demand_transfer",
+          "drill_in_therapy",
+          "blame_the_child",
+          "demand_output",
+          "test_the_child"
+        ]
+      }
+    },
+    "get_attention_queue": {
+      "request": {
+        "class_id": "class_y3"
+      },
+      "response": {
+        "data": {
+          "queue": [
+            {
+              "child_id": "jonah_k",
+              "display_name": "Jonah K.",
+              "score": 4,
+              "reasons": [
+                {
+                  "code": "SILENCE",
+                  "detail": "4 days since they last said anything",
+                  "metric_id": "silence_streak",
+                  "value": 4
+                },
+                {
+                  "code": "OPEN_INSIGHT",
+                  "detail": "1 open finding(s): I2",
+                  "metric_id": "",
+                  "value": 1
+                }
+              ],
+              "open_rules": [
+                "I2",
+                "I4"
+              ]
+            },
+            {
+              "child_id": "maya_t",
+              "display_name": "Maya T.",
+              "score": 3,
+              "reasons": [
+                {
+                  "code": "MISTAPS",
+                  "detail": "14% unintended presses — check reach before anything else",
+                  "metric_id": "mistap_rate",
+                  "value": 0.136
+                },
+                {
+                  "code": "OPEN_INSIGHT",
+                  "detail": "2 open finding(s): I1, I3",
+                  "metric_id": "",
+                  "value": 2
+                }
+              ],
+              "open_rules": [
+                "I1",
+                "I3",
+                "I4",
+                "I8"
+              ]
+            },
+            {
+              "child_id": "liam_w",
+              "display_name": "Liam W.",
+              "score": 1,
+              "reasons": [
+                {
+                  "code": "OPEN_INSIGHT",
+                  "detail": "1 open finding(s): I5",
+                  "metric_id": "",
+                  "value": 1
+                }
+              ],
+              "open_rules": [
+                "I4",
+                "I5"
+              ]
+            },
+            {
+              "child_id": "sofia_r",
+              "display_name": "Sofia R.",
+              "score": 1,
+              "reasons": [
+                {
+                  "code": "OPEN_INSIGHT",
+                  "detail": "2 open finding(s): I6, I7",
+                  "metric_id": "",
+                  "value": 2
+                }
+              ],
+              "open_rules": [
+                "I4",
+                "I6",
+                "I7"
+              ]
+            }
+          ],
+          "note": "Ranked by who needs a human today, not by who has the worst numbers."
+        },
+        "meta": {
+          "child_id": null,
+          "window": {
+            "start": "2026-08-01",
+            "end": "2026-08-07",
+            "days": 7
+          },
+          "row_count": 4,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        }
+      }
+    },
+    "query": {
+      "request": {
+        "sql": "SELECT scene, COUNT(*) AS utterances FROM utterances WHERE child_id = 'sofia_r' AND spoken = 1 GROUP BY scene ORDER BY utterances DESC"
+      },
+      "response": {
+        "data": {
+          "rows": [
+            {
+              "scene": "home",
+              "utterances": 348
+            },
+            {
+              "scene": "classroom",
+              "utterances": 248
+            },
+            {
+              "scene": "free_play",
+              "utterances": 166
+            },
+            {
+              "scene": "therapy",
+              "utterances": 76
+            },
+            {
+              "scene": "community",
+              "utterances": 22
+            }
+          ],
+          "sql_executed": "SELECT scene, COUNT(*) AS utterances FROM utterances WHERE child_id = 'sofia_r' AND spoken = 1 GROUP BY scene ORDER BY utterances DESC LIMIT 201"
+        },
+        "meta": {
+          "child_id": null,
+          "window": {
+            "start": "2026-07-11",
+            "end": "2026-08-07",
+            "days": 28
+          },
+          "row_count": 5,
+          "truncated": false,
+          "data_freshness": {
+            "rollup_through": "2026-08-07",
+            "live_from": "2026-08-07",
+            "is_partial_day": true
+          }
+        }
+      }
+    }
+  }
+}
