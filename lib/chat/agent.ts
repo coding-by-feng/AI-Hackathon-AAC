@@ -7,7 +7,7 @@
  * should not be asked to.
  */
 import { resolveProvider, ProviderError, type ChatMessage, type ToolCall } from './provider'
-import { invokeTool, toolsForScope, type ChatScope, type ToolInvocation } from './tools'
+import { invokeTool, metricNamesBlock, toolsForScope, type ChatScope, type ToolInvocation } from './tools'
 import { checkForbidden, correctionPrompt, explainForbidden } from './guard'
 
 // Matches what an MCP-connected desktop agent (Claude Code, ChatGPT) gets in
@@ -105,9 +105,18 @@ unavoidable, anchor it to today.`,
     '',
     CLINICAL_RULES,
     '',
+    `METRIC NAMES — how each metric is written for a reader. Machine ids are for TOOL
+CALLS ONLY; a raw snake_case id in an answer is a defect.
+${metricNamesBlock()}`,
+    '',
     `HOW TO ANSWER
 - Call tools before answering. Never state a number you did not retrieve.
 - Cite dates and values inline. "5.8% before 30 July, 14.3% after" beats "worse lately".
+- Plain names, never ids: write "Where corrections land", not correction_adjacent_rate.
+  In a table or list where exactness matters, the id may follow the name in
+  parentheses — never the other way round, and never an id alone.
+- If a question uses vague words ("speed", "progress", "errors"), silently map them to
+  the named metrics above and answer with those — no extra questions, no jargon back.
 - If no rule fired and the numbers are unremarkable, say so. Inventing a concern is worse
   than a boring answer.
 - If a tool returns an error, read it and try a corrected call.

@@ -198,6 +198,21 @@ function cells(row: string): string[] {
 const INLINE =
   /(`[^`\n]+`)|(\*\*[^*\n]+\*\*)|(\*[^*\n]+\*)|(\b_[^_\n]+_\b)|(\[[^\]\n]+\]\(https?:\/\/[^\s)]+\))/g
 
+/**
+ * A code span that is a snake_case machine id ("taps_per_utterance").
+ *
+ * The system prompt tells the model to write human names, but a display layer
+ * that depends on obedience is not a display layer. When one slips through,
+ * render the words a person would say — "taps per utterance" — and keep the
+ * raw id in the tooltip for anyone who needs the exact term.
+ */
+const SNAKE_ID = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/
+
+function humanizeId(id: string): string {
+  const words = id.replace(/_/g, ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 function inline(text: string): ReactNode {
   const out: ReactNode[] = []
   let last = 0
@@ -207,14 +222,23 @@ function inline(text: string): ReactNode {
     if (idx > last) out.push(<Fragment key={key++}>{text.slice(last, idx)}</Fragment>)
     const tok = m[0]
     if (m[1]) {
-      out.push(
-        <code
-          key={key++}
-          className="rounded bg-[var(--color-surface-sunk)] px-1 py-0.5 font-mono text-[0.85em]"
-        >
-          {tok.slice(1, -1)}
-        </code>,
-      )
+      const body = tok.slice(1, -1)
+      if (SNAKE_ID.test(body)) {
+        out.push(
+          <span key={key++} title={body} className="underline decoration-dotted decoration-[var(--color-ink-faint)] underline-offset-2">
+            {humanizeId(body)}
+          </span>,
+        )
+      } else {
+        out.push(
+          <code
+            key={key++}
+            className="rounded bg-[var(--color-surface-sunk)] px-1 py-0.5 font-mono text-[0.85em]"
+          >
+            {body}
+          </code>,
+        )
+      }
     } else if (m[2]) {
       out.push(<strong key={key++}>{inline(tok.slice(2, -2))}</strong>)
     } else if (m[3] || m[4]) {

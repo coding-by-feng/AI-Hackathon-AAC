@@ -274,6 +274,28 @@ export function invokeTool(
   }
 }
 
+/**
+ * id -> human name for every shown metric, for the system prompt.
+ *
+ * The model reads metric_id in every tool-result row and, left alone, echoes
+ * it to teachers ("her correction_adjacent_rate is…"). The catalogue already
+ * names each metric in plain words; giving the model that table up front is
+ * what lets the writing rule "never show a raw id" actually be followable.
+ */
+const metricNameCache = new WeakMap<Db, string>()
+
+export function metricNamesBlock(): string {
+  const handle = db()
+  const hit = metricNameCache.get(handle)
+  if (hit) return hit
+  const rows = handle.all(
+    `SELECT metric_id, name FROM metrics_catalog WHERE status = 'shown' ORDER BY metric_id`,
+  ) as { metric_id: string; name: string }[]
+  const block = rows.map((r) => `${r.metric_id} = "${r.name}"`).join('\n')
+  metricNameCache.set(handle, block)
+  return block
+}
+
 /** Read an MCP resource by uri — used to seed the system prompt. */
 export function readCatalogueSummary(): string {
   const rows = db().all(
