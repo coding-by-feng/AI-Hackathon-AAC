@@ -1,5 +1,9 @@
 # Metric Views
 
+> **Calculation-correctness pass (2026-08-08).** Three view fixes landed after independent recomputation on a 180-day cohort: `v_mistaps` now joins the next TAP (not the next event) as the correction's replacement; `v_m_repeat_tap_rate` uses a type-aware lag chain so a delete neither breaks a run it sits outside of nor extends one backwards; `v_daily_metrics_all` feeds `new_words` from `v_new_words_count` (a count, per the catalogue) while `v_m_new_words` (a proportion) remains for rule I6. Full audit trail:
+> [`docs/feature-verification.md`](../../feature-verification.md) §"Metric-calculation pass".
+
+
 ## Function
 Defines 41 SQL views that compute every metric from `events`, `utterances` and `partner_turns` — 24 scalar `v_m_<slug>` views keyed on `(child_id, day_local)` returning `value, n`, and 17 dimensional views (per card, per cell, per pair, per scene) — plus `v_daily_metrics_all`, the UNION that `tools/rollup.py` inserts straight into `agg_daily_metric`.
 

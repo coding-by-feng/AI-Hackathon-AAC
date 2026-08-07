@@ -1,5 +1,16 @@
 # Student Overview & AI Impact
 
+> **Partially stale (2026-08-08).** The Overview was rebuilt in the dark-report redesign:
+> it now renders `lib/report.ts` metrics through `MetricCard` sections (Effort & speed /
+> Errors & reach / Vocabulary / Layout & voice), a **Findings** section that mounts
+> `InsightList` (`openInsights(id).map(toCardData)` — the only mount point of the insight
+> cards, added by the 2026-08-08 verification pass after discovering they had never been
+> wired to any page), the frozen-report block, and a docked Ask panel. `KpiTile`,
+> `BaselineBanner` and the trend panels described below no longer appear on this page.
+> The clinical constraints in this doc still bind — they moved surfaces, not meaning
+> (neutral polarity enforcement now lives in `MetricCard` via `catalog.direction()`).
+> See [dashboard-redesign.md](dashboard-redesign.md) for the shipped layout.
+
 ## Function
 The two per-child metric tabs: **Overview** (`/dashboard/student/[id]`) with four KPI tiles, a words-per-minute caption, the open-findings list and three trend panels; and **AI impact** (`/dashboard/student/[id]/ai-impact`) which argues the product claim in one number — presses the child did not have to make. Both are driven by `KpiTile`/`lib/metrics` readers rather than by hardcoded numbers.
 

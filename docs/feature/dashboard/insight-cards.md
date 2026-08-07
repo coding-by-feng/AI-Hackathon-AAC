@@ -131,7 +131,14 @@ Renders `EmptyState tone="good"` titled **"Nothing needs your attention here"** 
 - [Database schema](../database/schema.md) — `fired_rules` (`dismissed_at`, `dismissed_by`, `dismiss_reason`, `superseded_by`), `insights` (narration), `insights_catalog` (`forbidden_actions`, `target_audience`, `action_kind`, `safety_note`)
 
 ### Depended On By
-- [Student overview & AI impact](student-overview.md) — the only page that renders `InsightList` today
+- [Student overview & AI impact](student-overview.md) — the student page's "Findings" section
+  (`app/dashboard/student/[id]/page.tsx`) is the only mount point, via
+  `openInsights(id).map(toCardData)` (`lib/insights.ts`). **History worth keeping:** from the
+  initial commit until 2026-08-08, `InsightList` was imported by *no page at all* — the two
+  clinical invariants this card enforces (informational ⇒ no action button; forbidden actions
+  displayed) existed only in unreachable code. The 2026-08-08 verification pass caught it and
+  wired the section; if a redesign ever drops the mount again, that is a clinical regression,
+  not a styling choice.
 - [Attention queue](attention-queue.md) — the `INSIGHT` score term counts exactly the rows this card can dismiss, so a dismissal drops a child's priority by 1
 - [MCP tool surface](../mcp/tool-surface.md) — `get_fired_rules` returns `previously_dismissed` built from the same columns; `get_insight_history` reads the reasons written here
 

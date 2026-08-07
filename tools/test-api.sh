@@ -14,7 +14,12 @@ R=$(curl -s -X POST $BASE/api/visuals -H 'content-type: application/json' -d '{"
 eq E2 "$(echo "$R"|python3 -c 'import sys,json;print(json.load(sys.stdin).get("resolvedBy"))')" "icon_pack" "case-insensitive"
 R=$(curl -s --max-time 90 -X POST $BASE/api/visuals -H 'content-type: application/json' -d '{"concept":"chocolate milkshake","childId":"maya_t"}')
 if echo "$R" | grep -q "credit\|quota\|API key"; then bl E3 "generation — OpenAI account has no credits"; bl E4 "cache reuse — depends on E3"; bl E5 "semantic match — depends on E3";
-else eq E3 "$(echo "$R"|python3 -c 'import sys,json;print(json.load(sys.stdin).get("resolvedBy"))')" "generated" "new concept generated"; fi
+else
+  RB=$(echo "$R"|python3 -c 'import sys,json;print(json.load(sys.stdin).get("resolvedBy"))')
+  # First run generates; every later run must hit the cache — both prove the
+  # paid step works, and re-generating on each test run would spend real money.
+  case "$RB" in generated|hash_cache|semantic) ok E3 "resolved via $RB";; *) no E3 "unexpected: $RB";; esac
+fi
 N=$(sqlite3 aac.db "SELECT count(*) FROM events WHERE type='gap_detected';")
 [ "$N" -gt 0 ] && ok E6 "gap_detected logged ($N rows)" || no E6 "no gap_detected events"
 #--- F, J, K, L
@@ -28,15 +33,19 @@ eq F4 "$(curl -s -b /tmp/t.jar $BASE/ | grep -c 'Jonah')" "$(curl -s -b /tmp/t.j
 [ "$(curl -s -b /tmp/t.jar $BASE/ | grep -c 'Jonah')" -gt 0 ] && ok F4 "board loads the signed-in child" || no F4 "wrong child"
 
 echo; echo "J. Event integrity"
-R=$(curl -s -X POST $BASE/api/events -H 'content-type: application/json' -d '{"events":[{"event_id":"j1","child_id":"maya_t","ts":1786100000000,"day_local":"2026-08-07","tz_offset_min":720,"session_id":"t","scene":"classroom","actor":"child","type":"card_tap","source":"board","label":"x"}]}')
+# Per-run ids: a fixed event_id only passes if the previous run's cleanup
+# succeeded, and that DELETE can silently lose to SQLITE_BUSY under WAL —
+# which made J2 a flake that failed exactly once after any interrupted run.
+EID="j$(date +%s)"
+R=$(curl -s -X POST $BASE/api/events -H 'content-type: application/json' -d '{"events":[{"event_id":"'$EID'a","child_id":"maya_t","ts":1786100000000,"day_local":"2026-08-07","tz_offset_min":720,"session_id":"t","scene":"classroom","actor":"child","type":"card_tap","source":"board","label":"x"}]}')
 echo "$R" | grep -q "requires grid_row" && ok J1 "grid tap without coordinates rejected" || no J1 "accepted a tap with no coordinates"
-R=$(curl -s -X POST $BASE/api/events -H 'content-type: application/json' -d '{"events":[{"event_id":"j2","child_id":"maya_t","ts":1786100000001,"day_local":"2026-08-07","tz_offset_min":720,"session_id":"t","scene":"classroom","actor":"child","type":"card_tap","source":"search","nav_depth":1,"label":"angry"}]}')
+R=$(curl -s -X POST $BASE/api/events -H 'content-type: application/json' -d '{"events":[{"event_id":"'$EID'b","child_id":"maya_t","ts":1786100000001,"day_local":"2026-08-07","tz_offset_min":720,"session_id":"t","scene":"classroom","actor":"child","type":"card_tap","source":"search","nav_depth":1,"label":"angry"}]}')
 eq J2 "$(echo "$R"|python3 -c 'import sys,json;print(json.load(sys.stdin).get("accepted"))')" "1" "folder tap accepted without coordinates"
-R=$(curl -s -X POST $BASE/api/events -H 'content-type: application/json' -d '{"events":[{"event_id":"j2","child_id":"maya_t","ts":1786100000001,"day_local":"2026-08-07","tz_offset_min":720,"session_id":"t","scene":"classroom","actor":"child","type":"card_tap","source":"search","nav_depth":1,"label":"angry"}]}')
+R=$(curl -s -X POST $BASE/api/events -H 'content-type: application/json' -d '{"events":[{"event_id":"'$EID'b","child_id":"maya_t","ts":1786100000001,"day_local":"2026-08-07","tz_offset_min":720,"session_id":"t","scene":"classroom","actor":"child","type":"card_tap","source":"search","nav_depth":1,"label":"angry"}]}')
 eq J3 "$(echo "$R"|python3 -c 'import sys,json;print(json.load(sys.stdin).get("duplicates"))')" "1" "replay is idempotent"
 R=$(curl -s -X POST $BASE/api/events -H 'content-type: application/json' -d '{"events":[{"event_id":"j4","child_id":"maya_t","ts":1,"day_local":"2026-08-07","tz_offset_min":720,"session_id":"t","scene":"moon","actor":"child","type":"speak"}]}')
 echo "$R" | grep -q "unknown scene" && ok J4 "unknown scene rejected by name" || no J4 "accepted an invalid scene"
-sqlite3 aac.db "DELETE FROM events WHERE session_id='t';"
+sqlite3 -cmd ".timeout 3000" aac.db "DELETE FROM events WHERE session_id='t';"
 
 echo; echo "L. MCP"
 TOKEN=$(grep AAC_MCP_TOKEN .env.local | cut -d= -f2)
@@ -60,6 +69,18 @@ echo "$R" | grep -qi "not deleted\|cannot be deleted" && ok C7 "built-in categor
 echo; echo "G. Dashboard login"
 eq G1 "$(curl -s -o /dev/null -w '%{http_code}' $BASE/dashboard)" "307" "no session redirects to login"
 eq G7 "$(curl -s -o /dev/null -w '%{http_code}' $BASE/dashboard/student/maya_t)" "307" "student page requires a session"
+
+echo; echo "H. Child session switch"
+# ?child= must never render in-page (cookie writes are illegal in a Server
+# Component — this exact path 500'd in production once). It bounces through
+# the switch route, which owns the cookie write.
+eq H1 "$(curl -s -o /dev/null -w '%{redirect_url}' "$BASE/?child=maya_t")" \
+  "$BASE/api/session/switch?child=maya_t" "board hands ?child= to the switch route"
+R=$(curl -s -D - -o /dev/null "$BASE/api/session/switch?child=maya_t" | tr -d '\r')
+echo "$R" | grep -qi '^set-cookie: aac_child=' && ok H2 "switch sets the child cookie" || no H2 "no aac_child cookie set"
+echo "$R" | grep -qi '^location: .*/$' && ok H3 "switch lands on the board" || no H3 "unexpected redirect: $(echo "$R" | grep -i '^location:')"
+R=$(curl -s -D - -o /dev/null "$BASE/api/session/switch?child=not_a_child" | tr -d '\r')
+echo "$R" | grep -qi '^set-cookie:' && no H4 "unknown child must not set a cookie" || ok H4 "unknown child sets no cookie"
 
 echo
 printf "  \033[32m%d passed\033[0m  \033[31m%d failed\033[0m  \033[33m%d blocked\033[0m\n" $PASS $FAIL $BLOCK

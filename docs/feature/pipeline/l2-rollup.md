@@ -1,5 +1,9 @@
 # L2 Rollup
 
+> **Calculation-correctness pass (2026-08-08).** `rollup_daily_metrics` no longer NULLs values below min_n at write time — that destroyed window aggregates for sparse metrics (correction_adjacent_rate read 0.15 from 53 samples when 170 said 0.51). The store keeps value+n for every day; each reader suppresses at its own grain, and `verify.py` now gates on 'every stored value carries the n a reader gates on'. Full audit trail:
+> [`docs/feature-verification.md`](../../feature-verification.md) §"Metric-calculation pass".
+
+
 ## Function
 `tools/rollup.py` materialises the four L2 aggregate tables — `agg_daily_metric`, `agg_card_stats`, `agg_cell_heat`, `agg_word_pairs` — from the metric views, applying `min_n` suppression at write time, then runs `ANALYZE`.
 

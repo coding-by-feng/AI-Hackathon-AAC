@@ -105,6 +105,16 @@ Note there is no authorisation on either verb: any caller reaching the kid hostn
 child in, or write a `session_end` for any `child` id. That is consistent with the stated scope
 — attribution, not access control — but it means the `session_end` stream is forgeable.
 
+### `GET /api/session/switch?child=<id>` — set the session from a link
+
+`app/api/session/switch/route.ts`. Validates the id against `childProfile()`, calls
+`setCurrentChild()`, and 307s to `/`. Exists because the board page used to write the
+cookie in its own render when `?child=` was present — legal under `next dev`, but a
+production build throws (`Cookies can only be modified in a Server Action or Route
+Handler`), so every `?child=` link answered 500. The page now redirects here instead;
+this route is the only place a `?child=` link touches the cookie. Same trust model as
+`POST /api/session`: attribution, not access control.
+
 ### `today()` (`app/api/session/route.ts`)
 
 ```ts

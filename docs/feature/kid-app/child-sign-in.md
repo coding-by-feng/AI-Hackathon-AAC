@@ -84,7 +84,7 @@ The board header's signed-in chip calls `DELETE /api/session?child=<id>` and the
 - `aac_app.db` — the app-owned SQLite file that also holds card overrides and categories.
 
 ### Depended On By
-- [Communication Board](communication-board.md) — `/` reads `currentChildId()` and redirects here when it is missing; `?child=` sets the session and redirects.
+- [Communication Board](communication-board.md) — `/` reads `currentChildId()` and redirects here when it is missing; `?child=` redirects through `GET /api/session/switch`, which sets the session cookie and lands back on `/`. The write lives in a Route Handler because a Server Component may not modify cookies — doing it in the page render 500'd every `?child=` link in production.
 - ../dashboard/attention-queue.md — every per-child figure is only correct if attribution here is correct.
 - [Event Logging](event-logging.md) — the `child_id` on every logged event comes from this cookie via the server-rendered `BoardData`.
 

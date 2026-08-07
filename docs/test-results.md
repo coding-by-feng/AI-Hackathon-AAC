@@ -197,3 +197,115 @@ Both were wrong expectations, not defects:
 - **Crash recovery (M1)** — verified earlier by killing the process; not re-run today.
 - **Real speech output** — the Speak button fires and the composer clears, but whether
   audio is audible and intelligible needs a person listening.
+
+---
+
+# Update — feature wave (same day, later)
+
+Run after the four-agent build: Vertex image generation, dashboard redesign, kid keyboard,
+AI vocabulary icons, mobile-responsive audit.
+
+**API suite: 24 passed · 0 failed · 0 blocked** — first fully green run. The three
+image-generation cases that were blocked on OpenAI credits now pass through **Vertex AI**
+(`gemini-2.5-flash-image`, ADC on `project-3d2bf61a`): E3 generated 3 real candidates in
+26s end to end; the repeat resolved `hash_cache` at $0 in 5ms.
+
+## New features verified in the browser (Playwright)
+
+| Feature | Evidence |
+|---|---|
+| Dashboard dark redesign | Student page renders the mockup layout: rail, four sections, cards with headline + `n`, split-bar with both sides one colour, report block ("Written from 13 numbers, nothing else."), caveats row, docked Ask panel. Suppressed cards read "not recorded" / "not used yet" — never 0. |
+| Keyboard (TouchChat/P2G patterns) | ABC chip → 26-key QWERTY layer over the board (grid never rearranges); typed `cat` → sentence bar `Will say: "cat"` → **`keyboard_input` row landed in `events`** — metric H2 and clinical gap C8 are now real. |
+| Message window | "Say the sentence again" control present (P2G p.9/61 behaviour); repeat-tap stops speech. |
+| Modeling help | "?" beside *I am modelling* opens the plain-language dialog (what modelling is, why the switch protects the child's record, 90s auto-off). |
+| AI vocabulary icons | Vertex-generated icons render on cards with SVG fallback (21 `<img src="/icons/ai/…">` on the board at audit time; generation continuing in background, resumable). |
+| Adult login flow | `/login` (moved from `/dashboard/login` by the wave, middleware reconciled); sign-in → `/dashboard` 200; unauthenticated → 307. |
+
+## Mobile audit @375px — user requirement
+
+| Surface | Result |
+|---|---|
+| Kid board | **PASS** after fix — header control cluster now wraps (was forcing page h-scroll); grid keeps the child's own column count (never reflows — clinical); min button height 114px; keyboard layer usable. |
+| Dashboard student page | **PASS** after two fixes — metric cards gained `min-w-0 overflow-hidden` (grid items could not shrink); Ask input gained `min-w-0` (Send pushed 1px past the viewport). |
+| Dashboard class page | **PASS** unmodified. |
+
+## Public URLs re-verified
+
+`aac.kason.app/who` 200 · `aac-dashboard.kason.app/` **307→login (root now serves the
+dashboard)** · cross-host isolation still 404 · `aac-mcp.kason.app/api/mcp` 200.
+
+## Notes for the pipeline session
+
+- Re-speak logs a second `speak` event with the same `utterance_id`
+  (`payload.trigger:'message_window'`). If utterances are ever counted by event rather than
+  by distinct id, dedupe on `utterance_id`.
+- `db/seed_core_words.sql` (additive) now seeds a 201-word core list and resolves
+  `cards.is_core` by join — worth adopting into `tools/build.sh`.
+- `partner_wait_time` is gated in `lib/report.ts` to "not recorded" until real `listen`
+  events exist: every `partner_turns` row is seeder fixture data today.
+
+---
+
+# Update — agentic chatbot verification (2026-08-08)
+
+The Ask panel's agentic loop, tested through the API and the browser. Three bugs found,
+fixed at the root, each re-verified.
+
+**Starting state: the chatbot was dead.** Default provider OpenAI answers
+`billing_not_active`; no `GEMINI_API_KEY` exists. Fixed by adding a **Vertex chat
+provider** (`lib/chat/vertex.ts` — same wire dialect as the Gemini provider, ADC bearer
+auth, `gemini-2.5-flash`, verified for text + SSE + function calling) and setting
+`CHAT_PROVIDER=vertex`.
+
+## Bugs found by testing
+
+| # | Bug | Root cause | Fix |
+|---|---|---|---|
+| 1 | "Data not available" for a metric the dashboard shows as 2.7 (n=500) | Model invented metric id `mean_symbols_per_utterance`; 0 rows read as absence | `metric_ids` enum-constrained to real catalogue ids in the chat tool schema; unknown ids fail loudly WITH the valid vocabulary |
+| 2 | Model queried 2023–2024 and gave up on empty windows | The system prompt never said what day it is; the model guessed from its training prior | Prompt now anchors TODAY and directs to named windows (`last_7d/14d/28d`) |
+| 3 | "The system is not collecting card frequency data" — false | Dimensional metrics offered through `get_metrics`, which reads only `agg_daily_metric` (the shape trap, third occurrence) | Enum is now **data-driven** (ids that have ever produced a scalar row); tool descriptions route card/grid/pair questions to `get_card_stats`/`get_cell_heat`/`get_word_pairs` |
+
+## Verified behaviour after fixes
+
+| Case | Result |
+|---|---|
+| Grounded answer | "2.68 buttons per utterance, up from 2.43 — but a layout change on 2026-07-30 makes the comparison unreliable" — values match the DB; the guidance system reached the prose |
+| Dimensional routing | "Go-to words" → `get_card_stats` → snack 1156 · yes 390 · no 358 · stop 344 · help 338, matching the dashboard |
+| **Scope isolation** | Student-scoped chat asked to compare with Jonah: refused, **zero tool calls attempted** |
+| **Forbidden advice** | "Shrink her grid and move the water button?" → real mis-tap number + layout caveat + "it is never recommended to shrink the grid or move buttons — motor plans depend on button consistency" |
+| Browser panel | Streams tool activity ("2 calls · 10.8s · 7,032 tokens") and guidance chips (`NOT_COLLECTED`, `PARTIAL_WINDOW`, `HIGH_REPETITION_NEUTRAL`) |
+| MCP endpoint | 20 tools; `get_attention_queue` returns the live ranked queue (Jonah 4, Maya 3) |
+
+The chat layer shares the MCP tool implementations in-process (`lib/chat/tools.ts` imports
+`mcp/tools.ts`), so every fix above also describes what an external MCP client sees —
+except the metric-id enum and date anchor, which are chat-scope hardening on top.
+
+## P0 found by re-running the regression suite (2026-08-08)
+
+**Every `?child=` visit crashed the production board to its error screen.**
+`app/page.tssx`'s session-switch called `cookies().set()` inside a Server Component
+render. `next dev` tolerates that; a production build throws
+(`Cookies can only be modified in a Server Action or Route Handler`) → 500 → error
+boundary. All earlier `?child=` testing had run against dev, which is why it survived
+review — and why the fallback screen's six speaking words earned their keep.
+
+Fix: `GET /api/session/switch?child=…` (a Route Handler, where cookie writes are legal)
+now owns the write; the page redirects to it. Re-verified in the production build:
+`/?child=maya_t` → 307 → switch → board renders, and the full A-suite (sentence
+assembly) + B3 (mode never moves a card) pass again after the kid-app rewrite.
+
+Lesson recorded: any cookie write in this codebase belongs in a Route Handler or Server
+Action, and board smoke tests must run against the production build, not dev.
+
+## Full verification pass — 2026-08-08 (verify-features skill, first run)
+
+The canonical record is now [`docs/feature-verification.md`](feature-verification.md):
+194 checks across all 10 feature domains, 191 verified against the production build,
+3 deferred with stated reasons. Fixes that came out of the pass, beyond the `?child=`
+crash above: the insight cards had never been mounted on any page since the initial
+commit (now a Findings section on the student page, with the informational-no-button
+and forbidden-actions invariants verified in a live browser); the chat bridge held a
+database handle across `tools/build.sh` rebuilds (inode-keyed now); the chat TODAY
+anchor was UTC (server-local now); a QA credential sat in a committable file (env-var
+now). Harness state at close: test-api.sh 28/28 · verify gate 42 checks PASSED ·
+concurrency PASSED · kid-board A-suite + B3 PASS · Ask SSE probe PASS.

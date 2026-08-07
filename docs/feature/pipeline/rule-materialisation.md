@@ -1,5 +1,9 @@
 # Nightly Rule Materialisation
 
+> **Calculation-correctness pass (2026-08-08).** `run_rules.py` is re-run-safe since 2026-08-08: the `superseded_by='pending'` sentinel violated its own foreign key on any non-empty table, so the script had only ever succeeded on the empty table `build.sh` gives it. The supersede chain is now held in Python; a re-run preserves every dismissal (proven: 24 rows, 12 superseded, 0 lost). Full audit trail:
+> [`docs/feature-verification.md`](../../feature-verification.md) §"Metric-calculation pass".
+
+
 ## Function
 `tools/run_rules.py` evaluates the eight diagnostic insight views (`v_i1_*` … `v_i8_*`), writes one `fired_rules` row per `(child, insight)` that triggered, and supersedes the previous run's rows without ever erasing a dismissal.
 

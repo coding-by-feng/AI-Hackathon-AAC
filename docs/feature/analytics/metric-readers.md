@@ -1,5 +1,9 @@
 # Metric Readers
 
+> **Calculation-correctness pass (2026-08-08).** `agg_daily_metric` now stores TRUE daily values; min_n suppression happens in the READERS at their own grain. `readMetric` owns window aggregation (sum / last / weighted-mean over non-null values, window-grain min_n); `report.ts windowValue()` delegates to it; day-grain readers (`weekly`/`monthly`, `abandonmentTrend`, `baseline.ts`) mask days below min_n via a catalogue join. Tally metrics zero-fill when the child was present in the window — zero new words is a finding, not missing data. Full audit trail:
+> [`docs/feature-verification.md`](../../feature-verification.md) §"Metric-calculation pass".
+
+
 ## Function
 The read layer the dashboard renders from: scalar metrics rolled up out of `agg_daily_metric` over a `Window`, plus the dimensional reads (top cards, new words, cell heat, abandonment trend) and the Group F "AI value" reads that go straight to the event log.
 
