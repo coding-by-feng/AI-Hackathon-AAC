@@ -228,7 +228,7 @@ export function AskPanel({
 
       <form
         onSubmit={(e) => { e.preventDefault(); void ask(input) }}
-        className="flex gap-2 border-t border-[var(--color-line)] pt-3"
+        className="flex min-w-0 gap-2 border-t border-[var(--color-line)] pt-3"
       >
         <input
           value={input}
@@ -236,7 +236,7 @@ export function AskPanel({
           disabled={busy}
           maxLength={2000}
           placeholder={childName ? `Ask about ${childName}…` : 'Ask a question…'}
-          className="flex-1 rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)] disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-md border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)] disabled:opacity-60"
         />
         {busy ? (
           <button

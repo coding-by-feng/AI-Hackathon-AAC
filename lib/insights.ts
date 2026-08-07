@@ -14,6 +14,7 @@
 import { all, write } from './db'
 import { insightMeta, type InsightMeta } from './catalog'
 import type { DismissReason } from './dismiss'
+import type { InsightCardData } from '@/components/insight-card'
 
 export type { DismissReason }
 
@@ -151,6 +152,36 @@ export function humanKey(key: string): string {
     .replace(/\bms\b/, '(ms)')
     .replace(/mistap/g, 'mis-tap')
     .replace(/^n /, 'count of ')
+}
+
+/**
+ * Shape a fired rule for the insight card.
+ *
+ * The fallbacks are chosen for safety, not convenience: a firing whose
+ * catalogue row is missing renders as `informational` — no action button —
+ * rather than inviting an intervention nobody specified.
+ */
+export function toCardData(fr: FiredRule): InsightCardData {
+  const split = splitEvidence(fr.evidence[0] ?? {})
+  const fmt = (pairs: [string, unknown][]): [string, string][] =>
+    pairs.map(([k, v]) => [humanKey(k), humanEvidenceValue(k, v)])
+  return {
+    fired_rule_id: fr.fired_rule_id,
+    insight_id: fr.insight_id,
+    name: fr.meta?.name ?? fr.insight_id,
+    plain_statement: fr.meta?.plain_statement ?? '',
+    narration: fr.narration,
+    narrationModel: fr.narrationModel,
+    firedAt: fr.fired_at,
+    window: `${fr.window_start} to ${fr.window_end}`,
+    evidence: { values: fmt(split.values), thresholds: fmt(split.thresholds) },
+    classification: fr.classification,
+    recommended_actions: fr.meta?.recommended_actions ?? [],
+    forbidden_actions: fr.meta?.forbidden_actions ?? [],
+    action_kind: fr.meta?.action_kind ?? 'informational',
+    target_audience: fr.meta?.target_audience ?? 'adult',
+    safety_note: fr.meta?.safety_note ?? null,
+  }
 }
 
 export function humanEvidenceValue(key: string, value: unknown): string {

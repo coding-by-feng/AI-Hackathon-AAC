@@ -4,6 +4,8 @@ import { one, windowOf, type Window } from '@/lib/db'
 import { reportMetrics, plainSummary, type ReportMetric } from '@/lib/report'
 import { listReports } from '@/lib/report-store'
 import { MetricCard, MetricCaveats } from '@/components/metric-card'
+import { InsightList } from '@/components/insight-list'
+import { openInsights, toCardData } from '@/lib/insights'
 import { AskPanel } from '@/components/chat/ask-panel'
 import { DashHeader } from '../../header'
 
@@ -118,6 +120,13 @@ export default async function StudentPage({
     items: metrics.filter((m) => s.groups.includes(m.group)),
   })).filter((s) => s.items.length)
 
+  // The attention queue's OPEN_INSIGHT chips point here — this is where a
+  // firing is actually shown, with its evidence, thresholds and the actions
+  // the catalogue forbids. The card contract carries two clinical invariants
+  // (informational ⇒ no action button; forbidden_actions displayed), so this
+  // list being mounted is itself a safety property, not decoration.
+  const findings = openInsights(id).map(toCardData)
+
   // "Save as PDF" prints the latest frozen report if one exists; otherwise it
   // goes to the report archive where one can be generated. The live numbers on
   // this page are not silently passed off as a frozen artifact.
@@ -144,6 +153,13 @@ export default async function StudentPage({
         subtitle={[child.year_group, child.profile_note].filter(Boolean).join(' · ')}
         period={`Last ${period} days`}
       />
+
+      <section>
+        <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-muted)]">
+          Findings — {findings.length} open
+        </h2>
+        <InsightList items={findings} />
+      </section>
 
       {sections.map((sec) => (
         <section key={sec.title}>

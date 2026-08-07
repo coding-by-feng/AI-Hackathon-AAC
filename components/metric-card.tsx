@@ -22,7 +22,7 @@ export function MetricCard({ m, n }: { m: ReportMetric; n?: number | null }) {
   const suppressed = Boolean(m.suppressed)
 
   return (
-    <article className="flex flex-col rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+    <article className="flex min-w-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
       <h3 className="text-[13px] font-medium leading-snug text-[var(--color-ink-muted)]">
         {m.name}
       </h3>
