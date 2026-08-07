@@ -852,7 +852,7 @@ function CardButton({
         label={card.label}
         symbolKey={card.symbol}
         imageData={card.image_data}
-        size="clamp(40px, 11vh, 112px)"
+        size="clamp(44px, 12vh, 124px)"
       />
       {editing && (
         <span className="absolute top-1 right-1 rounded-full bg-[var(--color-accent)] px-1.5 text-[10px] font-bold text-white">

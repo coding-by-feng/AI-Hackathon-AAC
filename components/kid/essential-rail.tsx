@@ -32,7 +32,7 @@ export function EssentialRail({
             label={card.label}
             symbolKey={card.symbol}
             imageData={card.image_data}
-            size={32}
+            size="clamp(32px, 6.5vh, 68px)"
           />
         </button>
       ))}

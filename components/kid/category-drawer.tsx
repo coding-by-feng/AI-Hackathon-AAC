@@ -74,7 +74,7 @@ export function CategoryDrawer({
                 {isNumeral(w.label) ? (
                   <span className="text-3xl font-bold">{w.label}</span>
                 ) : (
-                  <CardFace label={w.label} size="clamp(36px, 8vh, 88px)" />
+                  <CardFace label={w.label} size="clamp(40px, 9vh, 96px)" />
                 )}
                 {w.onBoard && (
                   <span
