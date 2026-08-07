@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { Pill } from './ui'
 import { DISMISS_LABELS, type DismissReason } from '@/lib/dismiss'
 
@@ -47,8 +47,18 @@ export function InsightCard({
 }) {
   const [open, setOpen] = useState(false)
   const [choosing, setChoosing] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
   const [done, setDone] = useState(false)
   const [pending, start] = useTransition()
+  const detailRef = useRef<HTMLDivElement>(null)
+
+  // "Yes" must always visibly answer the click, even when the numbers were
+  // already open (its old behaviour was setOpen(true) — a no-op in that state).
+  useEffect(() => {
+    if (!confirmed) return
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    detailRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' })
+  }, [confirmed])
 
   if (done) return null
 
@@ -88,7 +98,7 @@ export function InsightCard({
       </div>
 
       {open && (
-        <div className="mx-5 mt-3 rounded-md bg-[var(--color-surface-sunk)] p-4 text-sm">
+        <div ref={detailRef} className="mx-5 mt-3 rounded-md bg-[var(--color-surface-sunk)] p-4 text-sm">
           <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
             {data.evidence.values.map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 border-b border-[var(--color-line)] py-1">
@@ -158,7 +168,9 @@ export function InsightCard({
       <footer className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--color-line)] px-5 py-3">
         {!choosing ? (
           <>
-            <span className="mr-auto text-sm font-medium">Does that match what you see?</span>
+            <span className="mr-auto text-sm font-medium">
+              {confirmed ? 'Noted — the numbers behind it are shown above.' : 'Does that match what you see?'}
+            </span>
             <button
               type="button"
               onClick={() => setChoosing(true)}
@@ -166,13 +178,18 @@ export function InsightCard({
             >
               No, that&apos;s not it
             </button>
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white"
-            >
-              Yes — show me the detail
-            </button>
+            {!confirmed && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(true)
+                  setConfirmed(true)
+                }}
+                className="rounded-md bg-[var(--color-accent)] px-3 py-1.5 text-sm font-medium text-white"
+              >
+                Yes — show me the detail
+              </button>
+            )}
           </>
         ) : (
           <div className="w-full">

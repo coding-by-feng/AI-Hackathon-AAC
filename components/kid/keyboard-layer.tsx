@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { EssentialRail } from './essential-rail'
 import type { BoardCard } from './board-app'
 
@@ -44,6 +44,16 @@ export function KeyboardLayer({
   onEssential: (card: BoardCard) => void
 }) {
   const [buffer, setBuffer] = useState('')
+
+  // This overlay claims aria-modal, so Escape must close it — same keyboard
+  // contract as the modelling-help dialog.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   const commit = (): boolean => {
     const word = buffer.trim()

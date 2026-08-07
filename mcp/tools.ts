@@ -41,7 +41,16 @@ function resolveWindow(db: Db, window = 'last_7d', start?: string, end?: string)
     if (days > 120) throw new McpError('WINDOW_TOO_LARGE', `${days} days requested; maximum is 120.`, true)
     return { start, end, days }
   }
-  const days = WINDOWS[window] ?? 7
+  // Loud rejection, not a silent 7-day fallback: a model that asked for
+  // "28d" and silently received 7 days of numbers would caption them as a
+  // month — the wrong window is worse than no answer.
+  const days = WINDOWS[window]
+  if (days === undefined) {
+    throw new McpError(
+      'SQL_REJECTED',
+      `'${window}' is not a window. Allowed: ${Object.keys(WINDOWS).join(', ')}, custom.`,
+    )
+  }
   const s = db.scalar<string>(`SELECT date(?, '-${days - 1} days')`, [maxDay])!
   return { start: s, end: maxDay, days }
 }
