@@ -10,7 +10,10 @@ import { resolveProvider, ProviderError, type ChatMessage, type ToolCall } from 
 import { invokeTool, toolsForScope, type ChatScope, type ToolInvocation } from './tools'
 import { checkForbidden, correctionPrompt, explainForbidden } from './guard'
 
-const MAX_STEPS = 6
+// Matches what an MCP-connected desktop agent (Claude Code, ChatGPT) gets in
+// practice: enough iterations to explore, compare windows, and self-correct a
+// rejected argument without hitting the ceiling on honest multi-part questions.
+const MAX_STEPS = 8
 
 export type AgentEvent =
   | { type: 'tool_call'; name: string; args: Record<string, unknown> }

@@ -5,8 +5,8 @@
  * Class · Children · Reports · Settings as icon + tiny label.
  *
  * Active state is derived from the pathname — Children lights on student
- * pages, Class on the roster, Reports on the report archive. Settings has no
- * destination yet and says so rather than pretending.
+ * pages, Class on the roster, Reports on the report archive, Settings on the
+ * AI-provider configuration page.
  */
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -71,8 +71,8 @@ const ITEMS: Item[] = [
   {
     key: 'settings',
     label: 'Settings',
-    href: null,
-    active: () => false,
+    href: '/dashboard/settings',
+    active: (p) => p.startsWith('/dashboard/settings'),
     icon: (
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden {...STROKE}>
         <circle cx="12" cy="12" r="3" />

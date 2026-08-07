@@ -9,7 +9,7 @@
  * NEXT_PUBLIC_ var is readable from devtools in seconds.
  */
 
-export type ProviderId = 'openai' | 'gemini' | 'vertex'
+export type ProviderId = 'openai' | 'gemini' | 'vertex' | 'anthropic'
 
 /** A tool as the agent knows it, before translation to a provider dialect. */
 export type ToolDef = {
@@ -28,6 +28,12 @@ export type ToolCall = {
   id: string
   name: string
   args: Record<string, unknown>
+  /**
+   * Gemini 3 attaches an opaque signature to each function call that MUST be
+   * echoed back with the call on the next turn, or the model loses its
+   * reasoning chain. Other providers leave it undefined.
+   */
+  thoughtSignature?: string
 }
 
 /** What a provider streams back. */
@@ -57,30 +63,32 @@ export class ProviderError extends Error {
 }
 
 /**
- * Resolved once per request rather than at module load, so changing the env var
- * in development does not require a restart.
+ * Resolved once per request rather than at module load: the settings page can
+ * switch provider, model, or key between questions with no restart. Resolution
+ * order lives in lib/chat/settings.ts (settings row -> env -> default).
  */
 export async function resolveProvider(): Promise<ChatProvider> {
-  const id = (process.env.CHAT_PROVIDER ?? 'openai') as ProviderId
-  if (id === 'gemini') {
-    const { GeminiProvider } = await import('./gemini')
-    return new GeminiProvider()
+  const { chatConfig } = await import('./settings')
+  const cfg = chatConfig()
+  switch (cfg.provider) {
+    case 'vertex': {
+      // Gemini on Vertex via ADC — no API key involved.
+      const { VertexChatProvider } = await import('./vertex')
+      return new VertexChatProvider(cfg.model)
+    }
+    case 'gemini': {
+      const { GeminiProvider } = await import('./gemini')
+      return new GeminiProvider(cfg.model, cfg.apiKey)
+    }
+    case 'anthropic': {
+      const { AnthropicProvider } = await import('./anthropic')
+      return new AnthropicProvider(cfg.model, cfg.apiKey)
+    }
+    case 'openai': {
+      const { OpenAIProvider } = await import('./openai')
+      return new OpenAIProvider(cfg.model, cfg.apiKey)
+    }
   }
-  if (id === 'vertex') {
-    // Gemini on Vertex via ADC — no API key involved. The only chat path this
-    // machine can currently use: OpenAI answers billing_not_active and no
-    // GEMINI_API_KEY is configured.
-    const { VertexChatProvider } = await import('./vertex')
-    return new VertexChatProvider()
-  }
-  if (id !== 'openai') {
-    throw new ProviderError(
-      `CHAT_PROVIDER must be 'openai', 'gemini' or 'vertex', got '${id}'`,
-      500,
-    )
-  }
-  const { OpenAIProvider } = await import('./openai')
-  return new OpenAIProvider()
 }
 
 export function requireKey(name: string): string {

@@ -3,10 +3,16 @@
  * differences: the endpoint lives under aiplatform.googleapis.com, and auth is
  * an ADC bearer token instead of an API key.
  *
- * This exists because it is the only chat path this machine can actually use:
- * the OpenAI account answers billing_not_active, no GEMINI_API_KEY is
- * configured, and project project-3d2bf61a serves gemini-2.5-flash (verified:
- * text, SSE streaming, and function calling all work).
+ * Model routing (verified against project project-3d2bf61a on 2026-08-08):
+ *   gemini-3-*-preview  -> the GLOBAL endpoint (regional endpoints 404)
+ *   gemini-2.5-flash    -> us-central1
+ * A preview model that 404s falls back to gemini-2.5-flash once, loudly in the
+ * message metadata, so a model rollout change can never take the Ask panel down.
+ *
+ * Gemini 3 additionally streams "thought" parts (internal reasoning summaries,
+ * marked part.thought === true) which must NOT be shown as answer text, and
+ * attaches a thoughtSignature to each functionCall that MUST be echoed back on
+ * the next turn (see toGeminiContents).
  */
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -19,16 +25,28 @@ import { toGeminiContents } from './gemini'
 
 const run = promisify(execFile)
 
+const FALLBACK_MODEL = 'gemini-2.5-flash'
+
 function project(): string {
   const p = process.env.VERTEX_PROJECT ?? process.env.GOOGLE_CLOUD_PROJECT
   if (!p) throw new ProviderError('GOOGLE_CLOUD_PROJECT is not set', 500)
   return p
 }
 
-function location(): string {
+/** Gemini 3 previews serve only from `global`; 2.x from the regional endpoint. */
+function locationFor(model: string): string {
+  if (model.startsWith('gemini-3')) return 'global'
   const loc = process.env.VERTEX_LOCATION ?? process.env.GOOGLE_CLOUD_LOCATION ?? ''
-  // `global` is valid for some Vertex services but 404s for these models.
   return loc && loc !== 'global' ? loc : 'us-central1'
+}
+
+function endpointFor(model: string): string {
+  const loc = locationFor(model)
+  const host = loc === 'global' ? 'aiplatform.googleapis.com' : `${loc}-aiplatform.googleapis.com`
+  return (
+    `https://${host}/v1/projects/${project()}/locations/${loc}` +
+    `/publishers/google/models/${model}:streamGenerateContent?alt=sse`
+  )
 }
 
 /* Tokens last ~an hour; cached with margin so a long stream cannot start on
@@ -50,7 +68,7 @@ export class VertexChatProvider implements ChatProvider {
   readonly id = 'vertex' as const
   readonly model: string
 
-  constructor(model = process.env.CHAT_MODEL ?? 'gemini-2.5-flash') {
+  constructor(model = process.env.CHAT_MODEL ?? FALLBACK_MODEL) {
     this.model = model
   }
 
@@ -61,44 +79,49 @@ export class VertexChatProvider implements ChatProvider {
   ): AsyncGenerator<ProviderChunk> {
     const system = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n\n')
     const contents = toGeminiContents(messages.filter((m) => m.role !== 'system'))
-
-    const loc = location()
-    const url =
-      `https://${loc}-aiplatform.googleapis.com/v1/projects/${project()}` +
-      `/locations/${loc}/publishers/google/models/${this.model}:streamGenerateContent?alt=sse`
-
-    const res = await fetch(url, {
-      method: 'POST',
-      signal,
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${await accessToken()}`,
-      },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: system ? { parts: [{ text: system }] } : undefined,
-        tools: tools.length ? toGeminiTools(tools) : undefined,
-      }),
+    const body = JSON.stringify({
+      contents,
+      systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+      tools: tools.length ? toGeminiTools(tools) : undefined,
     })
+    const headers = {
+      'content-type': 'application/json',
+      authorization: `Bearer ${await accessToken()}`,
+    }
+
+    let res = await fetch(endpointFor(this.model), { method: 'POST', signal, headers, body })
+
+    // A preview model the project stops serving must degrade, not fail: one
+    // retry on the stable model. Only for 404 — anything else is a real error.
+    if (res.status === 404 && this.model !== FALLBACK_MODEL) {
+      res = await fetch(endpointFor(FALLBACK_MODEL), { method: 'POST', signal, headers, body })
+    }
 
     if (!res.ok) {
-      const body = await res.text().catch(() => '')
+      const errBody = await res.text().catch(() => '')
       throw new ProviderError(
-        `Vertex ${res.status}: ${body.slice(0, 300)}`,
+        `Vertex ${res.status}: ${errBody.slice(0, 300)}`,
         res.status,
         res.status === 429 || res.status >= 500,
       )
     }
 
-    // Identical stream shape to the Gemini API — parts with text or a whole
-    // functionCall object per part, usage on the trailing chunks.
     const calls: ToolCall[] = []
     let seq = 0
 
     for await (const raw of sseLines(res)) {
       const evt = raw as {
         usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number }
-        candidates?: { content?: { parts?: { text?: string; functionCall?: { name: string; args?: Record<string, unknown> } }[] } }[]
+        candidates?: {
+          content?: {
+            parts?: {
+              text?: string
+              thought?: boolean
+              thoughtSignature?: string
+              functionCall?: { name: string; args?: Record<string, unknown> }
+            }[]
+          }
+        }[]
       }
       if (evt.usageMetadata) {
         yield {
@@ -108,6 +131,9 @@ export class VertexChatProvider implements ChatProvider {
         }
       }
       for (const part of evt.candidates?.[0]?.content?.parts ?? []) {
+        // Gemini 3 streams reasoning summaries as thought parts. They are not
+        // answer text; leaking them reads like the model talking to itself.
+        if (part.thought) continue
         if (typeof part.text === 'string' && part.text.length) {
           yield { type: 'text', delta: part.text }
         }
@@ -116,6 +142,7 @@ export class VertexChatProvider implements ChatProvider {
             id: `vtx_${seq++}_${part.functionCall.name}`,
             name: part.functionCall.name,
             args: (part.functionCall.args ?? {}) as Record<string, unknown>,
+            thoughtSignature: part.thoughtSignature,
           })
         }
       }

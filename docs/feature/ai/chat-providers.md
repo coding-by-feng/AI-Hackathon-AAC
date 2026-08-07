@@ -118,3 +118,17 @@ Our tool schemas in `mcp/tools.ts` use keywords Gemini rejects outright, so a pa
 - **Changing `sseLines()` buffering** breaks both providers at once — it is the only stream reader.
 - **Switching `CHAT_PROVIDER` to `gemini`** changes tool-call ids from OpenAI-issued to synthesised `gem_*`, and routes every tool schema through `geminiSchema()`; any tool relying on `minimum`/`maxItems` for model guidance loses that hint.
 - **Adding a third provider** requires implementing `ChatProvider`, a branch in `resolveProvider()`, and a dialect in `schema-adapter.ts`; the agent loop itself needs no change.
+
+> **2026-08-08 — multi-provider + settings.** Four providers now resolve through
+> `lib/chat/settings.ts` (settings row in `aac_app.db` → env → default):
+> `vertex` (ADC, default `gemini-3-flash-preview` — Gemini 3 previews serve from
+> the GLOBAL Vertex endpoint, 2.5-flash from us-central1; a preview 404 falls
+> back to `gemini-2.5-flash` once), `gemini` (AI Studio key), `openai`
+> (default `gpt-5.1`), `anthropic` (new adapter, default `claude-sonnet-5`;
+> merges consecutive tool-result turns — the Messages API rejects two user
+> turns in a row). Gemini 3 `thoughtSignature`s are captured per functionCall
+> and echoed back (`ToolCall.thoughtSignature`); thought parts are never
+> streamed as answer text. Keys are configured at `/dashboard/settings`
+> (teacher/SLT/admin; write-only, masked status) or env. `MAX_STEPS` is 8.
+> Every provider runs inside the same scoped tool bridge and forbidden-action
+> guard — switching models changes the writing, never the boundaries.

@@ -27,7 +27,7 @@ Read that file before changing anything in the metrics, insights, or board-layou
 | Database | SQLite in WAL mode. `aac.db` (analytics, pipeline-owned) · `aac_app.db` (app writes: accounts, passcodes, card overrides) |
 | Rules | Plain SQL views. Deliberately not a model — a therapist has to be able to trace a finding to a number |
 | Analysis model | Gemma 3 4B on a separate device, connecting **outbound** as an MCP client |
-| Cloud AI | OpenAI / Gemini / Vertex, server-side only, for live suggestions and card images |
+| Cloud AI | Chat: Vertex Gemini 3 (default) / OpenAI / Anthropic / AI-Studio Gemini, switchable with keys at `/dashboard/settings`; images via Vertex. All server-side only |
 | Pipeline | Python 3 — seed generation, L2 rollup, rule materialisation, verification gate |
 
 ## Commands

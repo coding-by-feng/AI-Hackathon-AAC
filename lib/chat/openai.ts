@@ -6,7 +6,7 @@
  * stream finishes — parsing early gets you a SyntaxError on `{"child_i`.
  */
 import {
-  ProviderError, requireKey, sseLines,
+  ProviderError, sseLines,
   type ChatMessage, type ChatProvider, type ProviderChunk, type ToolCall, type ToolDef,
 } from './provider'
 import { toOpenAITools } from './schema-adapter'
@@ -16,9 +16,17 @@ const ENDPOINT = 'https://api.openai.com/v1/chat/completions'
 export class OpenAIProvider implements ChatProvider {
   readonly id = 'openai' as const
   readonly model: string
+  private readonly apiKey: string
 
-  constructor(model = process.env.CHAT_MODEL ?? 'gpt-5.1') {
+  constructor(model = process.env.CHAT_MODEL ?? 'gpt-5.1', apiKey: string | null = process.env.OPENAI_API_KEY ?? null) {
     this.model = model
+    if (!apiKey) {
+      throw new ProviderError(
+        'No OpenAI API key. Add one in Dashboard → Settings, or set OPENAI_API_KEY on the server.',
+        500,
+      )
+    }
+    this.apiKey = apiKey
   }
 
   async *send(
@@ -31,7 +39,7 @@ export class OpenAIProvider implements ChatProvider {
       signal,
       headers: {
         'content-type': 'application/json',
-        authorization: `Bearer ${requireKey('OPENAI_API_KEY')}`,
+        authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
         model: this.model,

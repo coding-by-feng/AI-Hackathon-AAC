@@ -12,7 +12,7 @@
  *     accumulator here.
  */
 import {
-  ProviderError, requireKey, sseLines,
+  ProviderError, sseLines,
   type ChatMessage, type ChatProvider, type ProviderChunk, type ToolCall, type ToolDef,
 } from './provider'
 import { toGeminiTools } from './schema-adapter'
@@ -22,9 +22,17 @@ const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 export class GeminiProvider implements ChatProvider {
   readonly id = 'gemini' as const
   readonly model: string
+  private readonly apiKey: string
 
-  constructor(model = process.env.CHAT_MODEL ?? 'gemini-2.5-pro') {
+  constructor(model = process.env.CHAT_MODEL ?? 'gemini-2.5-flash', apiKey: string | null = process.env.GEMINI_API_KEY ?? null) {
     this.model = model
+    if (!apiKey) {
+      throw new ProviderError(
+        'No Gemini API key. Add one in Dashboard → Settings, or set GEMINI_API_KEY on the server.',
+        500,
+      )
+    }
+    this.apiKey = apiKey
   }
 
   async *send(
@@ -35,7 +43,7 @@ export class GeminiProvider implements ChatProvider {
     const system = messages.filter((m) => m.role === 'system').map((m) => m.content).join('\n\n')
     const contents = toGeminiContents(messages.filter((m) => m.role !== 'system'))
 
-    const url = `${BASE}/${this.model}:streamGenerateContent?alt=sse&key=${requireKey('GEMINI_API_KEY')}`
+    const url = `${BASE}/${this.model}:streamGenerateContent?alt=sse&key=${this.apiKey}`
     const res = await fetch(url, {
       method: 'POST',
       signal,
@@ -98,7 +106,12 @@ export function toGeminiContents(messages: ChatMessage[]): unknown[] {
       const parts: unknown[] = []
       if (m.content) parts.push({ text: m.content })
       for (const c of m.toolCalls ?? []) {
-        parts.push({ functionCall: { name: c.name, args: c.args } })
+        // Gemini 3 requires its thoughtSignature echoed back alongside the
+        // call it signed; without it the model drops its reasoning chain.
+        parts.push({
+          functionCall: { name: c.name, args: c.args },
+          ...(c.thoughtSignature ? { thoughtSignature: c.thoughtSignature } : {}),
+        })
       }
       if (parts.length) out.push({ role: 'model', parts })
     } else if (m.role === 'tool') {
