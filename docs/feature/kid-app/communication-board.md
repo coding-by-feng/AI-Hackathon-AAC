@@ -161,3 +161,9 @@ Speech-unavailable banner (rendered only once `speechChecked`): *"This browser c
 > padding tighten below `sm:`. Live install currently has **no mode boards** (Snack
 > time removed by request at data level); the mode code path is unchanged and a
 > pipeline rebuild re-seeds them.
+
+> **2026-08-08 (themes):** Three forced themes — black / white / warm — via
+> `data-theme` on `<html>` (`components/theme-toggle.tsx`, tokens in
+> `app/globals.css`), persisted per origin in `localStorage('aac-theme')` and
+> applied pre-paint by an inline script in `app/layout.tsx`. Unset = the old
+> adaptive behaviour. Card pastels are inline styles and untouched by themes.

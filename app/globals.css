@@ -57,6 +57,70 @@ html {
   color-scheme: light dark;
 }
 
+/* ---------------------------------------------------------------------------
+ * Forced themes — set by the theme toggle as `data-theme` on <html> and
+ * persisted in localStorage (`aac-theme`, applied pre-paint in app/layout.tsx).
+ * No attribute = the adaptive behaviour above (OS scheme for the kid surface,
+ * fixed dark for the dashboard). The Fitzgerald card pastels are inline styles
+ * in lib/icons/symbols.tsx and are deliberately untouched by any theme — the
+ * colour code is a learned system.
+ * ------------------------------------------------------------------------- */
+html[data-theme='white'] {
+  --color-ink: #10131a;
+  --color-ink-muted: #545c6b;
+  --color-ink-faint: #8b94a3;
+  --color-surface: #ffffff;
+  --color-surface-sunk: #f4f6f9;
+  --color-line: #dfe3ea;
+  --color-accent: #2f5fd0;
+  --color-accent-soft: #e8eefc;
+  --color-good: #1c7a4a;
+  --color-good-soft: #e3f5eb;
+  --color-warn: #9a5b00;
+  --color-warn-soft: #fdf1de;
+  --color-alert: #b3261e;
+  --color-alert-soft: #fce9e7;
+  --color-neutral: #4a5261;
+  --color-neutral-soft: #eef0f4;
+  color-scheme: light;
+}
+
+html[data-theme='warm'] {
+  --color-ink: #2c2316;
+  --color-ink-muted: #6d5f4b;
+  --color-ink-faint: #9a8b72;
+  --color-surface: #fbf5ea;
+  --color-surface-sunk: #f2e9d8;
+  --color-line: #e3d7bf;
+  --color-accent: #a05a24;
+  --color-accent-soft: #f4e2cd;
+  --color-good: #3f7d4f;
+  --color-good-soft: #e5efdc;
+  --color-warn: #8a5a00;
+  --color-warn-soft: #f5e6c4;
+  --color-alert: #a83a2e;
+  --color-alert-soft: #f7ded7;
+  --color-neutral: #6f6858;
+  --color-neutral-soft: #ece4d3;
+  color-scheme: light;
+}
+
+html[data-theme='black'] {
+  --color-ink: #eef1f6;
+  --color-ink-muted: #a3abb9;
+  --color-ink-faint: #6f7889;
+  --color-surface: #14171e;
+  --color-surface-sunk: #1b1f28;
+  --color-line: #2a2f3a;
+  --color-accent: #7fa4f5;
+  --color-accent-soft: #1c2740;
+  --color-good-soft: #14301f;
+  --color-warn-soft: #322414;
+  --color-alert-soft: #351a17;
+  --color-neutral-soft: #212632;
+  color-scheme: dark;
+}
+
 body {
   background: var(--color-surface-sunk);
   color: var(--color-ink);
@@ -115,4 +179,55 @@ body {
 }
 .dash ::selection {
   background: rgba(91, 141, 239, 0.35);
+}
+
+/* The dashboard follows a forced theme too — `.dash` alone stays the approved
+   dark; white/warm override it with the same token names at higher
+   specificity. `black` needs no block: `.dash` already is black. */
+[data-theme='white'] .dash {
+  --color-ink: #10131a;
+  --color-ink-muted: #545c6b;
+  --color-ink-faint: #8b94a3;
+  --color-surface: #ffffff;
+  --color-surface-sunk: #f4f6f9;
+  --color-line: #dfe3ea;
+  --color-accent: #2f5fd0;
+  --color-accent-soft: #e8eefc;
+  --color-good: #1c7a4a;
+  --color-good-soft: #e3f5eb;
+  --color-warn: #9a5b00;
+  --color-warn-soft: #fdf1de;
+  --color-alert: #b3261e;
+  --color-alert-soft: #fce9e7;
+  --color-neutral: #4a5261;
+  --color-neutral-soft: #eef0f4;
+  background: #f4f6f9;
+  color-scheme: light;
+}
+[data-theme='white'] .dash ::selection {
+  background: rgba(47, 95, 208, 0.25);
+}
+
+[data-theme='warm'] .dash {
+  --color-ink: #2c2316;
+  --color-ink-muted: #6d5f4b;
+  --color-ink-faint: #9a8b72;
+  --color-surface: #fbf5ea;
+  --color-surface-sunk: #f2e9d8;
+  --color-line: #e3d7bf;
+  --color-accent: #a05a24;
+  --color-accent-soft: #f4e2cd;
+  --color-good: #3f7d4f;
+  --color-good-soft: #e5efdc;
+  --color-warn: #8a5a00;
+  --color-warn-soft: #f5e6c4;
+  --color-alert: #a83a2e;
+  --color-alert-soft: #f7ded7;
+  --color-neutral: #6f6858;
+  --color-neutral-soft: #ece4d3;
+  background: #f2e9d8;
+  color-scheme: light;
+}
+[data-theme='warm'] .dash ::selection {
+  background: rgba(160, 90, 36, 0.25);
 }

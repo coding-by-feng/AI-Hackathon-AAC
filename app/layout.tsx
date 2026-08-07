@@ -19,9 +19,17 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
+// Applied before paint so a stored theme never flashes the default first.
+// suppressHydrationWarning on <html>: the server cannot know data-theme.
+const THEME_SCRIPT =
+  "try{var t=localStorage.getItem('aac-theme');if(t==='black'||t==='white'||t==='warm')document.documentElement.dataset.theme=t}catch(e){}"
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         {children}
         <RegisterSW />

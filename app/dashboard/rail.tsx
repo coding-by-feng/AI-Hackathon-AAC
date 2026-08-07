@@ -10,6 +10,7 @@
  */
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 type Item = {
   key: string
@@ -123,6 +124,10 @@ export function Rail() {
           </button>
         )
       })}
+
+      <div className="mt-auto">
+        <ThemeToggle unsetAs="black" />
+      </div>
     </aside>
   )
 }

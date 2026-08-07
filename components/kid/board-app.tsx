@@ -13,6 +13,7 @@ import { CategoryEditor } from './category-editor'
 import { KeyboardLayer } from './keyboard-layer'
 import { ModelingHelp } from './modeling-help'
 import { EssentialRail } from './essential-rail'
+import { ThemeToggle } from '@/components/theme-toggle'
 import type { ChildCategory } from '@/lib/categories/types'
 import type { Category, DrawerWord } from '@/lib/vocabulary/categories'
 
@@ -562,6 +563,8 @@ export function BoardApp({ data }: { data: BoardData }) {
           >
             {priv ? 'Private — nothing recorded' : 'Private'}
           </button>
+
+          <ThemeToggle compact />
         </div>
       </header>
 

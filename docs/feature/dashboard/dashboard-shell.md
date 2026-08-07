@@ -138,3 +138,8 @@ Constant `FALLBACK`, six entries, rendered as `minHeight: 88` buttons in a 2-col
 - **Giving `Bar` a non-neutral default tone** would colour every unaudited bar in the product, breaking constraint C1's guarantee that neutral metrics (`repeat_tap_rate`) are never styled as warnings.
 - **Replacing `NotCollected` with a zero** on the [AI impact](student-overview.md) page turns "we do not log this yet" into "the AI never helps" — a different and false claim.
 - **Adding a sixth `StudentTabs` entry** requires the page to exist; every student page passes its own `active` key, so a typo there silently renders all tabs inactive.
+
+> **2026-08-08:** The rail carries a theme toggle (black default / white /
+> warm). `.dash` alone stays the approved dark; `[data-theme=white|warm] .dash`
+> re-token it. The toggle takes `unsetAs="black"` so its label matches the
+> fixed-dark default before any choice is stored.
