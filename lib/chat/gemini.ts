@@ -66,9 +66,11 @@ export class GeminiProvider implements ChatProvider {
 
     const calls: ToolCall[] = []
     let seq = 0
+    let finishReason: string | undefined
 
     for await (const raw of sseLines(res)) {
       const evt = raw as any
+      if (evt.candidates?.[0]?.finishReason) finishReason = evt.candidates[0].finishReason
       const usage = evt.usageMetadata
       if (usage) {
         yield {
@@ -94,6 +96,9 @@ export class GeminiProvider implements ChatProvider {
     }
 
     if (calls.length) yield { type: 'tool_calls', calls }
+    if (finishReason && finishReason !== 'STOP' && !calls.length) {
+      yield { type: 'stopped_early', reason: finishReason }
+    }
   }
 }
 

@@ -76,9 +76,12 @@ export async function* openAIStyleStream(opts: {
   // index -> partial call. Fragments can interleave across several tools.
   // Some local servers omit `index`; fall back to 0 so the slot still exists.
   const pending = new Map<number, { id: string; name: string; args: string }>()
+  let finishReason: string | undefined
 
   for await (const raw of sseLines(res)) {
     const evt = raw as any
+    const fr = evt.choices?.[0]?.finish_reason
+    if (fr) finishReason = fr
     if (evt.usage) {
       yield {
         type: 'usage',
@@ -117,6 +120,9 @@ export async function* openAIStyleStream(opts: {
       calls.push({ id: slot.id || `call_${slot.name}`, name: slot.name, args })
     }
     yield { type: 'tool_calls', calls }
+  }
+  if (finishReason && finishReason !== 'stop' && finishReason !== 'tool_calls' && !pending.size) {
+    yield { type: 'stopped_early', reason: finishReason }
   }
 }
 

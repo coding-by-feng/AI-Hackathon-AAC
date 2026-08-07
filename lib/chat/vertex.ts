@@ -108,11 +108,13 @@ export class VertexChatProvider implements ChatProvider {
 
     const calls: ToolCall[] = []
     let seq = 0
+    let finishReason: string | undefined
 
     for await (const raw of sseLines(res)) {
       const evt = raw as {
         usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number }
         candidates?: {
+          finishReason?: string
           content?: {
             parts?: {
               text?: string
@@ -123,6 +125,7 @@ export class VertexChatProvider implements ChatProvider {
           }
         }[]
       }
+      if (evt.candidates?.[0]?.finishReason) finishReason = evt.candidates[0].finishReason
       if (evt.usageMetadata) {
         yield {
           type: 'usage',
@@ -149,5 +152,8 @@ export class VertexChatProvider implements ChatProvider {
     }
 
     if (calls.length) yield { type: 'tool_calls', calls }
+    if (finishReason && finishReason !== 'STOP' && !calls.length) {
+      yield { type: 'stopped_early', reason: finishReason }
+    }
   }
 }

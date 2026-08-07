@@ -95,7 +95,11 @@ function computeGuidance(
     })
   }
   if (w.end === maxDay) {
-    g.push({ level: 'info', code: 'PARTIAL_WINDOW', detail: `${maxDay} may be incomplete.` })
+    g.push({
+      level: 'info',
+      code: 'PARTIAL_WINDOW',
+      detail: `${maxDay} is still being recorded — its numbers may rise as the day goes on.`,
+    })
   }
 
   if (childId) {

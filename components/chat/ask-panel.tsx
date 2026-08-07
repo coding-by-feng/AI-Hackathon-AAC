@@ -25,6 +25,33 @@ type Turn = {
   error?: { message: string; retryable: boolean } | null
 }
 
+/**
+ * Data caveats wear plain-English titles, not their machine codes.
+ *
+ * `PARTIAL_WINDOW` in mono caps read as a stack trace to a teacher — one was
+ * reported as "an error" — when it is the honest footnote that today's numbers
+ * are still growing. The codes stay in the payload for API consumers; the
+ * panel translates.
+ */
+const NOTICE_TITLES: Record<string, string> = {
+  PARTIAL_WINDOW: 'Today is still being recorded',
+  HIGH_REPETITION_NEUTRAL: 'Repeated pressing is normal',
+  NOT_COLLECTED: 'Some features are not in use',
+  ABSENCE_IN_WINDOW: 'Quiet days in this window',
+  PARTNER_WAIT_SHORT: 'Adult wait time',
+  LAYOUT_CHANGED: 'The board layout changed',
+  SMALL_SAMPLE: 'Small sample',
+  BASELINE_NOT_MET: 'Baseline not reached yet',
+  ANSWER_CUT_OFF: 'The answer was cut off',
+  REWRITTEN: 'Rewritten',
+}
+
+function noticeTitle(code: string): string {
+  if (NOTICE_TITLES[code]) return NOTICE_TITLES[code]
+  const words = code.toLowerCase().replace(/_/g, ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 const TOOL_LABELS: Record<string, string> = {
   list_children: 'children',
   get_child_profile: 'profile',
@@ -322,9 +349,26 @@ function AssistantTurn({ turn, busy }: { turn: Turn; busy: boolean }) {
         <p className="text-sm text-[var(--color-ink-faint)]">Reading the data…</p>
       )}
 
-      {other.map((n, i) => (
-        <NoticeRow key={`o${i}`} tone="neutral" code={n.code} detail={n.detail} />
+      {/* Info-level caveats render as one quiet footnote block, not a stack of
+          code-labelled boxes — warn-level ones keep their own row above. */}
+      {other.filter((n) => n.level === 'warn').map((n, i) => (
+        <NoticeRow key={`w${i}`} tone="warn" code={n.code} detail={n.detail} />
       ))}
+      {other.some((n) => n.level !== 'warn') && (
+        <div className="rounded-md border border-[var(--color-line)] bg-[var(--color-surface-sunk)] px-3 py-2">
+          <p className="text-[10px] font-semibold tracking-wide text-[var(--color-ink-faint)] uppercase">
+            About these numbers
+          </p>
+          <ul className="mt-1 space-y-1">
+            {other.filter((n) => n.level !== 'warn').map((n, i) => (
+              <li key={i} className="text-xs leading-relaxed text-[var(--color-ink-muted)]">
+                <span className="font-medium text-[var(--color-ink)]">{noticeTitle(n.code)}.</span>{' '}
+                {n.detail}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {turn.forbidden && (
         <div className="rounded-md border border-[var(--color-line)] bg-[var(--color-surface-sunk)] px-3 py-2 text-xs text-[var(--color-ink-muted)]">
@@ -356,8 +400,8 @@ function NoticeRow({
         : 'border-[var(--color-line)] bg-[var(--color-surface-sunk)]'
   return (
     <div className={`rounded-md border px-3 py-2 text-xs ${cls}`}>
-      <span className="font-mono text-[10px] uppercase tracking-wide text-[var(--color-ink-muted)]">
-        {code}
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-ink-muted)]">
+        {noticeTitle(code)}
       </span>
       <p className="mt-0.5 text-[var(--color-ink)]">{detail}</p>
     </div>

@@ -73,6 +73,7 @@ export class AnthropicProvider implements ChatProvider {
 
     // content-block index -> partial tool call being assembled.
     const pending = new Map<number, { id: string; name: string; json: string }>()
+    let stopReason: string | undefined
 
     for await (const raw of sseLines(res)) {
       const evt = raw as any
@@ -98,6 +99,7 @@ export class AnthropicProvider implements ChatProvider {
           }
           break
         case 'message_delta':
+          if (evt.delta?.stop_reason) stopReason = evt.delta.stop_reason
           if (evt.usage?.output_tokens) {
             yield { type: 'usage', inputTokens: 0, outputTokens: evt.usage.output_tokens }
           }
@@ -118,6 +120,9 @@ export class AnthropicProvider implements ChatProvider {
         calls.push({ id: slot.id, name: slot.name, args })
       }
       yield { type: 'tool_calls', calls }
+    }
+    if (stopReason && stopReason !== 'end_turn' && stopReason !== 'tool_use' && !pending.size) {
+      yield { type: 'stopped_early', reason: stopReason }
     }
   }
 }

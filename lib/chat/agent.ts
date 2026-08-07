@@ -161,6 +161,14 @@ export async function* runAgent(
         } else if (chunk.type === 'usage') {
           inputTokens += chunk.inputTokens
           outputTokens += chunk.outputTokens
+        } else if (chunk.type === 'stopped_early') {
+          // An answer that quietly stops mid-table reads as complete. Say so.
+          yield {
+            type: 'notice', level: 'warn', code: 'ANSWER_CUT_OFF',
+            detail:
+              `The model stopped before finishing (${chunk.reason}). ` +
+              'What is shown is incomplete — ask again, or ask for less at once.',
+          }
         }
       }
 

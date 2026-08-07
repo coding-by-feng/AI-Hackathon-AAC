@@ -41,6 +41,13 @@ export type ProviderChunk =
   | { type: 'text'; delta: string }
   | { type: 'tool_calls'; calls: ToolCall[] }
   | { type: 'usage'; inputTokens: number; outputTokens: number }
+  /**
+   * Emitted only when the model stopped for an ABNORMAL reason (token limit,
+   * safety, recitation). A normal end-of-turn emits nothing — the agent turns
+   * this into a visible notice, because an answer that quietly stops mid-table
+   * reads as complete when it is not.
+   */
+  | { type: 'stopped_early'; reason: string }
 
 export interface ChatProvider {
   readonly id: ProviderId
