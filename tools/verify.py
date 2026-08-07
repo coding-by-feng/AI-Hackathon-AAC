@@ -165,6 +165,17 @@ def check_coverage(conn: sqlite3.Connection, r: Report) -> None:
             "SELECT insight_id, child_id, evidence_rows FROM v_insights_fired"
         )
     }
+    # The coverage assertion, like the plant assertions below, is only
+    # meaningful while some planter is active inside the rules' evaluation
+    # window — persona day-indices are tuned for --days 42.
+    win14 = conn.execute(
+        "SELECT date(MAX(day_local), '-13 days'), MAX(day_local) FROM events"
+    ).fetchone()
+    sys.path.insert(0, str(ROOT))
+    try:
+        from tools.seed.personas import EXPECTED_FIRING as _EXP
+    except Exception:                                          # pragma: no cover
+        _EXP = {}
     for iid in ALL_INSIGHTS:
         hit = conn.execute(
             "SELECT child_id, evidence_rows FROM v_insights_fired WHERE insight_id=? LIMIT 1",
@@ -173,6 +184,18 @@ def check_coverage(conn: sqlite3.Connection, r: Report) -> None:
         name = conn.execute(
             "SELECT name FROM insights_catalog WHERE insight_id=?", (iid,)
         ).fetchone()
+        if hit is None and iid in _EXP:
+            planters_active = any(
+                conn.execute(
+                    "SELECT 1 FROM events WHERE child_id=? AND actor='child' "
+                    "AND day_local BETWEEN ? AND ? LIMIT 1",
+                    (c, win14[0], win14[1])).fetchone()
+                for c in _EXP[iid])
+            if not planters_active:
+                r.warn(f"{iid} has no active planter at this horizon",
+                       "every persona that plants this pattern is silent in the "
+                       "final 14 days of data — the windowed rule correctly sees nothing")
+                continue
         r.check("coverage", f"{iid} fires — {name[0] if name else '?'}",
                 hit is not None,
                 f"first hit: {hit[0]} ({hit[1]} rows)" if hit else
@@ -186,12 +209,35 @@ def check_coverage(conn: sqlite3.Connection, r: Report) -> None:
         r.warn("persona expectations unavailable", str(exc))
         return
 
+    # Plant assertions are only meaningful while the planted pattern is still
+    # inside the rules' evaluation window. Persona day-indices are tuned for
+    # --days 42; at longer horizons (a 180-day build) a child like jonah_k has
+    # been silent for months, the windowed rule CORRECTLY stays quiet, and
+    # failing here would push someone to "fix" a rule that is right. The gate
+    # is data-driven, not horizon-driven: no child activity in the last 14
+    # days of data ⇒ the plant is stale, warn instead of assert.
+    win = conn.execute(
+        "SELECT date(MAX(day_local), '-13 days'), MAX(day_local) FROM events"
+    ).fetchone()
     for iid, children in EXPECTED_FIRING.items():
         for child in children:
             got = conn.execute(
                 "SELECT 1 FROM v_insights_fired WHERE insight_id=? AND child_id=?",
                 (iid, child),
             ).fetchone()
+            if not got:
+                active = conn.execute(
+                    "SELECT 1 FROM events WHERE child_id=? AND actor='child' "
+                    "AND day_local BETWEEN ? AND ? LIMIT 1",
+                    (child, win[0], win[1]),
+                ).fetchone()
+                if not active:
+                    r.warn(
+                        f"{iid} plant for {child} predates the rule window",
+                        "no child activity in the final 14 days of data — the "
+                        "windowed rule cannot see the planted pattern at this horizon",
+                    )
+                    continue
             r.check("coverage", f"{iid} fires for {child} as planted", got is not None,
                     "" if got else "persona declares this plant but the rule did not fire")
 
@@ -238,14 +284,19 @@ def check_integrity(conn: sqlite3.Connection, r: Report) -> None:
     r.check("integrity", "every stored metric exists in the catalogue",
             orphan == 0, f"{orphan} orphan rows")
 
-    # a value must never be published below its minimum sample size
-    leaked = conn.execute("""
-        SELECT COUNT(*) FROM agg_daily_metric a
-        JOIN metrics_catalog m ON m.metric_id = a.metric_id
-        WHERE a.value IS NOT NULL AND a.n < m.min_n
+    # min_n is enforced at READ time, at each reader's own grain — the store
+    # keeps the true daily value so window aggregates are computable (writing
+    # NULL destroyed them: a 28-day window with 170 corrections reported from
+    # the 53 that cleared the daily bar). The publishable contract is therefore
+    # that `n` rides with every value, so every reader CAN gate. A row with a
+    # value and no n is the one thing that makes read-time suppression
+    # impossible, and that is what fails the gate.
+    ungated = conn.execute("""
+        SELECT COUNT(*) FROM agg_daily_metric
+        WHERE value IS NOT NULL AND (n IS NULL OR n <= 0)
     """).fetchone()[0]
-    r.check("integrity", "no value published below its min_n",
-            leaked == 0, f"{leaked} under-powered values would mislead a teacher")
+    r.check("integrity", "every stored value carries the n a reader gates on",
+            ungated == 0, f"{ungated} values stored without a sample size")
 
     # Not every shown metric is a daily scalar. The dimensional ones live in
     # their own tables; checking them against agg_daily_metric reported eleven

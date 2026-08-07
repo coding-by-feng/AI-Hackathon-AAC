@@ -13,6 +13,7 @@
  * is why each card declares its own chart type and reads its own shape.
  */
 import { all, one, type Window } from './db'
+import { readMetric } from './metrics'
 
 export type ChartKind =
   | 'line' | 'bar' | 'table' | 'calendar' | 'donut' | 'scatter'
@@ -57,30 +58,36 @@ export function reportMetrics(childId: string, w: Window): ReportMetric[] {
   return catalog.map((c) => build(c, childId, w)).filter(Boolean) as ReportMetric[]
 }
 
+// Trend buckets mask days below min_n (the rollup stores true values for all
+// days; each reader suppresses at its own grain — here, the day).
 function monthly(childId: string, metricId: string, months = 6) {
   return all<{ label: string; value: number | null }>(
-    `SELECT strftime('%m', day_local) AS label, ROUND(AVG(value), 3) AS value
-     FROM agg_daily_metric
-     WHERE child_id = ? AND metric_id = ?
-     GROUP BY strftime('%Y-%m', day_local)
-     ORDER BY MIN(day_local) DESC LIMIT ?`, [childId, metricId, months]).reverse()
+    `SELECT strftime('%m', a.day_local) AS label,
+            ROUND(AVG(CASE WHEN a.n >= mc.min_n THEN a.value END), 3) AS value
+     FROM agg_daily_metric a JOIN metrics_catalog mc ON mc.metric_id = a.metric_id
+     WHERE a.child_id = ? AND a.metric_id = ?
+     GROUP BY strftime('%Y-%m', a.day_local)
+     ORDER BY MIN(a.day_local) DESC LIMIT ?`, [childId, metricId, months]).reverse()
 }
 
 function weekly(childId: string, metricId: string, weeks = 8) {
   return all<{ label: string; value: number | null }>(
-    `SELECT 'w' || strftime('%W', day_local) AS label, ROUND(AVG(value), 3) AS value
-     FROM agg_daily_metric
-     WHERE child_id = ? AND metric_id = ?
-     GROUP BY strftime('%Y-W%W', day_local)
-     ORDER BY MIN(day_local) DESC LIMIT ?`, [childId, metricId, weeks]).reverse()
+    `SELECT 'w' || strftime('%W', a.day_local) AS label,
+            ROUND(AVG(CASE WHEN a.n >= mc.min_n THEN a.value END), 3) AS value
+     FROM agg_daily_metric a JOIN metrics_catalog mc ON mc.metric_id = a.metric_id
+     WHERE a.child_id = ? AND a.metric_id = ?
+     GROUP BY strftime('%Y-W%W', a.day_local)
+     ORDER BY MIN(a.day_local) DESC LIMIT ?`, [childId, metricId, weeks]).reverse()
 }
 
+// One implementation of window aggregation for the whole app: readMetric owns
+// the per-metric rollup (sum / last / weighted mean), the value IS NOT NULL
+// filter, and window-grain min_n suppression. The plain AVG this used to run
+// reported teacher_modeling as a per-day figure the catalogue calls a count,
+// and let suppressed days poison every weighted mean.
 function windowValue(childId: string, metricId: string, w: Window) {
-  return one<{ value: number | null; n: number }>(
-    `SELECT ROUND(AVG(value), 4) AS value, COALESCE(SUM(n), 0) AS n
-     FROM agg_daily_metric
-     WHERE child_id = ? AND metric_id = ? AND day_local BETWEEN ? AND ?`,
-    [childId, metricId, w.start, w.end])
+  const m = readMetric(metricId, childId, w)
+  return { value: m.value, n: m.n }
 }
 
 function build(c: CatalogRow, childId: string, w: Window): ReportMetric | null {

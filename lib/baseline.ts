@@ -70,9 +70,13 @@ export function rollingBaseline(
   const row = one<{ mean: number; sd: number; n: number }>(
     `
     WITH recent AS (
-      SELECT value FROM agg_daily_metric
-      WHERE child_id = ? AND metric_id = ? AND value IS NOT NULL
-      ORDER BY day_local DESC LIMIT ?
+      -- Day-grain read: below-min_n days are real values now (the rollup no
+      -- longer NULLs them) but too noisy for a spread estimate — mask here.
+      SELECT a.value FROM agg_daily_metric a
+      JOIN metrics_catalog mc ON mc.metric_id = a.metric_id
+      WHERE a.child_id = ? AND a.metric_id = ? AND a.value IS NOT NULL
+        AND a.n >= mc.min_n
+      ORDER BY a.day_local DESC LIMIT ?
     )
     SELECT AVG(value) AS mean,
            -- population stdev; SQLite has no stdev()

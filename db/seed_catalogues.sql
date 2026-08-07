@@ -302,7 +302,7 @@ INSERT INTO metrics_catalog VALUES
 ('repeat_tap_rate','Repeated pressing','H',
  'How often the child presses the same button several times in a row.',
  'count(runs of >= 3 consecutive card_tap on the same card_id with NO delete) / count(utterances)',
- 'count','neutral','P0','teacher,slt',10,'["I4"]',
+ 'ratio','neutral','P0','teacher,slt',10,'["I4"]',
  'THIS IS NOT AN ERROR AND MUST NEVER BE STYLED AS ONE. Repetition has four normal causes: communicating something there is no word for, learning where a button is (repetition is how motor automaticity forms), language development including gestalt processing, and stimming for self-regulation. Trying to reduce repetition reduces overall communication. If repetition is high in a scene where vocabulary coverage is thin, treat it as a VOCABULARY GAP signal - the child may be reaching for a word that does not exist.',
  'shown',NULL),
 

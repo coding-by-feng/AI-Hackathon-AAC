@@ -78,7 +78,8 @@ function aggregate(metricId: string, childId: string, w: Window) {
          ORDER BY day_local DESC LIMIT 1`
       : `SELECT ${expr} AS value, SUM(n) AS n, COUNT(value) AS days
          FROM agg_daily_metric
-         WHERE child_id = ? AND metric_id = ? AND day_local BETWEEN ? AND ?`
+         WHERE child_id = ? AND metric_id = ? AND day_local BETWEEN ? AND ?
+           AND value IS NOT NULL`
 
   const row = one<{ value: number | null; n: number; days: number }>(sql, [
     childId,
@@ -114,6 +115,18 @@ export function readMetric(metricId: string, childId: string, w: Window): Metric
   if (!everRecorded) {
     value = null
     suppressed = 'not_collected'
+  } else if (value === null && rollupFor(metricId) === 'sum') {
+    // A tally with no in-window rows is ZERO when the child was actually
+    // there — the catalogue's own example: five cards added, new_words 0
+    // means the additions missed. Only an absent child (no events at all in
+    // the window) keeps it as no-data. The count view only emits rows on
+    // days something happened, so this fill is what makes 0 representable.
+    const active = one<{ c: number }>(
+      `SELECT COUNT(*) c FROM events
+       WHERE child_id = ? AND actor = 'child' AND day_local BETWEEN ? AND ? LIMIT 1`,
+      [childId, w.start, w.end],
+    )
+    if ((active?.c ?? 0) > 0) value = 0
   } else if (meta && cur.n < meta.min_n) {
     value = null
     suppressed = 'small_sample'
@@ -285,13 +298,18 @@ export function cellHeat(childId: string, w: Window): HeatGrid | null {
 export type AbandonPoint = { day_local: string; rate: number; n: number }
 
 export function abandonmentTrend(childId: string, w: Window): AbandonPoint[] {
+  // Day-grain read, so min_n masks per DAY: the rollup stores true values for
+  // every day and each reader suppresses at its own grain.
   return all<AbandonPoint>(
     `
-    SELECT day_local, value AS rate, n
-    FROM agg_daily_metric
-    WHERE child_id = ? AND metric_id = 'abandonment_rate'
-      AND day_local BETWEEN ? AND ?
-    ORDER BY day_local
+    SELECT a.day_local,
+           CASE WHEN a.n >= mc.min_n THEN a.value END AS rate,
+           a.n
+    FROM agg_daily_metric a
+    JOIN metrics_catalog mc ON mc.metric_id = a.metric_id
+    WHERE a.child_id = ? AND a.metric_id = 'abandonment_rate'
+      AND a.day_local BETWEEN ? AND ?
+    ORDER BY a.day_local
     `,
     [childId, w.start, w.end],
   )

@@ -63,10 +63,16 @@ def main() -> int:
 
     # A dismissal is the only feedback we get on whether a rule is any good, so
     # a re-run must never silently erase one. Previous rows are superseded.
-    conn.execute("""
-        UPDATE fired_rules SET superseded_by = 'pending'
+    #
+    # Held in Python, not marked with a sentinel: superseded_by REFERENCES
+    # fired_rules(fired_rule_id), so the old `SET superseded_by = 'pending'`
+    # violated the FK on any database that already had findings — which meant
+    # this script had only ever succeeded on the empty table build.sh gives it,
+    # and crashed on the nightly re-run it exists for.
+    prior_open = conn.execute("""
+        SELECT fired_rule_id, child_id, insight_id FROM fired_rules
         WHERE superseded_by IS NULL AND dismissed_at IS NULL
-    """)
+    """).fetchall()
 
     fired: dict[str, int] = {}
     for insight_id, (view, cap) in RULES.items():
@@ -101,17 +107,18 @@ def main() -> int:
             fired[insight_id] = fired.get(insight_id, 0) + 1
 
     # Point the superseded rows at whatever replaced them, per child and rule.
-    conn.execute("""
-        UPDATE fired_rules AS old
-        SET superseded_by = (
-          SELECT new.fired_rule_id FROM fired_rules AS new
-          WHERE new.child_id = old.child_id AND new.insight_id = old.insight_id
-            AND new.fired_at = ? AND new.superseded_by IS NULL
-          LIMIT 1)
-        WHERE old.superseded_by = 'pending'
-    """, (now_ms,))
-    # Nothing replaced them: the rule stopped firing, which is a resolution.
-    conn.execute("UPDATE fired_rules SET superseded_by = NULL WHERE superseded_by = 'pending'")
+    # A row nothing replaced keeps superseded_by NULL (the subquery yields
+    # NULL): the rule stopped firing, which is a resolution, and the row stays
+    # visible as the current finding until dismissed.
+    for frid, child_id, insight_id in prior_open:
+        conn.execute("""
+            UPDATE fired_rules SET superseded_by = (
+              SELECT new.fired_rule_id FROM fired_rules AS new
+              WHERE new.child_id = ? AND new.insight_id = ?
+                AND new.fired_at = ?
+              LIMIT 1)
+            WHERE fired_rule_id = ?
+        """, (child_id, insight_id, now_ms, frid))
     conn.commit()
 
     open_now = conn.execute("""

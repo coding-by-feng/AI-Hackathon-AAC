@@ -20,21 +20,24 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def rollup_daily_metrics(conn: sqlite3.Connection) -> int:
-    """agg_daily_metric, with min_n suppression applied at write time.
+    """agg_daily_metric: the TRUE daily value, with `n` always alongside.
 
-    A value below its minimum sample size is stored as NULL, never as the
-    misleading number. `n` is always stored, so a reader can tell "too little
-    data" from "nothing happened" — those are different, and a dashboard that
-    conflates them tells a teacher a child went quiet when they did not.
+    min_n suppression is enforced at READ time, at the reader's own grain —
+    never at write time. Writing NULL for a below-min_n day looked safe but
+    destroyed every window aggregate built on top: correction_adjacent_rate
+    runs ~6 corrections/day against min_n=10, so almost every daily row was
+    NULL and a 28-day window with 170 real samples reported from the 53 that
+    happened to cluster (measured: 0.15 shown vs 0.51 true). A day-grain
+    reader (timeseries, charts) masks days below min_n; a window-grain reader
+    (dashboard cards, MCP get_metrics) sums n across the window and suppresses
+    on the WINDOW total. `n` stored per day is what makes both possible, and
+    still distinguishes "too little data" from "nothing happened".
     """
     conn.execute("DELETE FROM agg_daily_metric")
     cur = conn.execute("""
         INSERT INTO agg_daily_metric (child_id, day_local, metric_id, value, n)
-        SELECT v.child_id, v.day_local, v.metric_id,
-               CASE WHEN v.n >= mc.min_n THEN v.value ELSE NULL END,
-               v.n
+        SELECT v.child_id, v.day_local, v.metric_id, v.value, v.n
         FROM v_daily_metrics_all v
-        JOIN metrics_catalog mc ON mc.metric_id = v.metric_id
         WHERE v.day_local IS NOT NULL
     """)
     return cur.rowcount

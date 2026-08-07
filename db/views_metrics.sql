@@ -36,19 +36,36 @@ WINDOW w AS (PARTITION BY e.utterance_id ORDER BY e.ts);
 
 -- Unintended activations: a tap deleted inside the threshold. REQUIRES a delete.
 -- Repetition without a delete is never counted — clinical constraint C1.
+--
+-- The replacement is the next TAP in the utterance, found with a correlated
+-- MIN(ts) rather than v_tap_sequence's LEAD: LEAD sees the next EVENT, and
+-- when two deletes chain the "replacement" it compared against was the other
+-- delete's coordinates — the catalogue defines adjacency against the button
+-- the child actually pressed next. Deletes are ~5% of events and the lookup
+-- runs on the (utterance_id, ts) index, so the 40x-correlated-subquery caveat
+-- on v_tap_sequence does not bite here.
 DROP VIEW IF EXISTS v_mistaps;
 CREATE VIEW v_mistaps AS
+WITH taps AS (
+  SELECT utterance_id, ts, grid_row, grid_col
+  FROM events WHERE actor = 'child' AND type = 'card_tap'
+)
 SELECT
-  child_id, day_local, utterance_id, ts, card_id, label,
-  grid_row, grid_col, grid_rows, grid_cols, board_id, ms_delta,
-  next_row, next_col,
+  d.child_id, d.day_local, d.utterance_id, d.ts, d.card_id, d.label,
+  d.grid_row, d.grid_col, d.grid_rows, d.grid_cols, d.board_id, d.ms_delta,
+  t.grid_row AS next_row, t.grid_col AS next_col,
   CASE
-    WHEN next_row IS NULL OR next_col IS NULL THEN NULL
-    WHEN abs(next_row - grid_row) <= 1 AND abs(next_col - grid_col) <= 1 THEN 1
+    WHEN t.grid_row IS NULL OR d.grid_row IS NULL THEN NULL
+    WHEN abs(t.grid_row - d.grid_row) <= 1 AND abs(t.grid_col - d.grid_col) <= 1 THEN 1
     ELSE 0
   END AS correction_adjacent
-FROM v_tap_sequence
-WHERE type = 'delete_last' AND ms_delta IS NOT NULL AND ms_delta < 1500;
+FROM events d
+LEFT JOIN taps t
+  ON t.utterance_id = d.utterance_id
+ AND t.ts = (SELECT MIN(t2.ts) FROM taps t2
+             WHERE t2.utterance_id = d.utterance_id AND t2.ts > d.ts)
+WHERE d.actor = 'child' AND d.type = 'delete_last'
+  AND d.ms_delta IS NOT NULL AND d.ms_delta < 1500;
 
 -- ---------------------------------------------------------------------------
 --  GROUP A — effort and speed
@@ -412,13 +429,28 @@ GROUP BY child_id, day_local;
 
 DROP VIEW IF EXISTS v_m_repeat_tap_rate;
 CREATE VIEW v_m_repeat_tap_rate AS
-WITH runs AS (
-  -- exactly one row per run of length >= 3
+WITH seq AS (
+  -- The catalogue formula says "consecutive card_tap ... with NO delete", so
+  -- the lag chain must carry event TYPE: with card_id alone, a delete of the
+  -- same card both broke runs it sat inside AND extended runs backwards,
+  -- undercounting (A, del A, A, A, A holds a legal 3-run that prev3=A hid).
+  SELECT child_id, day_local, utterance_id, ts, type, card_id,
+         LAG(type, 1)    OVER w AS t1, LAG(card_id, 1) OVER w AS c1,
+         LAG(type, 2)    OVER w AS t2, LAG(card_id, 2) OVER w AS c2,
+         LAG(type, 3)    OVER w AS t3, LAG(card_id, 3) OVER w AS c3
+  FROM events
+  WHERE actor = 'child' AND type IN ('card_tap','delete_last')
+  WINDOW w AS (PARTITION BY utterance_id ORDER BY ts)
+),
+runs AS (
+  -- exactly one row per run of length >= 3: counted at the third tap, unless
+  -- the tap before the run start was itself part of it
   SELECT child_id, day_local, utterance_id, card_id
-  FROM v_tap_sequence
+  FROM seq
   WHERE type = 'card_tap'
-    AND card_id = prev1 AND card_id = prev2
-    AND (prev3 IS NULL OR prev3 <> card_id)
+    AND t1 = 'card_tap' AND c1 = card_id
+    AND t2 = 'card_tap' AND c2 = card_id
+    AND (t3 IS NULL OR t3 <> 'card_tap' OR c3 <> card_id)
 ),
 per_day AS (
   SELECT child_id, day_local, COUNT(*) AS run_count FROM runs GROUP BY child_id, day_local
@@ -547,7 +579,11 @@ CREATE VIEW v_daily_metrics_all AS
   UNION ALL SELECT 'ndw',                         * FROM v_m_ndw
   UNION ALL SELECT 'mlu',                         * FROM v_m_mlu
   UNION ALL SELECT 'core_fringe_ratio',           * FROM v_m_core_fringe_ratio
-  UNION ALL SELECT 'new_words',                   * FROM v_m_new_words
+  -- The catalogue defines new_words as a COUNT ("labels whose earliest ever
+  -- card_tap falls inside the window", unit 'count'), and every window reader
+  -- SUMs daily rows. v_m_new_words is a proportion (kept for rule I6) — summing
+  -- proportions produced a number that was neither. The count view feeds here.
+  UNION ALL SELECT 'new_words', child_id, day_local, new_words * 1.0, new_words FROM v_new_words_count
   UNION ALL SELECT 'layout_stability',            * FROM v_m_layout_stability
   UNION ALL SELECT 'position_consistency',        * FROM v_m_position_consistency
   UNION ALL SELECT 'independence_rate',           * FROM v_m_independence_rate

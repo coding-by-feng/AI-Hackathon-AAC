@@ -166,7 +166,7 @@ function computeGuidance(
     if (wait !== null && wait !== undefined && wait < 2000) {
       g.push({
         level: 'warning', code: 'PARTNER_WAIT_SHORT',
-        detail: `The adult waits a median of ${Math.round(wait)} ms before speaking again. AAC output runs around 15 words per minute; any finding about the child being slow is confounded by this.`,
+        detail: `The adult waits about ${Math.round(wait)} ms on average before speaking again. AAC output runs around 15 words per minute; any finding about the child being slow is confounded by this.`,
         affects: ['time_to_first_tap', 'abandonment_rate'],
       })
     }
@@ -460,25 +460,85 @@ export const tools: Record<string, { description: string; schema: object; run: (
       if (a.metric_ids?.length) filters.push(`m.metric_id IN (${a.metric_ids.map(() => '?').join(',')})`)
       if (a.groups?.length) filters.push(`m.group_code IN (${a.groups.map(() => '?').join(',')})`)
 
+      // Per-metric window rollup, mirroring lib/metrics.ts ROLLUP. A plain
+      // AVG of daily rows reported teacher_modeling (catalogue unit: count)
+      // as a per-day figure — 348 modelled presses read back as "12.4".
+      // Genuine daily tallies sum; point-in-time metrics take the newest row;
+      // everything else is a weighted mean so a 3-utterance day cannot
+      // outvote a 60-utterance day. Window-grain min_n suppression happens
+      // in JS below — value withheld, n reported, matching the dashboard.
+      const SUM_METRICS = ['new_words', 'teacher_modeling', 'taps_saved', 'vocabulary_gaps',
+        'layout_stability', 'keyboard_use']
+      const LAST_METRICS = ['silence_streak', 'zero_activation_days', 'position_consistency']
+
+      // What this child's pipeline has EVER produced, and whether they were
+      // present at all this window — the difference between "not collected",
+      // "no data in this window", and a meaningful zero.
+      const everIds = new Set(
+        db.all('SELECT DISTINCT metric_id FROM agg_daily_metric WHERE child_id = ?',
+          [a.child_id]).map(r => r.metric_id as string))
+      const activeInWindow = (db.scalar<number>(
+        `SELECT COUNT(*) FROM events
+         WHERE child_id = ? AND actor = 'child' AND day_local BETWEEN ? AND ?`,
+        [a.child_id, w.start, w.end]) ?? 0) > 0
+
       const rows = db.all(`
         WITH cur AS (
-          SELECT metric_id, AVG(value) AS value, SUM(n) AS n, COUNT(*) AS days_with_data
-          FROM agg_daily_metric WHERE child_id = ? AND day_local BETWEEN ? AND ?
+          SELECT metric_id,
+                 SUM(value)                              AS sum_value,
+                 SUM(value * n) / NULLIF(SUM(n), 0)      AS wmean_value,
+                 SUM(n) AS n, COUNT(*) AS days_with_data
+          FROM agg_daily_metric
+          WHERE child_id = ? AND day_local BETWEEN ? AND ? AND value IS NOT NULL
           GROUP BY metric_id),
         prev AS (
-          SELECT metric_id, AVG(value) AS value
-          FROM agg_daily_metric WHERE child_id = ? AND day_local BETWEEN ? AND ?
-          GROUP BY metric_id)
+          SELECT metric_id,
+                 SUM(value)                              AS sum_value,
+                 SUM(value * n) / NULLIF(SUM(n), 0)      AS wmean_value
+          FROM agg_daily_metric
+          WHERE child_id = ? AND day_local BETWEEN ? AND ? AND value IS NOT NULL
+          GROUP BY metric_id),
+        latest AS (
+          SELECT metric_id, value AS last_value
+          FROM (SELECT metric_id, value,
+                       ROW_NUMBER() OVER (PARTITION BY metric_id ORDER BY day_local DESC) AS rn
+                FROM agg_daily_metric
+                WHERE child_id = ? AND value IS NOT NULL)
+          WHERE rn = 1)
         SELECT m.metric_id, m.polarity, m.min_n,
-               ROUND(cur.value, 4) AS value, cur.n, cur.days_with_data,
-               ROUND(prev.value, 4) AS comparison_value,
-               ROUND(cur.value - prev.value, 4) AS delta
+               cur.sum_value, cur.wmean_value, latest.last_value,
+               cur.n, cur.days_with_data,
+               prev.sum_value AS prev_sum, prev.wmean_value AS prev_wmean
         FROM metrics_catalog m
-        LEFT JOIN cur  ON cur.metric_id  = m.metric_id
-        LEFT JOIN prev ON prev.metric_id = m.metric_id
+        LEFT JOIN cur    ON cur.metric_id    = m.metric_id
+        LEFT JOIN prev   ON prev.metric_id   = m.metric_id
+        LEFT JOIN latest ON latest.metric_id = m.metric_id
         WHERE ${filters.join(' AND ')}
         ORDER BY m.group_code, m.metric_id`,
-        [...params, ...(a.metric_ids ?? []), ...(a.groups ?? [])])
+        [...params, a.child_id, ...(a.metric_ids ?? []), ...(a.groups ?? [])]).map((r) => {
+        const id = r.metric_id as string
+        const round = (v: unknown) => (v === null || v === undefined ? null : Math.round((v as number) * 10000) / 10000)
+        const pick = (sum: unknown, wmean: unknown, last: unknown) =>
+          SUM_METRICS.includes(id) ? sum : LAST_METRICS.includes(id) ? last : wmean
+        let value = round(pick(r.sum_value, r.wmean_value, r.last_value))
+        const comparison = round(pick(r.prev_sum, r.prev_wmean, null))
+        // A tally with no in-window rows is ZERO when the child was present —
+        // the catalogue's own new_words example: 0 after a batch of card
+        // additions means the additions missed, and that must be reportable.
+        if (value === null && SUM_METRICS.includes(id) && everIds.has(id) && activeInWindow) {
+          value = 0
+        } else if (value !== null && ((r.n as number) ?? 0) < (r.min_n as number)) {
+          // Window-grain suppression: value withheld below min_n, n kept.
+          value = null
+        }
+        return {
+          metric_id: id, polarity: r.polarity, min_n: r.min_n,
+          value, n: r.n, days_with_data: r.days_with_data ?? 0,
+          ever_recorded: everIds.has(id),
+          comparison_value: value !== null ? comparison : null,
+          delta: value !== null && comparison !== null ? round(value - comparison) : null,
+        }
+      })
 
       const metrics = rows.map(r => {
         const delta = r.delta as number | null
@@ -497,7 +557,12 @@ export const tools: Record<string, { description: string; schema: object; run: (
           // Number() rather than `?? 0`: rows are Record<string, unknown>, so
           // `r.n ?? 0` widens to {} and the comparison silently fails to compile
           // under Next's stricter typecheck.
+          // Three distinct absences: too few samples ≠ the pipeline never
+          // produced this metric ≠ produced before but nothing this window
+          // (an absent child). Conflating them told a teacher a feature was
+          // broken when the child was simply away.
           suppressed_reason: r.value === null && Number(r.n ?? 0) > 0 ? 'small_sample'
+            : r.value === null && r.ever_recorded ? 'no_data_in_window'
             : r.value === null ? 'not_collected' : null,
         }
       })
@@ -561,17 +626,20 @@ export const tools: Record<string, { description: string; schema: object; run: (
           : grain === 'month' ? `strftime('%Y-%m', day_local)`
           : `day_local`
 
+      // Day-grain masking: the rollup stores TRUE values for every day and
+      // each reader suppresses at its own grain. Here a day below min_n
+      // contributes nothing to its bucket's value — its n still rides along.
       const points = db.all(`
         SELECT ${period} AS period,
-               ROUND(AVG(value), 4) AS value,
-               SUM(n) AS n,
+               ROUND(AVG(CASE WHEN a2.n >= mc.min_n THEN a2.value END), 4) AS value,
+               SUM(a2.n) AS n,
                COUNT(*) AS days,
-               MIN(day_local) AS period_start,
-               MAX(day_local) AS period_end
-        FROM agg_daily_metric
-        WHERE child_id = ? AND metric_id = ? AND day_local BETWEEN ? AND ?
+               MIN(a2.day_local) AS period_start,
+               MAX(a2.day_local) AS period_end
+        FROM agg_daily_metric a2 JOIN metrics_catalog mc ON mc.metric_id = a2.metric_id
+        WHERE a2.child_id = ? AND a2.metric_id = ? AND a2.day_local BETWEEN ? AND ?
         GROUP BY ${period}
-        ORDER BY MIN(day_local)`, [a.child_id, a.metric_id, w.start, w.end])
+        ORDER BY MIN(a2.day_local)`, [a.child_id, a.metric_id, w.start, w.end])
 
       // Annotations are why this tool exists. A spike means one thing alone and
       // another entirely when a layout change sits on the same date.
