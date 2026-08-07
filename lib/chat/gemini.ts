@@ -89,7 +89,7 @@ export class GeminiProvider implements ChatProvider {
   }
 }
 
-function toGeminiContents(messages: ChatMessage[]): unknown[] {
+export function toGeminiContents(messages: ChatMessage[]): unknown[] {
   const out: unknown[] = []
   for (const m of messages) {
     if (m.role === 'user') {

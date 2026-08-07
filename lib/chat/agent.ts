@@ -81,9 +81,18 @@ function systemPrompt(scope: ChatScope): string {
 - Be direct about what the evidence supports and where it is thin.
 - Actions are for the adult, not for the child to perform.`
 
+  // Local date, not toISOString(): the rollups bucket by server-local day, and
+  // UTC is yesterday for half of every day in this timezone (NZ, UTC+12).
+  const today = new Date().toLocaleDateString('en-CA')
+
   return [
     `You answer questions about AAC (augmentative and alternative communication) use by
 children with communication difficulties, using only the tools provided.`,
+    '',
+    `TODAY is ${today}. Recorded data ends at or near today and begins a few weeks
+earlier — never query years in the past. Prefer the tools' named windows
+(last_7d, last_14d, last_28d) over guessed custom dates; when a custom range is
+unavoidable, anchor it to today.`,
     '',
     register,
     '',

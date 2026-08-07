@@ -9,7 +9,7 @@
  * NEXT_PUBLIC_ var is readable from devtools in seconds.
  */
 
-export type ProviderId = 'openai' | 'gemini'
+export type ProviderId = 'openai' | 'gemini' | 'vertex'
 
 /** A tool as the agent knows it, before translation to a provider dialect. */
 export type ToolDef = {
@@ -66,9 +66,16 @@ export async function resolveProvider(): Promise<ChatProvider> {
     const { GeminiProvider } = await import('./gemini')
     return new GeminiProvider()
   }
+  if (id === 'vertex') {
+    // Gemini on Vertex via ADC — no API key involved. The only chat path this
+    // machine can currently use: OpenAI answers billing_not_active and no
+    // GEMINI_API_KEY is configured.
+    const { VertexChatProvider } = await import('./vertex')
+    return new VertexChatProvider()
+  }
   if (id !== 'openai') {
     throw new ProviderError(
-      `CHAT_PROVIDER must be 'openai' or 'gemini', got '${id}'`,
+      `CHAT_PROVIDER must be 'openai', 'gemini' or 'vertex', got '${id}'`,
       500,
     )
   }

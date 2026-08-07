@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+
 /**
  * Plain-language explanation of the "I am modelling" switch.
  *
@@ -10,6 +12,19 @@
  * independence and accuracy figures.
  */
 export function ModelingHelp({ onClose }: { onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  // This overlay claims aria-modal, so it must honour the modal keyboard
+  // contract: Escape closes, and focus starts inside the dialog.
+  useEffect(() => {
+    closeRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -46,6 +61,7 @@ export function ModelingHelp({ onClose }: { onClose: () => void }) {
           <p>It switches itself off after 90 seconds without an adult press.</p>
         </div>
         <button
+          ref={closeRef}
           type="button"
           onClick={onClose}
           className="mt-6 w-full rounded-[var(--radius-card)] bg-[var(--color-accent)] py-3 text-lg font-semibold text-white"

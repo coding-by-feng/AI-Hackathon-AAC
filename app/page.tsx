@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { all, one } from '@/lib/db'
-import { currentChildId, setCurrentChild } from '@/lib/session'
+import { currentChildId } from '@/lib/session'
 import { seededWordForm } from '@/lib/kid/sentence'
 import { overridesFor } from '@/lib/overrides'
 import { type DrawerWord } from '@/lib/vocabulary/categories'
@@ -35,8 +35,9 @@ export default async function KidPage({
    */
   const { child: requested } = await searchParams
   if (requested) {
-    await setCurrentChild(requested)
-    redirect('/')
+    // Cookie writes are illegal inside a Server Component render (prod throws
+    // where dev only warned) — the switch route owns the write.
+    redirect(`/api/session/switch?child=${encodeURIComponent(requested)}`)
   }
 
   const childId = await currentChildId()

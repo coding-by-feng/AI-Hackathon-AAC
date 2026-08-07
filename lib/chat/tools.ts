@@ -20,6 +20,7 @@
  * A model that cannot name a child it was not given cannot read that child's
  * communication history, whatever it is asked to do.
  */
+import { statSync } from 'node:fs'
 import { Db } from '../../mcp/db.ts'
 import { tools as mcpTools } from '../../mcp/tools.ts'
 import { validateArgs } from '../../mcp/validate.ts'
@@ -35,20 +36,26 @@ const SCOPED_PARAMS = ['child_id', 'class_id', 'adult_id'] as const
 // roster boundary this file exists to enforce.
 const EXCLUDED_FROM_CHAT = new Set(['query'])
 
-let cached: Db | undefined
 declare global {
-  var __aacChatDb: Db | undefined
+  var __aacChatDb: { db: Db; ino: bigint } | undefined
 }
 
 function db(): Db {
   // Next reloads modules on every edit in dev; without the global, each reload
   // leaks a SQLite handle until the WAL reader count blocks the writer.
-  if (!globalThis.__aacChatDb) {
-    const path = process.env.AAC_DB ?? `${process.cwd()}/aac.db`
-    globalThis.__aacChatDb = new Db(path)
+  //
+  // The inode check is the lib/sqlite.ts lesson applied here: tools/build.sh
+  // deletes and recreates aac.db, and a handle opened before that keeps
+  // reading the deleted inode — the chatbot would answer from a database that
+  // no longer exists. Re-stat per call (cheap next to a model turn) and
+  // reopen when the file identity changes.
+  const path = process.env.AAC_DB ?? `${process.cwd()}/aac.db`
+  const ino = statSync(path, { bigint: true }).ino
+  if (!globalThis.__aacChatDb || globalThis.__aacChatDb.ino !== ino) {
+    globalThis.__aacChatDb?.db.close()
+    globalThis.__aacChatDb = { db: new Db(path), ino }
   }
-  cached = globalThis.__aacChatDb
-  return cached
+  return globalThis.__aacChatDb.db
 }
 
 export type ChatScope = {
@@ -74,6 +81,39 @@ export type ToolInvocation = {
  * Build the tool list this viewer is allowed to see, with scoped parameters
  * rewritten. Called once per turn — the roster can change between turns.
  */
+// Keyed on the handle so a rebuilt database (new handle via the inode check
+// in db()) re-derives the vocabulary instead of serving the old universe.
+const metricIdCache = new WeakMap<Db, string[]>()
+
+/**
+ * Metric ids that can actually answer through the scalar tools.
+ *
+ * Data-driven on purpose: dimensional metrics (card_frequency, cell_heat,
+ * word_pairs, nav_depth_by_card, …) live in their own tables and NEVER appear
+ * in agg_daily_metric — offering them here made get_metrics report "the
+ * feature is not in use", which was false, and the model repeated it to a
+ * teacher. Ids that have ever produced a scalar row are the honest universe.
+ */
+function validMetricIds(): string[] {
+  const handle = db()
+  const hit = metricIdCache.get(handle)
+  if (hit) return hit
+  const read = (sql: string) =>
+    handle.all(sql).map((r) => String((r as { metric_id: unknown }).metric_id))
+  const scalar = read(`SELECT DISTINCT metric_id FROM agg_daily_metric ORDER BY metric_id`)
+  const ids = scalar.length
+    ? scalar
+    : read(`SELECT metric_id FROM metrics_catalog ORDER BY metric_id`)
+  metricIdCache.set(handle, ids)
+  return ids
+}
+
+/** Where the dimensional metrics actually answer from. */
+const DIMENSIONAL_HINT =
+  ' For per-card frequency and unused cards use get_card_stats; for grid heat use ' +
+  'get_cell_heat; for word pairs use get_word_pairs; for scene breakdowns use ' +
+  'get_scene_breakdown.'
+
 export function toolsForScope(scope: ChatScope): ToolDef[] {
   const ids = scope.focusChildId
     ? [scope.focusChildId]
@@ -103,6 +143,22 @@ export function toolsForScope(scope: ChatScope): ToolDef[] {
         delete props[param]
       }
     }
+    /*
+     * metric_ids as free strings let the model invent names —
+     * "mean_symbols_per_utterance" produced 0 rows and a confident "no data"
+     * answer about a metric that exists as taps_per_utterance. An enum both
+     * rejects the invention and SHOWS the model the vocabulary it may use.
+     */
+    if (props.metric_ids?.items) {
+      props.metric_ids = {
+        ...props.metric_ids,
+        items: { type: 'string', enum: validMetricIds() },
+      }
+    }
+    if (props.metric_id) {
+      props.metric_id = { type: 'string', enum: validMetricIds() }
+    }
+
     schema.properties = props
     schema.required = required.filter(
       (r) => r !== 'class_id' && r !== 'adult_id' && (r !== 'child_id' || !single),
@@ -110,7 +166,10 @@ export function toolsForScope(scope: ChatScope): ToolDef[] {
 
     out.push({
       name,
-      description: tool.description,
+      description:
+        name === 'get_metrics' || name === 'get_metric_timeseries'
+          ? tool.description + DIMENSIONAL_HINT
+          : tool.description,
       parameters: schema,
     })
   }
@@ -171,6 +230,20 @@ export function invokeTool(
   }
   if ('adult_id' in schemaProps) {
     args.adult_id = scope.viewer.adult_id
+  }
+
+  // Unknown metric ids fail loudly WITH the valid vocabulary, so the model's
+  // next iteration corrects itself instead of concluding the data is missing.
+  const requestedMetrics = Array.isArray(args.metric_ids)
+    ? (args.metric_ids as unknown[]).filter((m): m is string => typeof m === 'string')
+    : typeof args.metric_id === 'string'
+      ? [args.metric_id]
+      : []
+  const unknown = requestedMetrics.filter((m) => !validMetricIds().includes(m))
+  if (unknown.length) {
+    return fail(
+      `Unknown metric id(s): ${unknown.join(', ')}. Valid ids: ${validMetricIds().join(', ')}.`,
+    )
   }
 
   // ---- validate against the FULL schema, including what Gemini never saw ---
