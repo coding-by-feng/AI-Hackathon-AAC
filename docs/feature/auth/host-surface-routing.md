@@ -55,6 +55,8 @@ localhost and would have 404'd on the real hostname).
 ```ts
 const SHARED = ['/manifest.webmanifest', '/icon.svg', '/sw.js', '/favicon.ico', '/robots.txt']
 
+const SHARED_PREFIXES = ['/icons/']
+
 const KID_PREFIXES = ['/who', '/api/session', '/api/events', '/api/cards', '/api/visuals', '/api/categories']
 
 const DASH_PREFIXES = [
@@ -70,11 +72,17 @@ const PUBLIC_DASH = ['/login', '/api/auth']
 1. `surface === 'any'` → `true` (everything)
 2. `SHARED.includes(pathname)` → `surface !== 'mcp'` (both browser surfaces get the PWA assets;
    the MCP host does not)
-3. `'kid'` → `pathname === '/'` or any `KID_PREFIXES` prefix match
-4. `'dashboard'` → `pathname === '/'` or any `DASH_PREFIXES` prefix match
-5. `'mcp'` → `pathname.startsWith('/api/mcp')`
+3. `SHARED_PREFIXES` prefix match → `surface !== 'mcp'` — static image directories under
+   `public/`. Added 2026-08-08: card faces load `/icons/ai/<slug>.png`, and before this rule
+   every icon 404'd on the public hostnames while localhost (surface `'any'`) served them —
+   the third instance of the "worked on localhost, dead on the real hostname" trap.
+   `tools/test-api.sh` K1–K4 pin it with Host-header spoofing.
+4. `'kid'` → `pathname === '/'` or any `KID_PREFIXES` prefix match
+5. `'dashboard'` → `pathname === '/'` or any `DASH_PREFIXES` prefix match
+6. `'mcp'` → `pathname.startsWith('/api/mcp')`
 
-`SHARED` uses exact equality; `KID_PREFIXES` / `DASH_PREFIXES` / the MCP rule use `startsWith`.
+`SHARED` uses exact equality; `SHARED_PREFIXES` / `KID_PREFIXES` / `DASH_PREFIXES` / the MCP
+rule use `startsWith`.
 
 ### `PUBLIC_DASH` and why `/login` sits outside `/dashboard`
 

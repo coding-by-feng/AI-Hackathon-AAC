@@ -27,6 +27,13 @@ function surfaceFor(host: string): Surface {
 /** Assets both browser surfaces need. */
 const SHARED = ['/manifest.webmanifest', '/icon.svg', '/sw.js', '/favicon.ico', '/robots.txt']
 
+/**
+ * Static asset directories under public/ that both browser surfaces load.
+ * Card faces reference /icons/ai/<slug>.png; without this, every icon 404s on
+ * the public hostnames while localhost (surface 'any') serves them fine.
+ */
+const SHARED_PREFIXES = ['/icons/']
+
 const KID_PREFIXES = ['/who', '/api/session', '/api/events', '/api/cards', '/api/visuals', '/api/categories']
 const DASH_PREFIXES = [
   '/dashboard', '/login',
@@ -48,6 +55,7 @@ const PUBLIC_DASH = ['/login', '/api/auth']
 function allowed(surface: Surface, pathname: string): boolean {
   if (surface === 'any') return true
   if (SHARED.includes(pathname)) return surface !== 'mcp'
+  if (SHARED_PREFIXES.some((p) => pathname.startsWith(p))) return surface !== 'mcp'
 
   switch (surface) {
     case 'kid':

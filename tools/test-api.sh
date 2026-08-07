@@ -82,6 +82,16 @@ echo "$R" | grep -qi '^location: .*/$' && ok H3 "switch lands on the board" || n
 R=$(curl -s -D - -o /dev/null "$BASE/api/session/switch?child=not_a_child" | tr -d '\r')
 echo "$R" | grep -qi '^set-cookie:' && no H4 "unknown child must not set a cookie" || ok H4 "unknown child sets no cookie"
 
+echo; echo "K. Hostname surface routing (static assets)"
+# middleware.ts allow-lists paths per public hostname. Card icons under
+# /icons/ai/ must be served on both browser surfaces — they 404'd on the
+# public site once while localhost (surface 'any') hid it. MCP serves nothing
+# but /api/mcp. Host-header spoofing against localhost reproduces the tunnel.
+eq K1 "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: aac.kason.app' $BASE/icons/ai/want.png)" "200" "board host serves card icons"
+eq K2 "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: aac-dashboard.kason.app' $BASE/icons/ai/want.png)" "200" "dashboard host serves card icons"
+eq K3 "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: aac-mcp.kason.app' $BASE/icons/ai/want.png)" "404" "mcp host serves no static assets"
+eq K4 "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: aac.kason.app' $BASE/dashboard)" "404" "board host still refuses /dashboard"
+
 echo
 printf "  \033[32m%d passed\033[0m  \033[31m%d failed\033[0m  \033[33m%d blocked\033[0m\n" $PASS $FAIL $BLOCK
 [ $FAIL -eq 0 ]
