@@ -16,9 +16,16 @@ type KeyStatus = { configured: boolean; source: 'settings' | 'env' | null; last4
 type Status = {
   provider: string
   model: string
+  localBaseUrl: { value: string; source: 'settings' | 'env' | null; envName: string }
   providers: Record<
     string,
-    { label: string; auth: 'adc' | 'api_key'; models: string[]; defaultModel: string; keySetting: string | null }
+    {
+      label: string
+      auth: 'adc' | 'api_key' | 'base_url'
+      models: string[]
+      defaultModel: string
+      keySetting: string | null
+    }
   >
   keys: Record<string, KeyStatus>
 }
@@ -27,6 +34,7 @@ const KEY_LABELS: Record<string, string> = {
   openai_api_key: 'OpenAI API key',
   anthropic_api_key: 'Anthropic API key',
   gemini_api_key: 'Google AI Studio API key',
+  local_api_key: 'Local model key (only if your server requires one)',
 }
 
 export function SettingsForm({ initial }: { initial: Status }) {
@@ -35,12 +43,14 @@ export function SettingsForm({ initial }: { initial: Status }) {
   const [model, setModel] = useState(initial.model)
   const [customModel, setCustomModel] = useState('')
   const [keys, setKeys] = useState<Record<string, string>>({})
+  const [baseUrl, setBaseUrl] = useState(initial.localBaseUrl.value)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
 
   const meta = status.providers[provider]
   const knownModels = meta?.models ?? []
   const effectiveModel = customModel.trim() || model
+  const isLocal = meta?.auth === 'base_url'
 
   const pickProvider = (id: string) => {
     setProvider(id)
@@ -53,6 +63,7 @@ export function SettingsForm({ initial }: { initial: Status }) {
     setNote(null)
     try {
       const body: Record<string, string> = { provider, model: effectiveModel }
+      if (isLocal) body.local_base_url = baseUrl
       for (const [k, v] of Object.entries(keys)) body[k] = v
       const res = await fetch('/api/dashboard/settings', {
         method: 'POST',
@@ -66,6 +77,7 @@ export function SettingsForm({ initial }: { initial: Status }) {
       setModel(data.model)
       setCustomModel('')
       setKeys({})
+      setBaseUrl(data.localBaseUrl.value)
       setNote({ tone: 'ok', text: `Saved. The Ask panel now uses ${data.provider} · ${data.model}.` })
     } catch (err) {
       setNote({ tone: 'error', text: (err as Error).message })
@@ -98,11 +110,40 @@ export function SettingsForm({ initial }: { initial: Status }) {
                       : 'no key yet'}
                   </span>
                 )}
+                {p.auth === 'base_url' && (
+                  <span className="ml-2 text-xs text-[var(--color-ink-muted)]">
+                    {status.localBaseUrl.value
+                      ? `${status.localBaseUrl.value} (${status.localBaseUrl.source})`
+                      : 'no address yet'}
+                  </span>
+                )}
               </span>
             </label>
           ))}
         </div>
       </section>
+
+      {isLocal && (
+        <section>
+          <h2 className="text-sm font-semibold">Where the model runs</h2>
+          <input
+            type="url"
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
+            placeholder="http://localhost:11434"
+            className="mt-2 w-full rounded-lg border border-[var(--color-line)] bg-[var(--color-surface)] px-3 py-2 text-sm"
+            aria-label="Local model address"
+          />
+          <p className="mt-1 text-xs text-[var(--color-ink-faint)]">
+            The address of the machine serving the model — this one, or any device on your own
+            network (<code>http://192.168.1.42:11434</code>). Ollama, LM Studio, llama.cpp and
+            vLLM all work; paste the host, the <code>/v1</code> root, or the full URL. The server
+            must support tool calling, or answers will cite no numbers. Nothing leaves your
+            network on this setting. Server-side <code>{status.localBaseUrl.envName}</code> is
+            used when this is empty.
+          </p>
+        </section>
+      )}
 
       <section>
         <h2 className="text-sm font-semibold">Model</h2>

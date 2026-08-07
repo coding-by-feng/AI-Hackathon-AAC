@@ -50,7 +50,9 @@ export async function POST(req: Request): Promise<Response> {
   const input: SaveInput = {}
   if (typeof body.provider === 'string') input.provider = body.provider
   if (typeof body.model === 'string') input.model = body.model
-  for (const k of ['openai_api_key', 'anthropic_api_key', 'gemini_api_key'] as const) {
+  for (const k of [
+    'openai_api_key', 'anthropic_api_key', 'gemini_api_key', 'local_api_key', 'local_base_url',
+  ] as const) {
     if (typeof body[k] === 'string') input[k] = body[k]
   }
 

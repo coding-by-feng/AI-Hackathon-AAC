@@ -27,7 +27,8 @@ Read that file before changing anything in the metrics, insights, or board-layou
 | Database | SQLite in WAL mode. `aac.db` (analytics, pipeline-owned) · `aac_app.db` (app writes: accounts, passcodes, card overrides) |
 | Rules | Plain SQL views. Deliberately not a model — a therapist has to be able to trace a finding to a number |
 | Analysis model | Gemma 3 4B on a separate device, connecting **outbound** as an MCP client |
-| Cloud AI | Chat: Vertex Gemini 3 (default) / OpenAI / Anthropic / AI-Studio Gemini, switchable with keys at `/dashboard/settings`; images via Vertex. All server-side only |
+| Chat AI | Vertex Gemini 3 (default) · OpenAI · Anthropic · AI-Studio Gemini · **a local model** (Gemma via any OpenAI-compatible server on your own network) — switchable at `/dashboard/settings`. Keys and addresses are server-side only |
+| Image AI | Vertex `gemini-2.5-flash-image`, server-side only |
 | Pipeline | Python 3 — seed generation, L2 rollup, rule materialisation, verification gate |
 
 ## Commands
@@ -97,16 +98,21 @@ app/                  Next.js App Router
   who/                picture-based child sign-in
   login/              adult sign-in
   dashboard/          class view · student tabs · sessions · reports · ask
-  api/                auth · cards · categories · chat · events · mcp
-                      · reports · session · visuals
+                      · settings (AI provider/model/keys)
+  api/                auth · cards · categories · chat · dashboard/settings
+                      · events · mcp · reports (incl. print + pdf) · session
+                      · visuals
 components/
   kid/                board, card face, category drawer/editor, edit sheet,
+                      keyboard layer, modelling help, essential rail,
                       voice picker, who picker, SW registration
-  chat/               ask panel
-  *.tsx               charts, heat grid, insight cards, KPI tiles, UI primitives
+  chat/               ask panel + markdown renderer
+  *.tsx               charts, heat grid, insight cards, KPI tiles, theme
+                      toggle, UI primitives
 lib/
   kid/                log (IndexedDB queue) · sentence · speech · voice
-  chat/               agent · provider split · guard · tool bridge
+  chat/               agent · providers (vertex · openai · anthropic · gemini)
+                      · settings · guard · tool bridge
   visuals/            resolution ladder · providers · sanitise · store
   categories/         category store + types
   metrics.ts insights.ts baseline.ts catalog.ts     analytics read layer
@@ -131,11 +137,11 @@ look like details. They are not.
 | Invariant | Enforced in |
 |---|---|
 | A metric whose catalogue polarity is `neutral` can never render as good or bad. `repeat_tap_rate` exists to stop the system pathologising stimming. | `lib/catalog.ts` — `direction()` returns `'flat'` for neutral regardless of delta |
-| `action_kind === 'informational'` renders **no action button**. I4 case B is a child refusing something; offering an intervention teaches them their "no" does not count. | `components/insight-card.tsx:129` |
+| `action_kind === 'informational'` renders **no action button**. I4 case B is a child refusing something; offering an intervention teaches them their "no" does not count. | `components/insight-card.tsx:139` |
 | `forbidden_actions` is **displayed**, not merely obeyed. | `components/insight-card.tsx`, `db/seed_catalogues.sql` |
 | Never *resize* or *move* a learned button — relocating destroys the motor plan (C2/C3). The UI offers *mask* and *add a copy* only. | `components/heat-grid.tsx`, `db/seed_catalogues.sql` `forbidden_actions` |
 | A generated mode highlights and dims; it never moves a card (C4). Modes hold no independent positions. | `components/kid/board-app.tsx`, `boards.kind ∈ {robust, mode}` |
-| Modelling Mode auto-exits after **90 s** idle, so adult presses are never silently attributed to the child. | `components/kid/board-app.tsx:148` |
+| Modelling Mode auto-exits after **90 s** idle, so adult presses are never silently attributed to the child. | `components/kid/board-app.tsx:154` |
 | Nothing is flagged until a child has **14 active days and 40 utterances of their own**. Gated on activity, not the calendar. | `lib/baseline.ts` — `BASELINE_ACTIVE_DAYS = 14`, `BASELINE_MIN_UTTERANCES = 40` |
 | An on-grid `card_tap` missing `grid_row`/`grid_col`/`grid_rows`/`grid_cols`/`nav_depth` is **rejected**, loudly. Those cannot be reconstructed later. | `lib/ingest.ts:92` |
 | Role and consent are filtered in the **query layer**, never in a component. A page that forgets to check is a bug; a query that cannot return unauthorised rows is a guarantee. | `lib/access.ts` |
@@ -152,8 +158,11 @@ Honest list, kept here so nobody rediscovers them as bugs.
 1. **`suggestion_acceptance`, `vocabulary_gaps` and `visual_source_split` have no source data.**
    `suggestion_shown`, `suggestion_tap` and `gap_detected` are not emitted by any client, so
    these render "not recorded yet" rather than as zeroes. `tools/verify.py` warns by name.
-2. **No keyboard / alphabet access** — constraint C8 says a robust AAC system needs it from
-   early learning. `keyboard_use` is defined in the schema so the gap is visible, not hidden.
+2. **`keyboard_use` metric is not wired to its events.** The ABC keyboard exists
+   (`components/kid/keyboard-layer.tsx`, closing constraint C8) and the board emits
+   `keyboard_input` events the ingest whitelist accepts — but no view in
+   `db/views_metrics.sql` reads them, so the metric renders "not used yet" even once a child
+   spells. Wiring it is a pipeline change (`v_daily_metrics_all`).
 3. **`mistap_threshold_ms` is fixed at 1500 ms** in the views. Per-child tuning (2500 ms is
    often truer for athetoid CP) needs a column on `children` — a schema change, so the
    pipeline's call.

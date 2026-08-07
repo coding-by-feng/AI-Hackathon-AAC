@@ -9,7 +9,7 @@
  * NEXT_PUBLIC_ var is readable from devtools in seconds.
  */
 
-export type ProviderId = 'openai' | 'gemini' | 'vertex' | 'anthropic'
+export type ProviderId = 'openai' | 'gemini' | 'vertex' | 'anthropic' | 'local'
 
 /** A tool as the agent knows it, before translation to a provider dialect. */
 export type ToolDef = {
@@ -87,6 +87,11 @@ export async function resolveProvider(): Promise<ChatProvider> {
     case 'openai': {
       const { OpenAIProvider } = await import('./openai')
       return new OpenAIProvider(cfg.model, cfg.apiKey)
+    }
+    case 'local': {
+      // Gemma (or anything else) on this machine or the school network.
+      const { LocalProvider } = await import('./local')
+      return new LocalProvider(cfg.model, cfg.baseUrl, cfg.apiKey)
     }
   }
 }

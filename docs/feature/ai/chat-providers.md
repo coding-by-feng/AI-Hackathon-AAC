@@ -132,3 +132,20 @@ Our tool schemas in `mcp/tools.ts` use keywords Gemini rejects outright, so a pa
 > (teacher/SLT/admin; write-only, masked status) or env. `MAX_STEPS` is 8.
 > Every provider runs inside the same scoped tool bridge and forbidden-action
 > guard — switching models changes the writing, never the boundaries.
+
+> **2026-08-08 (local models).** A fifth provider, `local`, runs Gemma (or any
+> model) on this machine or another device on the internal network. It is not a
+> fifth dialect: Ollama, LM Studio, llama.cpp's server, vLLM and LiteLLM all
+> serve the OpenAI Chat-Completions wire format, so `lib/chat/openai.ts` now
+> exports `openAIStyleStream()` and `lib/chat/local.ts` supplies a base URL.
+> Differences from the OpenAI path: the `Authorization` header is omitted
+> unless a key is configured; `stream_options` is not sent (several local
+> servers 400 on the unknown field, so token counts read 0); `tool_calls`
+> deltas without an `index` fall back to slot 0; a connection failure becomes
+> `Local model unreachable at <endpoint>` (503, retryable) rather than a bare
+> "fetch failed". `completionsUrl()` accepts a host root, a `/v1` root, or a
+> full completions URL. Config: `local_base_url` settings row → `AAC_LOCAL_BASE_URL`;
+> optional key `local_api_key` → `AAC_LOCAL_API_KEY`; default model `gemma3:4b`.
+> The address is validated (http/https, parseable) on save, not at question
+> time. **Tool calling is the requirement** — a server without function-calling
+> support streams prose and cites no numbers.

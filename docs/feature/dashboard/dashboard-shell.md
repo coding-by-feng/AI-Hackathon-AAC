@@ -143,3 +143,13 @@ Constant `FALLBACK`, six entries, rendered as `minHeight: 88` buttons in a 2-col
 > warm). `.dash` alone stays the approved dark; `[data-theme=white|warm] .dash`
 > re-token it. The toggle takes `unsetAs="black"` so its label matches the
 > fixed-dark default before any choice is stored.
+
+> **2026-08-08 (rail).** Items are now **Class · Sessions · Reports · Settings**.
+> "Children" was removed: it pointed at the same `/dashboard` href as Class and
+> differed only in its `active()` predicate, which read as two tabs doing the
+> same thing — Class now lights on `/dashboard`, `/dashboard/student*` and
+> `/dashboard/ask`. Sessions takes the freed slot, giving `/dashboard/sessions`
+> its first link from anywhere in the app. `Item.href` is no longer nullable and
+> the disabled-button branch is gone: every item has a destination. The logo
+> mark is a four-cell symbol grid with one cell pressed — the chat bubble read
+> as a messenger app, which is what an AAC board is not.
