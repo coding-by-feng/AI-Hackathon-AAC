@@ -361,7 +361,7 @@ If you change a file matching the pattern on the left, read every doc on the rig
 
 ## Impact Matrix
 
-149 rules, generated from `.manifest.json` (2026-08-07T22:38:06Z). If you change the file on the left, re-check every doc on the right.
+149 rules, generated from `.manifest.json` (2026-08-07T22:49:55Z). If you change the file on the left, re-check every doc on the right.
 
 | If you change… | Check… |
 |---|---|

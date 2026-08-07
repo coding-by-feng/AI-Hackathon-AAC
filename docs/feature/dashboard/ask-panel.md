@@ -1,7 +1,7 @@
 # Ask Panel
 
 ## Function
-The streaming chat surface: a client component that POSTs to `/api/chat` and renders the answer as markdown alongside the tools it called, the guidance notices the data raised, any rewritten answer, and any forbidden actions — mounted at `/dashboard/ask` (class scope), `/dashboard/student/[id]/ask` (per-child scope), inside a stored report, and docked in the student page's `#ask` section.
+The streaming chat surface: a client component that POSTs to `/api/chat` and renders the answer as markdown alongside the tools it called, the guidance notices the data raised, any rewritten answer, and any forbidden actions — mounted at `/dashboard/ask` (class scope), `/dashboard/student/[id]/ask` (per-child scope), inside a stored report, and docked at the TOP of the student page's `#ask` section (`compact` — no 28rem minimum height).
 
 ## Purpose
 From the component header: **the tool strip and the evidence are not debug output — they are the product.** A speech therapist will not act on an unattributed claim about a child, and a parent should be able to see exactly which numbers produced the sentence they are reading. Both are visible by default; only the raw payload is collapsed.
@@ -134,7 +134,7 @@ Both Ask pages are `dynamic = 'force-dynamic'` and `max-w-4xl px-6 py-6`.
 
 Both disclaimers reflect `mcp-api.md` §9: utterance text is not a permission setting — `aac_text.db` is never opened.
 
-The fourth mount — the student page's `#ask` section — is docked at the bottom of `/dashboard/student/[id]` under the same cannot-read-utterances note; see [student-overview.md](student-overview.md).
+The fourth mount — the student page's `#ask` section — sits at the TOP of `/dashboard/student/[id]` (directly under `DashHeader`), mounted with the `compact` prop so the empty panel is content-sized instead of reserving `min-h-[28rem]`; see [student-overview.md](student-overview.md).
 
 ## Dependencies & Connections
 

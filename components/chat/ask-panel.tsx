@@ -45,10 +45,17 @@ export function AskPanel({
   childId,
   childName,
   suggestions,
+  compact = false,
 }: {
   childId?: string
   childName?: string
   suggestions: string[]
+  /**
+   * Sized to its content instead of reserving 28rem. For mounts ABOVE other
+   * content (the student page docks this at the top), where an empty panel
+   * must not push the numbers below the fold.
+   */
+  compact?: boolean
 }) {
   const [turns, setTurns] = useState<Turn[]>([])
   const [input, setInput] = useState('')
@@ -185,7 +192,7 @@ export function AskPanel({
   )
 
   return (
-    <div className="flex min-h-[28rem] flex-col gap-4">
+    <div className={`flex flex-col gap-4 ${compact ? '' : 'min-h-[28rem]'}`}>
       <div className="flex-1 space-y-5">
         {turns.length === 0 && (
           <div className="rounded-lg border border-dashed border-[var(--color-line)] p-6 text-sm text-[var(--color-ink-muted)]">

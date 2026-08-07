@@ -1,6 +1,6 @@
 {
  "version": 1,
- "generated_at": "2026-08-07T22:38:06Z",
+ "generated_at": "2026-08-07T22:49:55Z",
  "generator": "align-existing-feature-docs",
  "project_type": "mixed",
  "domains": [
@@ -61,7 +61,7 @@
     "dashboard/ask-panel.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "ai/chat-providers.md",
@@ -138,7 +138,7 @@
     "api/ask-chat-endpoint.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "ai/forbidden-action-guard.md",
@@ -178,7 +178,7 @@
     "ai/ask-agent.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "ai/image-providers.md",
@@ -262,7 +262,7 @@
     "ai/visual-resolution-ladder.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "ai/scoped-tool-bridge.md",
@@ -305,7 +305,7 @@
     "api/ask-chat-endpoint.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "ai/visual-cache.md",
@@ -353,7 +353,7 @@
     "ai/visual-resolution-ladder.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "ai/visual-prompt-and-sanitisation.md",
@@ -396,7 +396,7 @@
     "ai/visual-resolution-ladder.md"
    ],
    "last_updated": "2026-08-07T11:16:46Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "ai/visual-resolution-ladder.md",
@@ -450,7 +450,7 @@
     "dashboard/student-overview.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "analytics/baseline-gating.md",
@@ -496,7 +496,7 @@
     "dashboard/student-overview.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "analytics/data-dictionary.md",
@@ -551,7 +551,7 @@
     "mcp/tool-surface.md"
    ],
    "last_updated": "2026-08-07T11:16:46Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "analytics/fired-rules-and-evidence.md",
@@ -609,7 +609,7 @@
     "dashboard/student-overview.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "analytics/metric-readers.md",
@@ -687,7 +687,7 @@
     "dashboard/student-overview.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "api/ask-chat-endpoint.md",
@@ -748,7 +748,7 @@
     "dashboard/ask-panel.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "api/board-content-endpoints.md",
@@ -828,7 +828,7 @@
     "kid-app/communication-board.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "api/event-ingest.md",
@@ -882,7 +882,7 @@
     "pipeline/l2-rollup.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "api/insight-dismissal-action.md",
@@ -934,7 +934,7 @@
     "mcp/tool-surface.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "api/mcp-http-transport.md",
@@ -993,7 +993,7 @@
     "mcp/stdio-server.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "api/print-and-generate.md",
@@ -1064,7 +1064,7 @@
     "dashboard/progress-reports.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "api/sign-in-endpoints.md",
@@ -1142,7 +1142,7 @@
     "kid-app/communication-board.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "api/visual-resolution-endpoint.md",
@@ -1192,7 +1192,7 @@
     "dashboard/student-overview.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "auth/adult-sign-in.md",
@@ -1264,7 +1264,7 @@
     "auth/role-consent-scoping.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "auth/host-surface-routing.md",
@@ -1318,7 +1318,7 @@
     "kid-app/communication-board.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "auth/login-page.md",
@@ -1384,7 +1384,7 @@
     "dashboard/dashboard-shell.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "auth/role-consent-scoping.md",
@@ -1441,7 +1441,7 @@
     "mcp/tool-surface.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "dashboard/ai-settings.md",
@@ -1469,7 +1469,7 @@
    "depends_on": [],
    "depended_on_by": [],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "dashboard/ask-panel.md",
@@ -1481,7 +1481,7 @@
     "app/dashboard/student/[id]/ask/page.tsx"
    ],
    "source_hashes": {
-    "components/chat/ask-panel.tsx": "6fd0adb0845a0667d97d6b21e95ca95c9f5a57db",
+    "components/chat/ask-panel.tsx": "827de8bf9a892451d7397ad9802ffd3b8f51cb99",
     "components/chat/markdown.tsx": "08a6f9f30469c5f69a87db1520a46f89e20d4d3f",
     "app/dashboard/ask/page.tsx": "d7fd626393b65a78bcfac7667aad4d4bb016df8a",
     "app/dashboard/student/[id]/ask/page.tsx": "1a7ab4debffaf17bfd49f5cbd53039cca28c87e5"
@@ -1549,8 +1549,8 @@
     "dashboard/dashboard-shell.md",
     "dashboard/progress-reports.md"
    ],
-   "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_updated": "2026-08-07T22:49:55Z",
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "dashboard/attention-queue.md",
@@ -1638,7 +1638,7 @@
     "dashboard/student-overview.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "dashboard/dashboard-redesign.md",
@@ -1656,7 +1656,7 @@
    "depends_on": [],
    "depended_on_by": [],
    "last_updated": "2026-08-07T22:37:04Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "dashboard/dashboard-shell.md",
@@ -1776,7 +1776,7 @@
     "dashboard/student-overview.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "dashboard/insight-cards.md",
@@ -1850,7 +1850,7 @@
     "mcp/tool-surface.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "dashboard/progress-reports.md",
@@ -1875,7 +1875,7 @@
     "lib/report-html.ts": "976244c1c7fb21bf05e67a48bc9c53abb3932c82",
     "app/api/reports/[id]/print/route.ts": "6f439e2c6927b10e874ee52f6c2563d24a78d4b2",
     "app/api/reports/[id]/pdf/route.ts": "2a5678b85847fc204ff0d6ee665c7f469c7e636a",
-    "app/dashboard/student/[id]/page.tsx": "adcc23138df93a1305240dd75f3ef6f174e943c5",
+    "app/dashboard/student/[id]/page.tsx": "31064bbc422a9b74c273c6dbb53370cce34e7756",
     "app/dashboard/student/[id]/report/page.tsx": "e812af2ada53a4aaa0a87736dd10bfcc8510d273",
     "app/dashboard/reports/page.tsx": "b573959406ba2a97cf978dee77ae9c9423ce3b3e",
     "app/dashboard/reports/actions.ts": "cc09583bb3b68545c74f8b5a39a2bc7e47eae2ef",
@@ -2000,7 +2000,7 @@
     "dashboard/sittings.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "dashboard/reach-and-errors.md",
@@ -2077,7 +2077,7 @@
     "dashboard/progress-reports.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "dashboard/sittings.md",
@@ -2161,7 +2161,7 @@
     "dashboard/progress-reports.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "dashboard/student-overview.md",
@@ -2176,7 +2176,7 @@
     "components/kpi-tile.tsx"
    ],
    "source_hashes": {
-    "app/dashboard/student/[id]/page.tsx": "adcc23138df93a1305240dd75f3ef6f174e943c5",
+    "app/dashboard/student/[id]/page.tsx": "31064bbc422a9b74c273c6dbb53370cce34e7756",
     "app/dashboard/student/[id]/ai-impact/page.tsx": "be7bcdb442d42fd6b6a995b75607d36fe95b89ee",
     "app/dashboard/header.tsx": "1638afa8c8cdeabfff811f2542d013270fdc4ffb",
     "components/metric-card.tsx": "3677c67d8f6ffb15a5ad11a038c7a4522a3d2bac",
@@ -2273,8 +2273,8 @@
     "dashboard/dashboard-shell.md",
     "dashboard/sittings.md"
    ],
-   "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_updated": "2026-08-07T22:49:55Z",
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "database/catalogues.md",
@@ -2363,7 +2363,7 @@
     "pipeline/rule-materialisation.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "database/connection-layer.md",
@@ -2437,7 +2437,7 @@
     "kid-app/category-folders.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "database/insight-views.md",
@@ -2527,7 +2527,7 @@
     "pipeline/verification-gate.md"
    ],
    "last_updated": "2026-08-07T11:16:46Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "database/metric-views.md",
@@ -2633,7 +2633,7 @@
     "pipeline/verification-gate.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "database/schema.md",
@@ -2762,7 +2762,7 @@
     "pipeline/rule-materialisation.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "deploy/cloudflare-tunnel-ingress.md",
@@ -2839,7 +2839,7 @@
     "mcp/stdio-server.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "deploy/next-build-config.md",
@@ -2892,7 +2892,7 @@
     "deploy/production-web-service.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "deploy/npm-scripts.md",
@@ -2962,7 +2962,7 @@
     "deploy/typescript-and-css-toolchain.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "deploy/production-web-service.md",
@@ -3041,7 +3041,7 @@
     "mcp/stdio-server.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "deploy/typescript-and-css-toolchain.md",
@@ -3117,7 +3117,7 @@
     "mcp/stdio-server.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "kid-app/ai-vocabulary-icons.md",
@@ -3143,7 +3143,7 @@
    "depends_on": [],
    "depended_on_by": [],
    "last_updated": "2026-08-07T22:37:04Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "kid-app/card-customisation.md",
@@ -3214,7 +3214,7 @@
     "kid-app/utterance-and-speech.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "kid-app/category-folders.md",
@@ -3311,7 +3311,7 @@
     "kid-app/communication-board.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "kid-app/child-sign-in.md",
@@ -3389,7 +3389,7 @@
     "kid-app/event-logging.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "kid-app/communication-board.md",
@@ -3486,7 +3486,7 @@
     "dashboard/student-overview.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "kid-app/event-logging.md",
@@ -3547,7 +3547,7 @@
     "pipeline/rule-materialisation.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "kid-app/keyboard-and-modeling-help.md",
@@ -3577,7 +3577,7 @@
    "depends_on": [],
    "depended_on_by": [],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "kid-app/offline-pwa.md",
@@ -3644,7 +3644,7 @@
     "kid-app/event-logging.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "kid-app/symbol-set.md",
@@ -3713,7 +3713,7 @@
     "kid-app/communication-board.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "kid-app/utterance-and-speech.md",
@@ -3796,7 +3796,7 @@
     "kid-app/communication-board.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "mcp/argument-validation.md",
@@ -3832,7 +3832,7 @@
     "mcp/tool-surface.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "mcp/read-only-db-access.md",
@@ -3886,7 +3886,7 @@
     "mcp/tool-surface.md"
    ],
    "last_updated": "2026-08-07T11:16:46Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "mcp/response-fixtures.md",
@@ -3942,7 +3942,7 @@
     "analytics/metric-readers.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "mcp/stdio-server.md",
@@ -4007,7 +4007,7 @@
     "mcp/response-fixtures.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "mcp/tool-surface.md",
@@ -4133,7 +4133,7 @@
     "mcp/stdio-server.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "pipeline/build-pipeline.md",
@@ -4192,7 +4192,7 @@
     "pipeline/test-harnesses.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "pipeline/csv-export.md",
@@ -4275,7 +4275,7 @@
    ],
    "depended_on_by": [],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "pipeline/generated-artefacts.md",
@@ -4352,7 +4352,7 @@
     "pipeline/csv-export.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "pipeline/l2-rollup.md",
@@ -4414,7 +4414,7 @@
     "pipeline/verification-gate.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "pipeline/rule-materialisation.md",
@@ -4473,7 +4473,7 @@
     "pipeline/verification-gate.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "pipeline/seed-generation.md",
@@ -4597,7 +4597,7 @@
     "pipeline/verification-gate.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "pipeline/test-harnesses.md",
@@ -4691,7 +4691,7 @@
     "pipeline/build-pipeline.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   },
   {
    "doc": "pipeline/verification-gate.md",
@@ -4759,7 +4759,7 @@
     "pipeline/build-pipeline.md"
    ],
    "last_updated": "2026-08-07T22:38:06Z",
-   "last_aligned": "2026-08-07T22:38:06Z"
+   "last_aligned": "2026-08-07T22:49:55Z"
   }
  ],
  "impact_matrix": [

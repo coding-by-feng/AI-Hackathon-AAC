@@ -156,6 +156,21 @@ export default async function StudentPage({
         period={`Last ${period} days`}
       />
 
+      {/* First by request: the question box is the fastest route into the data,
+          so it sits above the numbers it answers from. The Report block's
+          "Ask about this" button still targets #ask — it just scrolls up now. */}
+      <section
+        id="ask"
+        className="scroll-mt-6 rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5"
+      >
+        <h2 className="mb-1 text-sm font-semibold">Ask about this report</h2>
+        <p className="mb-4 text-xs text-[var(--color-ink-muted)]">
+          Answers come from the same data as the cards below, and every answer shows which numbers
+          it used. It cannot read what {first} actually said.
+        </p>
+        <AskPanel childId={id} childName={first} suggestions={suggestions} compact />
+      </section>
+
       {sections.map((sec) => (
         <section key={sec.title}>
           <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-ink-muted)]">
@@ -229,18 +244,6 @@ export default async function StudentPage({
       </section>
 
       <MetricCaveats metrics={metrics} />
-
-      <section
-        id="ask"
-        className="scroll-mt-6 rounded-[var(--radius-card)] border border-[var(--color-line)] bg-[var(--color-surface)] p-5"
-      >
-        <h2 className="mb-1 text-sm font-semibold">Ask about this report</h2>
-        <p className="mb-4 text-xs text-[var(--color-ink-muted)]">
-          Answers come from the same data as the cards above, and every answer shows which numbers
-          it used. It cannot read what {first} actually said.
-        </p>
-        <AskPanel childId={id} childName={first} suggestions={suggestions} />
-      </section>
 
       <p className="text-xs text-[var(--color-ink-faint)]">
         More detail:{' '}
