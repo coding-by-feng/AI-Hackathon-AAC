@@ -9,6 +9,18 @@ const config: NextConfig = {
     // Server Actions are used for insight dismissal and board-change proposals.
     serverActions: { bodySizeLimit: '1mb' },
   },
+  async headers() {
+    return [
+      {
+        // Pre-generated card icons. Without this they serve with max-age=0 and
+        // a board load revalidates all 76 on a child's tablet over school wifi.
+        // The set only changes when tools regenerate it, and a regeneration can
+        // bump the URL; a day of staleness is acceptable, a broken board is not.
+        source: '/icons/ai/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
+      },
+    ]
+  },
 }
 
 export default config
