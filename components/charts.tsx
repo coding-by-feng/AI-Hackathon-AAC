@@ -41,14 +41,28 @@ export function LineChart({ points, height = 64, color = 'var(--color-accent)' }
     .join(' ')
   const area = `${d} L${w},${height} L0,${height} Z`
   const last = points[points.length - 1]
+  const lastY = y(last.value ?? 0)
 
+  /*
+   * The svg gets an explicit CSS height. Without one, auto-sizing follows the
+   * viewBox ratio, so the chart grew WITH the card — a full-width card drew an
+   * 800px-tall mountain. The endpoint dot is an HTML overlay, not an svg
+   * circle: with preserveAspectRatio="none" a circle stretches into a blob at
+   * exactly the widths where the card looks best.
+   */
   return (
-    <svg viewBox={`0 0 ${w} ${height}`} className="w-full" preserveAspectRatio="none"
-         role="img" aria-label={`Trend ending at ${last.value ?? 'no data'}`}>
-      <path d={area} fill={color} opacity={0.12} />
-      <path d={d} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
-      <circle cx={w} cy={y(last.value ?? 0)} r={2.5} fill={color} />
-    </svg>
+    <div className="relative w-full" style={{ height }}>
+      <svg viewBox={`0 0 ${w} ${height}`} className="h-full w-full" preserveAspectRatio="none"
+           role="img" aria-label={`Trend ending at ${last.value ?? 'no data'}`}>
+        <path d={area} fill={color} opacity={0.12} />
+        <path d={d} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
+      </svg>
+      <span
+        aria-hidden
+        className="absolute h-[7px] w-[7px] -translate-y-1/2 rounded-full"
+        style={{ right: 0, top: `${(lastY / height) * 100}%`, background: color }}
+      />
+    </div>
   )
 }
 
@@ -67,7 +81,10 @@ export function BarChart({ points, height = 64, color = 'var(--color-accent)' }:
 
   return (
     <div>
-      <svg viewBox={`0 0 ${w} ${height}`} className="w-full" preserveAspectRatio="none" role="img">
+      {/* Explicit CSS height: without it the svg's layout height follows the
+          viewBox ratio and the chart grows with the card width. */}
+      <svg viewBox={`0 0 ${w} ${height}`} className="w-full" style={{ height }}
+           preserveAspectRatio="none" role="img">
         {points.map((p, i) => {
           const top = y(p.value ?? 0)
           return (
@@ -243,17 +260,27 @@ export function ScatterChart({ points, height = 72 }: {
 
   return (
     <div>
-      <svg viewBox={`0 0 ${w} ${height}`} className="w-full" preserveAspectRatio="none" role="img">
-        <line x1={0} y1={height - 1} x2={w} y2={height - 1} stroke={AXIS} strokeWidth={1}
-              vectorEffect="non-scaling-stroke" />
-        {points.map((p, i) => (
-          <circle key={i}
-                  cx={8 + (p.x / (maxX + 1)) * (w - 16)}
-                  cy={height - 6 - (p.y / maxY) * (height - 16)}
-                  r={Math.max(2.5, Math.min(6, 2 + (p.y / maxY) * 4))}
-                  fill="var(--color-accent)" opacity={0.75} />
-        ))}
-      </svg>
+      {/* Fixed CSS height (see LineChart) and HTML dots: an svg circle under
+          preserveAspectRatio="none" stretches into an ellipse on wide cards. */}
+      <div className="relative w-full" style={{ height }}>
+        <svg viewBox={`0 0 ${w} ${height}`} className="h-full w-full" preserveAspectRatio="none" role="img">
+          <line x1={0} y1={height - 1} x2={w} y2={height - 1} stroke={AXIS} strokeWidth={1}
+                vectorEffect="non-scaling-stroke" />
+        </svg>
+        {points.map((p, i) => {
+          const d = Math.max(5, Math.min(12, 4 + (p.y / maxY) * 8))
+          return (
+            <span key={i} aria-hidden
+                  className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{
+                    left: `${((8 + (p.x / (maxX + 1)) * (w - 16)) / w) * 100}%`,
+                    top: `${((height - 6 - (p.y / maxY) * (height - 16)) / height) * 100}%`,
+                    width: d, height: d,
+                    background: 'var(--color-accent)', opacity: 0.75,
+                  }} />
+          )
+        })}
+      </div>
       <div className="mt-1 flex justify-between text-[9px]" style={{ color: INK }}>
         <span>simpler</span><span>more complex</span>
       </div>
