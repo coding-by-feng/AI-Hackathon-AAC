@@ -11,7 +11,7 @@ image, a semantically close cached image, or a new generation. The response says
 UI can be honest about it and so the dashboard's cost panel has a denominator.
 
 This is also the only place `OPENAI_API_KEY` is reachable from: the pinned decision in
-`TECH_STACK.md` is "no key in the browser" — the client talks to `/api/*` and the key exists
+`docs/TECH_STACK.md` is "no key in the browser" — the client talks to `/api/*` and the key exists
 only on the server. Generation is the last resort, not the default: the product claim is that
 AI fills gaps in a vocabulary, not that it draws every symbol.
 

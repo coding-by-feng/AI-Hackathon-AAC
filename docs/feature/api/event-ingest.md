@@ -135,8 +135,8 @@ hostname and 404s on `aac-dashboard.*` and `aac-mcp.*`.
   through `ingestEvents`.
 - [Board content endpoints](board-content-endpoints.md) — writes `card_created` through
   `ingestEvents`.
-- [Visual resolution endpoint](visual-resolution-endpoint.md) — every ladder step writes
-  `gap_detected`.
+- [Visual resolution endpoint](visual-resolution-endpoint.md) — every resolution attempt
+  carrying a `childId` writes `gap_detected`.
 - [Analytics rollups](../pipeline/l2-rollup.md) and every metric read downstream — nothing enters
   `aac.db` any other way.
 

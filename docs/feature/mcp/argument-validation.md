@@ -91,6 +91,8 @@ Because unknown keys are a hard error, any parameter a tool's `run()` reads but 
 
 `app/api/mcp/route.ts` does **not** call `validateArgs` — the HTTP transport passes `params.arguments` straight to `tool.run`, so the two transports do not enforce the same contract despite sharing the tool implementations.
 
+One backstop narrows that divergence for windows specifically: `resolveWindow` in `mcp/tools.ts` throws `McpError('SQL_REJECTED', "'<token>' is not a window. Allowed: …")` for an unknown window token instead of silently defaulting to 7 days. The tools that accept a caller-supplied window — `get_metrics` and `get_report_set` via their schema `enum` (where `validateArgs` rejects first over stdio), plus `get_metric_timeseries` via `from`/`to` and the custom-window rules — therefore reject loudly on both transports; `tools/test-api.sh` L5 pins the HTTP-side rejection with `window: "28d"`.
+
 ## Dependencies & Connections
 
 ### Depends On
@@ -112,7 +114,3 @@ Because unknown keys are a hard error, any parameter a tool's `run()` reads but 
 - **Adding validation of `additionalProperties`, `oneOf`, `$ref` or nested array item objects** is not supported today; a schema using them would validate more loosely than it reads.
 - **Adding a parameter to a tool's `run()` without adding it to that tool's `schema`** makes the parameter permanently unreachable over stdio while silently working over HTTP (which skips validation) — a divergence that is easy to miss.
 - **Changing the error message format** breaks nothing programmatically but degrades the one-retry self-correction behaviour the module exists to produce.
-
-> **2026-08-08:** `resolveWindow` (mcp/tools.ts) now throws `SQL_REJECTED` for an
-> unknown window token instead of silently defaulting to 7 days. All 7
-> window-taking tools inherit the rejection; `tools/test-api.sh` L5 pins it.

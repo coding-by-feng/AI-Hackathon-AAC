@@ -42,6 +42,8 @@ npm run build                      # package.json → "./tools/build.sh aac.db"
 
 Note that the fixture loop pipes through `head -1`, so only the "wrote …" summary line of each fixture capture is shown; the per-tool token table is discarded.
 
+`db/seed_core_words.sql` is the one `db/*.sql` file the build never runs. It is additive (`INSERT OR IGNORE` into `core_word_list`, then a `cards.is_core` recompute by join) and is applied by hand after a build: `sqlite3 aac.db < db/seed_core_words.sql`. See [Seed Cohort Generation](seed-generation.md) — a freshly built database carries the generator's 30-word core list until this file is applied.
+
 ### Stages 1 and 2 are rebuilt by stage 3
 
 `tools/seed/generate.py` `main()` deletes the target database (and its `-wal` / `-shm` files) and re-executes `db/schema.sql`, `db/indices.sql` and `db/seed_catalogues.sql` itself before generating anything. The database counted by stages 1/7 and 2/7 is therefore discarded and recreated by stage 3/7. The counts printed by those two stages are still accurate for the DDL files, but they do not describe the database that survives the build. Running `tools/seed/generate.py` standalone is sufficient to get a schema + catalogues + seed database; stages 1–2 exist so a failure in the DDL is reported before the slower Python stage runs.

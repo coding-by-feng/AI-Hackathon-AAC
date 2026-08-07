@@ -39,7 +39,7 @@ const RESOURCES = [
     description: 'Full schema with comments. Read before writing SQL.',
     load: () => readFileSync(resolve(ROOT, 'db/schema.sql'), 'utf8') },
   { uri: 'schema://dictionary', name: 'Metric dictionary', mimeType: 'application/json',
-    description: 'All 38 metrics: formula, unit, polarity, min_n, caveat.',
+    description: 'All 41 metrics: formula, unit, polarity, min_n, caveat.',
     load: () => JSON.stringify(db.all('SELECT * FROM metrics_catalog ORDER BY group_code, metric_id'), null, 1) },
   { uri: 'schema://insights', name: 'Insight rules', mimeType: 'application/json',
     description: 'The 8 rules, their thresholds, and the actions each one forbids.',

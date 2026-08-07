@@ -9,7 +9,7 @@ liveness probe.
 `mcp/server.ts` speaks JSON-RPC over **stdio**, which Claude Desktop uses and which a Cloudflare
 Tunnel cannot carry: a tunnel forwards HTTP to a port, and stdio has no port. This route is the
 same protocol over POST, so the analysis device (Gemma 3 4B on separate hardware, per
-`TECH_STACK.md`) can reach the tools remotely with no inbound ports of its own.
+`docs/TECH_STACK.md`) can reach the tools remotely with no inbound ports of its own.
 
 The tool implementations are imported **unchanged** from `mcp/tools.ts`. Both transports
 therefore expose exactly the same surface, and the stdio server keeps working for local
@@ -134,12 +134,16 @@ deliberately revealing nothing about the data. Unauthenticated.
 ### Routing
 
 `middleware.ts` maps a host beginning `aac-mcp.` to `surface = 'mcp'`, which allows **only**
-paths starting `/api/mcp` — not even the shared assets. On the kid and dashboard hostnames
-`/api/mcp` returns 404. On localhost (`surface = 'any'`) everything is reachable, which is why
-`docs/deploy.md` insists the hostname matrix be smoke-tested against the deployed URL.
+paths starting `/api/mcp` — not even the shared assets: both the exact-path `SHARED` list and
+the `SHARED_PREFIXES = ['/icons/']` static-image directories are excluded from the mcp
+surface, the latter pinned by `tools/test-api.sh` K3 (`/icons/ai/want.png` → 404 on the MCP
+host). On the kid and dashboard hostnames `/api/mcp` returns 404. On localhost
+(`surface = 'any'`) everything is reachable, which is why `docs/deploy.md` insists the
+hostname matrix be smoke-tested against the deployed URL.
 
 `tools/test-api.sh` covers this route: no token → 401, wrong token → 401, `tools/list` →
-at least 14 tools, `tools/call list_children` → 5 children.
+at least 14 tools, `tools/call list_children` → 5 children, and `get_metrics` with an
+out-of-set window token → a loud rejection, never a silent 7d fallback.
 
 ## Dependencies & Connections
 
@@ -157,7 +161,7 @@ at least 14 tools, `tools/call list_children` → 5 children.
 ### Depended On By
 - [MCP clients](../mcp/stdio-server.md) — the analysis device and Claude Desktop over
   `mcp-remote`/HTTP; `mcp/server.ts` remains the stdio path for local development.
-- `tools/test-api.sh` — the L1–L4 assertions.
+- `tools/test-api.sh` — the L1–L5 assertions.
 
 ### Shared Resources
 - `aac.db`, opened read-only and cached on `globalThis.__mcpDb`.

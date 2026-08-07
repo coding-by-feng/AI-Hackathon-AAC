@@ -21,7 +21,8 @@ side table in the app-owned database, joined by `adult_id`.
 ## Source Files
 | File | Role |
 |------|------|
-| `lib/auth.ts` | Whole module: credential table bootstrap, scrypt hashing, account creation, authentication, session mint/read/verify, cookie set/delete/read |
+| `lib/auth.ts` | Core module: credential table bootstrap, scrypt hashing, account creation, authentication, session mint/read/verify, cookie set/delete/read |
+| `app/dashboard/user-chip.tsx` | The sign-out control: the header's `name · role` chip, which calls `DELETE /api/auth` |
 
 ## Implementation
 
@@ -29,7 +30,7 @@ side table in the app-owned database, joined by `adult_id`.
 
 | Name | Value | Notes |
 |---|---|---|
-| `APP_DB` | `process.env.AAC_APP_DB ?? path.join(process.cwd(), 'aac_app.db')` | Same file used by `lib/session.ts`, `lib/overrides.ts`, `lib/visuals/store.ts`, `lib/categories/store.ts` |
+| `APP_DB` | `process.env.AAC_APP_DB ?? path.join(process.cwd(), 'aac_app.db')` | Same file used by `lib/session.ts`, `lib/overrides.ts`, `lib/visuals/store.ts`, `lib/categories/store.ts`, `lib/chat/settings.ts` |
 | `COOKIE` | `'aac_adult'` | Cookie name; also hard-coded as the literal `'aac_adult'` in `middleware.ts` |
 | `MAX_AGE` | `60 * 60 * 12` (43200 s = 12 hours) | Used for both the cookie `maxAge` and the token expiry stamp |
 | `AAC_SESSION_SECRET` | env var, **no default** | HMAC key. Missing value throws, it does not fall back |
@@ -144,10 +145,12 @@ real bug this fixed:
 - `POST /api/auth` with `{ username, password, adultId, setup: true }` → re-checks
   `accountCount() > 0` (→ `409 { error: 'Setup is closed — an account already exists' }`),
   then `createAccount` → `signIn` → `{ ok: true }`.
-- `DELETE /api/auth` → `signOut()` → `{ ok: true }`. **Nothing in the app calls this** — there
-  is no sign-out control in `app/dashboard/layout.tsx` or anywhere else in `components/`. The
-  only way to end a session from the UI today is to let the 12-hour cookie expire or clear it
-  manually.
+- `DELETE /api/auth` → `signOut()` → `{ ok: true }`. The caller is
+  `app/dashboard/user-chip.tsx` — the "name · role" chip `DashHeader` places in the page
+  header, with `title="Sign out"` so the label-looking control says what it does. Clicking it
+  sends the `DELETE`, then `router.push('/login')` + `router.refresh()` in a `finally`, so a
+  failed fetch does not block the redirect — the server-side cookie check stays the authority
+  either way.
 - `GET /api/auth` → `{ setupOpen: false }` once any account exists, otherwise
   `{ setupOpen: true, adults }`.
 
@@ -169,11 +172,17 @@ real bug this fixed:
   function except `hashPassword`/`verifyPassword`.
 - [Host and surface routing](host-surface-routing.md) — `middleware.ts` tests for the
   presence of the `aac_adult` cookie this module sets.
+- [Dashboard shell](../dashboard/dashboard-shell.md) — `DashHeader` renders the `UserChip`
+  (`app/dashboard/user-chip.tsx`), whose sign-out calls `DELETE /api/auth` and returns the
+  browser to `/login`.
 
 ### Shared Resources
-- `aac_app.db` — shared with `lib/session.ts`, `lib/overrides.ts`, `lib/visuals/store.ts` and
-  `lib/categories/store.ts`, each of which opens its own handle to the same file. WAL plus a
-  5000 ms busy timeout is what keeps the concurrent writers from colliding.
+- `aac_app.db` — shared with `lib/session.ts`, `lib/overrides.ts`, `lib/visuals/store.ts`,
+  `lib/categories/store.ts` and `lib/chat/settings.ts` (`ai_settings` — provider selection and
+  API keys, write-only), each of which opens its own handle to the same file. WAL plus a
+  5000 ms busy timeout is what keeps the concurrent writers from colliding. Note the file now
+  holds credentials for two different things: hashed adult passwords in `adult_credentials`
+  and provider API keys in `ai_settings`.
 - Cookie name `aac_adult` — the string is duplicated in `middleware.ts` (twice) rather than
   imported, because middleware runs on the Edge runtime and cannot import this module.
 - `AAC_SESSION_SECRET` — see the environment table in [deploy](../deploy/production-web-service.md).
@@ -202,6 +211,6 @@ real bug this fixed:
 - **Moving credentials into `aac.db`** puts them in the file `tools/build.sh` rebuilds from
   scratch — every account would be destroyed on the next pipeline run. See
   [Pipeline build](../pipeline/build-pipeline.md).
-- **Adding a sign-out button** is safe (the `DELETE /api/auth` handler already exists and works);
-  the risk is the reverse — today's absence means a shared classroom machine keeps a session for
-  the full 12 hours.
+- **Removing the user chip or its `DELETE` call** leaves no way to end a session from the UI —
+  on a shared classroom machine the session then survives the full 12 hours. The chip in the
+  page header is the only sign-out control.

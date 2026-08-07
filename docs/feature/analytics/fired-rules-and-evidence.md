@@ -109,8 +109,14 @@ So `mistap_rate` → `mis-tap rate`, `threshold_mistap_rate` → `mis-tap rate`,
 
 Note this ordering: a key like `mistap_rate_ms` would take the rate branch first. Also note the divergence from `formatValue()` in the [data dictionary](data-dictionary.md), which rounds ratios to a whole percent — evidence keeps one decimal so the number can be checked against the threshold it fired on.
 
+### `toCardData(fr)` — shaping a firing for the card
+
+Exported at `lib/insights.ts:164`, `toCardData` turns a hydrated `FiredRule` into the `InsightCardData` shape, whose type is imported (type-only, so no component code enters this module) from `@/components/insight-card`. It runs `splitEvidence(fr.evidence[0] ?? {})` — the **first evidence row only** — and formats both halves through `[humanKey(k), humanEvidenceValue(k, v)]`.
+
+Catalogue fields come from `fr.meta` with fallbacks chosen deliberately, per the function comment: *"The fallbacks are chosen for safety, not convenience: a firing whose catalogue row is missing renders as `informational` — no action button — rather than inviting an intervention nobody specified."* Concretely: `action_kind: fr.meta?.action_kind ?? 'informational'` and `target_audience: fr.meta?.target_audience ?? 'adult'`, alongside `recommended_actions ?? []`, `forbidden_actions ?? []`, `safety_note ?? null`, `name ?? insight_id` and `plain_statement ?? ''`.
+
 ### Consumption
-`app/dashboard/student/[id]/page.tsx` calls `openInsights(id)` and maps each `FiredRule` into `InsightCardData`, running `splitEvidence(ev)` over the evidence rows and then `[humanKey(k), humanEvidenceValue(k, v)]` over both the values and the thresholds. The list is only rendered when `baseline(id).ready` — see [Baseline Gating](baseline-gating.md).
+`app/dashboard/student/[id]/page.tsx` builds the card list as `openInsights(id).map(toCardData)`. Because `toCardData` splits only `fr.evidence[0]`, a multi-row firing shows one row's numbers on the card. The list is only rendered when `baseline(id).ready` — see [Baseline Gating](baseline-gating.md).
 
 ### Storage keys
 Tables: `fired_rules` (read + the one UPDATE), `insights` (read), `insights_catalog` (read, via `insightMeta`). `lib/queue.ts` additionally reads `MAX(fired_at) FROM fired_rules` for its `analysisFreshness()` staleness caption.
@@ -139,7 +145,8 @@ Tables: `fired_rules` (read + the one UPDATE), `insights` (read), `insights_cata
 - **Dropping `superseded_by IS NULL` from `openInsights`** shows a teacher the same finding twice from two consecutive nightly runs, and doubles the Attention Queue's `INSIGHT` detail count.
 - **Turning the `LEFT JOIN insights` into an inner join** hides every rule that fired but has not been narrated yet — the deterministic half of the design would become invisible whenever the model is down, which is the opposite of the two-table intent.
 - **A `fired_rule_id` with more than one `insights` row** duplicates the fired rule in the result set; nothing de-duplicates the join. The schema does not make `insights.fired_rule_id` unique.
-- **Removing `meta` from the hydrated shape, or letting `insightMeta()` return `undefined` silently** (a missing `insights_catalog` row) strips `forbidden_actions` and `action_kind` from the card. An I4 case B insight would then render an intervention affordance — the exact harm `docs/aac-clinical-constraints.md` forbids.
+- **A missing `insights_catalog` row no longer renders an intervention affordance** — `toCardData`'s `action_kind ?? 'informational'` fallback fails safe (no action button). What a missing row *does* still cost: the card loses its `forbidden_actions` display, `safety_note` and `plain_statement`, so the clinical framing goes blank even though no unsafe button appears. Weakening those fallbacks (e.g. defaulting `action_kind` to `'intervention'`) would recreate the original I4 case B harm.
+- **A rule that fires with multiple evidence rows renders only `evidence[0]` on the card.** `run_rules.py` caps evidence at 15 rows for I4 and 10 for I3/I6/I8, and I4 routinely fires with 4–15 rows (one per unused card) on the current build — a teacher reading the card sees a single row's numbers standing in for all of them. `evidence_rows` in `get_insight_history` still reports the true count.
 - **Widening the `WRITABLE` regex in `lib/db.ts`** to let this module touch anything beyond `fired_rules` breaks the invariant that the dashboard never writes events, utterances or cards.
 - **Changing `DismissReason` values** requires the `CHECK` constraint on `fired_rules.dismiss_reason` to change in the same migration, or every dismissal throws at write time.
 - **Editing `splitEvidence`'s classifier** (the `threshold_` prefix / `_threshold_ms` suffix convention) silently moves fields between the "measured" and "compared against" columns of the card. The rule SQL in `db/views_insights.sql` names its columns to match this convention — the two must be changed together.

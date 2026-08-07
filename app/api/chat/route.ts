@@ -10,6 +10,7 @@
  */
 import { currentViewer, requireChild, visibleChildren } from '@/lib/access'
 import { runAgent, type AgentEvent } from '@/lib/chat/agent'
+import { chatConfig } from '@/lib/chat/settings'
 import { toolsForScope, type ChatScope } from '@/lib/chat/tools'
 
 export const runtime = 'nodejs'
@@ -123,9 +124,14 @@ export async function GET(): Promise<Response> {
       classId: children.find((c) => c.class_id)?.class_id ?? undefined,
     }
     const tools = toolsForScope(scope)
+    // The same resolution the answering path uses (settings row -> env ->
+    // default), so this endpoint cannot disagree with the provider that
+    // actually answers.
+    const cfg = chatConfig()
     return json({
       viewer: { adult_id: viewer.adult_id, display_name: viewer.display_name, role: viewer.role },
-      provider: process.env.CHAT_PROVIDER ?? 'openai',
+      provider: cfg.provider,
+      model: cfg.model,
       children: children.map((c) => ({ child_id: c.child_id, display_name: c.display_name })),
       focused: focusChildId ?? null,
       tools: tools.map((t) => ({

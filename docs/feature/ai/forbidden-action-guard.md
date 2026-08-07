@@ -51,7 +51,7 @@ Names what the model said and what to do instead, "because 'you violated a rule'
 - Never describe the child as regressing when a layout change preceded the numbers — say what changed and when. (C2 / I8)
 
 ### `explainForbidden(actions): string | null`
-Returns `null` for an empty list, otherwise `` `Cannot recommend: ${names.join(' · ')}` ``. Mapping table (`human`), including four keys that have **no `PHRASES` entry** — they are labelled in the UI but never text-matched:
+Returns `null` for an empty list, otherwise `` `Cannot recommend: ${names.join(' · ')}` ``. Mapping table (`human`), including three keys that have **no `PHRASES` entry** — they are labelled in the UI but never text-matched:
 
 | Key | Label |
 |---|---|
@@ -97,7 +97,7 @@ Unknown keys fall back to `a.replace(/_/g, ' ')`.
 - The action-key vocabulary is shared with `db/seed_catalogues.sql` (`insights_catalog.forbidden_actions`) and `mcp/tools.ts`. A key added in either place without a `PHRASES` entry is labelled but unenforced.
 
 ## Change Risks
-- **Adding a `forbidden_actions` key in `insights_catalog` or `mcp/tools.ts` without a `PHRASES` entry** produces a UI label with no text check — `checkForbidden` silently returns nothing for it. Four such keys already exist (`recommend_further_layout_change`, `retrain_without_access_check`, `test_generalisation`).
+- **Adding a `forbidden_actions` key in `insights_catalog` or `mcp/tools.ts` without a `PHRASES` entry** produces a UI label with no text check — `checkForbidden` silently returns nothing for it. Three such keys already exist (`recommend_further_layout_change`, `retrain_without_access_check`, `test_generalisation`).
 - **Tightening the regexes to reduce false positives** inverts the file's stated trade-off. The comment is explicit that a false negative is far more costly than a wasted regeneration.
 - **The guard only inspects the final `answer`.** Text streamed during a turn that also made tool calls reaches the user unchecked (see [ask-agent](ask-agent.md)).
 - **`frame_as_regression`'s `\bregress(ion|ing|ed)\b`** matches any use of the word, including a legitimate quotation or a denial such as "this is not regression". That is intentional over-matching, but it means any answer discussing the concept while `frame_as_regression` is active will trigger a rewrite.

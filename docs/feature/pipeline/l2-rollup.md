@@ -1,21 +1,19 @@
 # L2 Rollup
 
-> **Calculation-correctness pass (2026-08-08).** `rollup_daily_metrics` no longer NULLs values below min_n at write time — that destroyed window aggregates for sparse metrics (correction_adjacent_rate read 0.15 from 53 samples when 170 said 0.51). The store keeps value+n for every day; each reader suppresses at its own grain, and `verify.py` now gates on 'every stored value carries the n a reader gates on'. Full audit trail:
-> [`docs/feature-verification.md`](../../feature-verification.md) §"Metric-calculation pass".
-
-
 ## Function
-`tools/rollup.py` materialises the four L2 aggregate tables — `agg_daily_metric`, `agg_card_stats`, `agg_cell_heat`, `agg_word_pairs` — from the metric views, applying `min_n` suppression at write time, then runs `ANALYZE`.
+`tools/rollup.py` materialises the four L2 aggregate tables — `agg_daily_metric`, `agg_card_stats`, `agg_cell_heat`, `agg_word_pairs` — from the metric views, storing the **true** daily value with `n` always alongside, then runs `ANALYZE`. `min_n` suppression is a read-time concern: each reader gates at its own grain.
 
 ## Purpose
 From the file header: *"The views are the definition; these tables are only a cache. Anything the dashboard asks for over a range longer than a week reads from here, because scanning 180k events per question does not survive a term of real data."*
 
-The `min_n` behaviour is the clinical part, and the docstring on `rollup_daily_metrics` states why: *"A value below its minimum sample size is stored as NULL, never as the misleading number. `n` is always stored, so a reader can tell 'too little data' from 'nothing happened' — those are different, and a dashboard that conflates them tells a teacher a child went quiet when they did not."*
+The `min_n` behaviour is the clinical part, and the docstring on `rollup_daily_metrics` states the current contract: *"min_n suppression is enforced at READ time, at the reader's own grain — never at write time. Writing NULL for a below-min_n day looked safe but destroyed every window aggregate built on top: correction_adjacent_rate runs ~6 corrections/day against min_n=10, so almost every daily row was NULL and a 28-day window with 170 real samples reported from the 53 that happened to cluster (measured: 0.15 shown vs 0.51 true). A day-grain reader (timeseries, charts) masks days below min_n; a window-grain reader (dashboard cards, MCP get_metrics) sums n across the window and suppresses on the WINDOW total. `n` stored per day is what makes both possible, and still distinguishes 'too little data' from 'nothing happened'."*
+
+The store moved to true-value-plus-`n` on 2026-08-08; the full audit trail is in [`docs/feature-verification.md`](../../feature-verification.md) §"Metric-calculation pass".
 
 ## Source Files
 | File | Role |
 |------|------|
-| `tools/rollup.py` | All four rollups, CLI, suppression counting, `ANALYZE` |
+| `tools/rollup.py` | All four rollups, CLI, value-less-row count, `ANALYZE` |
 
 ## Implementation
 
@@ -48,17 +46,14 @@ The window is anchored to the **latest day in `events`**, not to wall-clock toda
 ```sql
 DELETE FROM agg_daily_metric;
 INSERT INTO agg_daily_metric (child_id, day_local, metric_id, value, n)
-SELECT v.child_id, v.day_local, v.metric_id,
-       CASE WHEN v.n >= mc.min_n THEN v.value ELSE NULL END,
-       v.n
+SELECT v.child_id, v.day_local, v.metric_id, v.value, v.n
 FROM v_daily_metrics_all v
-JOIN metrics_catalog mc ON mc.metric_id = v.metric_id
 WHERE v.day_local IS NOT NULL;
 ```
 
-- Suppression is **write-time**, keyed on `metrics_catalog.min_n` per metric.
-- `n` is written unconditionally, which is what lets a reader distinguish `value IS NULL AND n > 0` ("measured, too thin to publish") from `value IS NULL AND n = 0` ("never observed").
-- The `JOIN` means a metric produced by a view but absent from `metrics_catalog` is silently dropped — `verify.py` separately asserts there are no orphan rows in the other direction.
+- The view's value is stored **verbatim** — no `CASE`, no `min_n` anywhere in the write. Suppression happens in the readers, at two grains: a **day-grain** reader (timeseries, charts) masks individual days below `min_n`; a **window-grain** reader (dashboard cards, MCP `get_metrics`) sums `n` across the window and suppresses on the window total.
+- `n` is written unconditionally, which is what makes both reader grains possible and lets a reader distinguish `value IS NULL AND n > 0` ("measured") from `value IS NULL AND n = 0` ("never observed").
+- There is no catalogue `JOIN`: a metric produced by a view but absent from `metrics_catalog` is stored anyway — and then caught by `verify.py`'s orphan check (`every stored metric exists in the catalogue`), which fails the build.
 - No window filter: **every** day present in the view is stored.
 
 ### `rollup_card_stats(conn, window_days)` → `agg_card_stats`
@@ -94,7 +89,7 @@ Straight copy of `v_word_pairs` (`child_id, word_a, word_b, solo_a, solo_b, toge
 
 ### `main()` output
 
-After committing the four rollups it counts suppressed rows:
+After committing the four rollups it counts value-less rows:
 
 ```sql
 SELECT COUNT(*) FROM agg_daily_metric WHERE value IS NULL
@@ -108,10 +103,10 @@ rollup complete in 0.42s
   agg_card_stats           678
   agg_cell_heat            901
   agg_word_pairs         2,345
-  suppressed (n<min_n)     123
+  no value from view       123
 ```
 
-Row counts come from `cur.rowcount` on each `INSERT … SELECT`. Return code is always `0` — this script has no failure mode of its own; the gate is [Clinical Safety Verification Gate](verification-gate.md).
+The last line counts rows where `v_daily_metrics_all` itself produced a NULL `value` — nothing to do with `min_n`, which plays no part in the write. (The label used to read `suppressed (n<min_n)`, a leftover from the write-time scheme; it now names what it counts.) Row counts come from `cur.rowcount` on each `INSERT … SELECT`. Return code is always `0` — this script has no failure mode of its own; the gate is [Clinical Safety Verification Gate](verification-gate.md).
 
 ## Dependencies & Connections
 
@@ -122,21 +117,21 @@ Row counts come from `cur.rowcount` on each `INSERT … SELECT`. Return code is 
 
 ### Depended On By
 - [Nightly Rule Materialisation](rule-materialisation.md) — runs after this in the build; `verify.py`'s C4 check reads `agg_daily_metric` for `position_consistency`
-- [Clinical Safety Verification Gate](verification-gate.md) — the `no value published below its min_n`, `no duplicate metric rows`, orphan and `DIMENSIONAL` checks all read these tables
+- [Clinical Safety Verification Gate](verification-gate.md) — the `every stored value carries the n a reader gates on`, `no duplicate metric rows`, orphan and `DIMENSIONAL` checks all read these tables
 - [Metric Readers](../analytics/metric-readers.md) — the dashboard's metric reads
 - [MCP stdio Server](../mcp/stdio-server.md) — `get_metrics`, `get_card_stats`, `get_cell_heat`, `get_word_pairs` serve from these tables, which is what keeps reader p99 in single-digit milliseconds (see [Pre-Demo Test Harnesses](test-harnesses.md))
 - [CSV Export](csv-export.md) — `metrics_daily_long.csv`, `metrics_daily_wide.csv`, `card_stats.csv`, `cell_heat.csv`, `word_pairs.csv`
 
 ### Shared Resources
 - Tables `agg_daily_metric`, `agg_card_stats`, `agg_cell_heat`, `agg_word_pairs` — fully rewritten on every run
-- `metrics_catalog.min_n` is the single source of the suppression threshold
+- `metrics_catalog.min_n` — still the single source of the suppression threshold, but consumed by the **readers** (`lib/metrics.ts`, `lib/report.ts`, `lib/baseline.ts`, `mcp/tools.ts`), not by this script; the rollup neither reads nor applies it
 - SQLite `sqlite_stat1` (written by `ANALYZE`)
 
 ## Change Risks
-- **Moving suppression out of the rollup and into the reader** means every consumer must reimplement it. `export_csv.py` derives its `status` column from `value IS NULL` + `n`, the MCP envelope derives `suppressed_reason` the same way, and `verify.py` asserts `value IS NOT NULL AND n < min_n` never happens. All three break together.
-- **Writing `0` instead of `NULL` for a suppressed value** is the specific failure the docstring warns about: a dashboard would show a child had gone quiet when they had not, and Excel would sum the zeros.
-- **Dropping the `n` column write** removes the only way to distinguish "too thin" from "never happened".
+- **Suppression lives in the readers now, so every consumer must gate — and a new reader that forgets publishes under-powered numbers with no check catching it.** The readers that gate today: `lib/metrics.ts` (window-grain for dashboard cards; day-grain masking in the timeseries read), `lib/report.ts` (trend buckets mask days below `min_n`), `lib/baseline.ts` (day-grain `a.n >= mc.min_n`), and MCP `get_metrics` / `get_metric_timeseries` in `mcp/tools.ts` (window-grain and day-grain respectively). `export_csv.py` deliberately does **not** gate — it ships `value`, `n` and `min_n` and leaves gating to whoever opens the file, though its `status` column still derives from `value IS NULL` and is stale (see [CSV Export](csv-export.md)). `verify.py` only asserts that `n` rides with every value; it cannot catch a reader that ignores it.
+- **Re-introducing write-time suppression — `NULL` or `0` below `min_n` —** re-creates the corruption the docstring measures: a 28-day window with 170 real samples reporting 0.15 from the 53 that cleared the daily bar, against a true 0.51. Window aggregates are only right because every day's true value is stored.
+- **Dropping the `n` column write** removes the only way to distinguish "too thin" from "never happened" — and now also fails the build: `verify.py` asserts every stored value carries an `n`.
 - **Changing `--window-days`** only changes `agg_cell_heat`'s content; for `agg_card_stats` and `agg_word_pairs` it changes the *labels* on rows whose content is unchanged, which is a silent inconsistency if someone starts trusting those columns as filters.
 - **`DELETE` + `INSERT` with no transaction boundary of its own**: the four rollups share one `conn` and one `commit()` at the end, so a crash mid-run leaves the aggregates empty rather than stale-but-consistent. Any reader hitting the database during a rollup can see a partially rebuilt cache.
-- **Adding a metric to a view without adding it to `metrics_catalog`** makes it vanish at the `JOIN`; adding it to the catalogue with `status='shown'` but producing no rows makes `verify.py` fail with *"no unexplained empty metric"* unless it is registered in `DIMENSIONAL` or `NOT_YET_GENERATED`.
+- **Adding a metric to a view without adding it to `metrics_catalog`** no longer makes it vanish — there is no catalogue `JOIN`, so its rows are stored and `verify.py`'s orphan check fails the build loudly. Adding it to the catalogue with `status='shown'` but producing no rows fails *"no unexplained empty metric"* unless it is registered in `DIMENSIONAL` or `NOT_YET_GENERATED`.
 - **Removing `ANALYZE`** removes the query-planner statistics the concurrency test's p99 budget depends on.

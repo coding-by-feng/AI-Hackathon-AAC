@@ -1,11 +1,7 @@
 # Metric Views
 
-> **Calculation-correctness pass (2026-08-08).** Three view fixes landed after independent recomputation on a 180-day cohort: `v_mistaps` now joins the next TAP (not the next event) as the correction's replacement; `v_m_repeat_tap_rate` uses a type-aware lag chain so a delete neither breaks a run it sits outside of nor extends one backwards; `v_daily_metrics_all` feeds `new_words` from `v_new_words_count` (a count, per the catalogue) while `v_m_new_words` (a proportion) remains for rule I6. Full audit trail:
-> [`docs/feature-verification.md`](../../feature-verification.md) §"Metric-calculation pass".
-
-
 ## Function
-Defines 41 SQL views that compute every metric from `events`, `utterances` and `partner_turns` — 24 scalar `v_m_<slug>` views keyed on `(child_id, day_local)` returning `value, n`, and 17 dimensional views (per card, per cell, per pair, per scene) — plus `v_daily_metrics_all`, the UNION that `tools/rollup.py` inserts straight into `agg_daily_metric`.
+Defines 41 SQL views that compute every metric from `events`, `utterances` and `partner_turns`: 24 scalar `v_m_<slug>` views keyed on `(child_id, day_local)` returning `value, n`, 13 dimensional views (per card, per cell, per pair, per scene), 3 shared helpers (`v_tap_sequence`, `v_surviving_taps`, `v_first_uses`), and `v_daily_metrics_all`, the UNION that `tools/rollup.py` inserts straight into `agg_daily_metric`.
 
 ## Purpose
 The header is unambiguous about authority:
@@ -23,7 +19,7 @@ Views also filter to `actor = 'child'` throughout, "unless the metric is explici
 ## Source Files
 | File | Role |
 |------|------|
-| `db/views_metrics.sql` | All 24 scalar metric views, 17 dimensional views, and the `v_daily_metrics_all` union |
+| `db/views_metrics.sql` | All 41 views: 24 scalar metric views, 13 dimensional views, 3 shared helpers, and the `v_daily_metrics_all` union |
 
 ## Implementation
 
@@ -39,17 +35,28 @@ sqlite3 aac.db < db/views_metrics.sql          # after db/schema.sql
 
 ### Shared building blocks
 
-**`v_tap_sequence`** — one window-function pass over `events` filtered to `actor = 'child' AND type IN ('card_tap','delete_last')`, partitioned by `utterance_id` ordered by `ts`. Exposes `LEAD(type) AS next_type`, `LEAD(grid_row) AS next_row`, `LEAD(grid_col) AS next_col`, and `LAG(card_id, 1..3) AS prev1, prev2, prev3`. The header records why: *"One pass, used by the mis-tap, adjacency and repetition metrics. Correlated subqueries were 40x slower on 27k events."*
+**`v_tap_sequence`** — one window-function pass over `events` filtered to `actor = 'child' AND type IN ('card_tap','delete_last')`, partitioned by `utterance_id` ordered by `ts`. Exposes `LEAD(type) AS next_type`, `LEAD(grid_row) AS next_row`, `LEAD(grid_col) AS next_col`, and `LAG(card_id, 1..3) AS prev1, prev2, prev3`. The performance rationale stands: *"Correlated subqueries were 40x slower on 27k events."* Its actual readers are `v_m_mistap_rate`, `v_cell_heat`, `v_repeat_runs_by_card`, `v_i1_mistap_classification` (in `db/views_insights.sql`), and the sliced `mistap_rate` query in `mcp/tools.ts:257`. The file's own header comment at `views_metrics.sql:17` — *"used by the mis-tap, adjacency and repetition metrics"* — is stale the same way this doc once was: `v_mistaps` (adjacency) and `v_m_repeat_tap_rate` (repetition) no longer read it.
 
-**`v_mistaps`** — `WHERE type = 'delete_last' AND ms_delta IS NOT NULL AND ms_delta < 1500`. The **1500 ms** threshold is hard-coded here (and in five other places in this file). `correction_adjacent` is:
+**`v_mistaps`** — the unintended-activation view: `WHERE d.actor = 'child' AND d.type = 'delete_last' AND d.ms_delta IS NOT NULL AND d.ms_delta < 1500` (the **1500 ms** threshold is hard-coded here and in three other places in this file: `v_m_mistap_rate`, `v_cell_heat`, `v_surviving_taps`). It builds a `taps` CTE of child `card_tap` events and finds each delete's *replacement* with a correlated `MIN(ts)` join — the next **TAP** in the same utterance, not the next event:
+
+```sql
+LEFT JOIN taps t
+  ON t.utterance_id = d.utterance_id
+ AND t.ts = (SELECT MIN(t2.ts) FROM taps t2
+             WHERE t2.utterance_id = d.utterance_id AND t2.ts > d.ts)
+```
+
+The comment records why it does not reuse `v_tap_sequence`'s `LEAD`: *"LEAD sees the next EVENT, and when two deletes chain the 'replacement' it compared against was the other delete's coordinates — the catalogue defines adjacency against the button the child actually pressed next."* And why the correlated lookup is affordable here when the header banned it elsewhere: *"Deletes are ~5% of events and the lookup runs on the (utterance_id, ts) index, so the 40x-correlated-subquery caveat on v_tap_sequence does not bite here."*
+
+`correction_adjacent` is:
 ```sql
 CASE
-  WHEN next_row IS NULL OR next_col IS NULL THEN NULL
-  WHEN abs(next_row - grid_row) <= 1 AND abs(next_col - grid_col) <= 1 THEN 1
+  WHEN t.grid_row IS NULL OR d.grid_row IS NULL THEN NULL
+  WHEN abs(t.grid_row - d.grid_row) <= 1 AND abs(t.grid_col - d.grid_col) <= 1 THEN 1
   ELSE 0
 END
 ```
-i.e. a 3×3 Chebyshev neighbourhood, NULL when there is no following tap to classify.
+i.e. a 3×3 Chebyshev neighbourhood, NULL when either side lacks a grid position — no following tap to classify against, or an off-grid press.
 
 **The median idiom.** SQLite has no `median()`. Four views use the two-middle-rows trick:
 ```sql
@@ -89,7 +96,7 @@ FROM ranked WHERE rn IN ((cnt + 1) / 2, (cnt + 2) / 2)
 - `v_m_core_fringe_ratio` — `events JOIN cards`, `AVG(CASE WHEN c.is_core = 1 THEN 1.0 ELSE 0.0 END)`
 - `v_first_uses` — `(child_id, label, MIN(day_local) AS first_day)`
 - `v_m_new_words` — a **proportion**: first uses on that day divided by the count of labels first used strictly before it, `NULLIF(..., 0)` so the very first day is NULL. The comment cites `proposed_metrics.docx`: "Five new words means one thing at a vocabulary of 20 and another at 200."
-- `v_new_words_count` — the raw count, "still matters for the headline number on the card". Note the catalogue's later filtered-index pass reverts `new_words` to a count; `v_daily_metrics_all` still carries the **proportion**.
+- `v_new_words_count` — the raw count, "still matters for the headline number on the card". This is the view `v_daily_metrics_all` feeds `new_words` from, matching the catalogue's `count` unit; the proportion in `v_m_new_words` is retained solely for rule I7, whose `growth` CTE in `v_i7_modeling_gap` sums it (the union's own comment says "kept for rule I6" — a mislabelled rule number; I7 is the only reader).
 - `v_card_stats` — per `(child_id, card_id)`: `taps`, `active_days`, `scene_count`, `first_day`, `last_day`, `avg_nav_depth = AVG(COALESCE(nav_depth, 0))`, `days_since_last` computed against `(SELECT MAX(day_local) FROM events)`
 - `v_unused_cards` — `child_vocabulary LEFT JOIN v_card_stats WHERE COALESCE(taps, 0) = 0`, `days_since_last` defaulting to **9999**. "a card with zero taps produces zero rows in `v_card_stats` and would otherwise be invisible to the very insight that looks for dead vocabulary"
 - `v_word_pairs` — `solo` counts per label from `events`; `expanded` explodes `utterances.labels` via `json_each`; `pairs` self-joins on `a.utterance_id = b.utterance_id AND a.label < b.label` so ordering is canonical (`MIN`/`MAX` of the two labels). Final filter `sa.uses >= 10 AND sb.uses >= 10`. Pairs never seen together appear with `together = 0` via `COALESCE`.
@@ -97,7 +104,7 @@ FROM ranked WHERE rn IN ((cnt + 1) / 2, (cnt + 2) / 2)
 **Group D — layout and context**
 - `v_scene_matrix` — `v_surviving_taps JOIN cards`, grouped by `(child_id, scene, label)` with `taps` and `days`. `c.default_function` is selected but not grouped (a bare column; SQLite picks an arbitrary matching row).
 - `v_m_layout_stability` — `SUM(CASE WHEN change_kind IN ('move','resize','remove') THEN 1 ELSE 0 END)` per `(child_id, day_local)`. **The value is a count of disruptive changes, so it rises as stability falls, while `metrics_catalog.polarity` for `layout_stability` is `higher_better`.** Any UI that colours from polarity will paint a disruptive day green.
-- `v_m_position_consistency` — for every card in every `kind = 'mode'` board, `LEFT JOIN board_cells` at that child's robust board with `canonical = 1`; `value = AVG(matched)`. `day_local` is `(SELECT MAX(day_local) FROM events)`. The robust board is picked by a scalar subquery `(SELECT board_id FROM boards rb WHERE rb.child_id = b.child_id AND rb.kind = 'robust')`, which silently takes the first row if a child ever has more than one robust board.
+- `v_m_position_consistency` — for every card in every `kind = 'mode'` board, `LEFT JOIN board_cells` at that child's robust board with `canonical = 1`; `value = AVG(matched)`. `day_local` is `(SELECT MAX(day_local) FROM events)`. The robust board is picked by a scalar subquery `(SELECT board_id FROM boards rb WHERE rb.child_id = b.child_id AND rb.kind = 'robust')`, which silently takes the first row if a child ever has more than one robust board. **Data-level caveat:** the current `aac.db` contains zero `kind = 'mode'` boards, so this view yields no rows at all — the mechanism is intact but exercised by nothing, `agg_daily_metric` gets no `position_consistency` rows, and `get_child_profile.active_modes` returns `[]`.
 
 **Group E — whose voice**
 - `v_m_independence_rate` — `AVG(used_suggestion = 0)` over spoken child utterances
@@ -112,8 +119,8 @@ FROM ranked WHERE rn IN ((cnt + 1) / 2, (cnt + 2) / 2)
 - `v_m_partner_interruption_rate` — `AVG(interrupted_utterance_id IS NOT NULL)` over all `partner_turns`
 
 **Group H — communication style**
-- `v_m_repeat_tap_rate` — a run is detected as `type = 'card_tap' AND card_id = prev1 AND card_id = prev2 AND (prev3 IS NULL OR prev3 <> card_id)`, which yields **exactly one row per run of length >= 3**. `value = run_count / COUNT(utterances)` per day, over all child utterances (spoken and abandoned), `COALESCE(run_count, 0)` so a day with no runs reports 0 rather than NULL.
-- `v_repeat_runs_by_card` — the same run predicate grouped by `(child_id, card_id)`. *"This is the join that turns 'she keeps pressing it' into 'she may lack the word'."*
+- `v_m_repeat_tap_rate` — builds its own `seq` CTE over `events` (not `v_tap_sequence`) carrying **both type and card_id at each lag**: `LAG(type, k) AS t1..t3` alongside `LAG(card_id, k) AS c1..c3`. A run fires on `type = 'card_tap' AND t1 = 'card_tap' AND c1 = card_id AND t2 = 'card_tap' AND c2 = card_id AND (t3 IS NULL OR t3 <> 'card_tap' OR c3 <> card_id)` — exactly one row per run of length >= 3, counted at the third tap. The CTE comment explains why the chain must carry event type: *"with card_id alone, a delete of the same card both broke runs it sat inside AND extended runs backwards, undercounting (A, del A, A, A, A holds a legal 3-run that prev3=A hid)."* `value = run_count / COUNT(utterances)` per day, over all child utterances (spoken and abandoned), `COALESCE(run_count, 0)` so a day with no runs reports 0 rather than NULL.
+- `v_repeat_runs_by_card` — still reads `v_tap_sequence` with the **old card_id-only predicate** (`card_id = prev1 AND card_id = prev2 AND (prev3 IS NULL OR prev3 <> card_id)`, no type check), so the two repetition views no longer agree: a `delete_last` of the same card can suppress or shift runs here that `v_m_repeat_tap_rate` counts. *"This is the join that turns 'she keeps pressing it' into 'she may lack the word'."*
 
 **Feeling words**
 - `v_feeling_words` — `v_surviving_taps JOIN emotion_lexicon ON el.word = s.label` (exact string match on the denormalised event label), grouped by `(child_id, day_local, category, label)`
@@ -131,11 +138,13 @@ FROM ranked WHERE rn IN ((cnt + 1) / 2, (cnt + 2) / 2)
 - `v_session_summary` — `SELECT s.*` from `sessions` plus `mistap_rate = mistaps / NULLIF(taps, 0)` and `abandon_rate = abandoned / NULLIF(utterances + abandoned, 0)`
 
 ### `v_daily_metrics_all`
-A `UNION ALL` of the 24 scalar views, each prefixed with its literal `metric_id`:
+A `UNION ALL` of 24 branches, each prefixed with its literal `metric_id`:
 
 `taps_per_utterance`, `composition_time`, `time_to_first_tap`, `words_per_minute`, `mistap_rate`, `correction_adjacent_rate`, `abandonment_rate`, `utterances_per_day`, `silence_streak`, `ndw`, `mlu`, `core_fringe_ratio`, `new_words`, `layout_stability`, `position_consistency`, `independence_rate`, `teacher_modeling`, `taps_saved`, `partner_wait_time`, `partner_interruption_rate`, `repeat_tap_rate`, `feeling_words`, `sentence_shapes`, `answers_vs_starts`.
 
-`tools/rollup.py` inserts `agg_daily_metric` straight from this view. Column order matters: each branch is `SELECT '<metric_id>', *` from a view whose columns are `(child_id, day_local, value, n)` in that order.
+Twenty-three branches read a `v_m_*` view; the `new_words` branch instead reads `v_new_words_count` (`SELECT 'new_words', child_id, day_local, new_words * 1.0, new_words FROM v_new_words_count`), so the **count** — the catalogue's unit — is what reaches `agg_daily_metric`, and `v_m_new_words` is the one scalar view not unioned here. The in-file comment: *"The catalogue defines new_words as a COUNT ('labels whose earliest ever card_tap falls inside the window', unit 'count'), and every window reader SUMs daily rows. v_m_new_words is a proportion … — summing proportions produced a number that was neither. The count view feeds here."*
+
+`tools/rollup.py` inserts `agg_daily_metric` straight from this view. Column order matters: every other branch is `SELECT '<metric_id>', *` from a view whose columns are `(child_id, day_local, value, n)` in that order.
 
 ### Metrics with `status = 'shown'` and no view here
 `suggestion_acceptance`, `vocabulary_gaps`, `visual_source_split` and `keyboard_use` are seeded as `shown` in `metrics_catalog` but have **no view at all** in this file — their formulas reference `suggestion_shown` / `gap_detected` / `keyboard_input` events that are never aggregated. They will read as `not_collected` downstream.
@@ -147,9 +156,20 @@ The remaining shown metrics are served by dimensional views rather than scalars:
 WHERE t.type = 'card_tap'
   AND NOT (t.next_type = 'delete_last' AND t.next_delta < 1500)
 ```
-For the final event in an `utterance_id` partition, `next_type` and `next_delta` are NULL, so the predicate evaluates `NOT (NULL AND NULL)` → NULL, and the row is filtered out. Every utterance therefore loses its last surviving tap.
+For the final event in an `utterance_id` partition, `next_type` and `next_delta` are NULL, so the predicate evaluates `NOT (NULL AND NULL)` → NULL, and the row is filtered out. Every utterance whose event stream ends in a `card_tap` therefore loses that tap.
 
-Verified on the committed build: 18,594 child `card_tap` events; 808 mis-taps; 6,340 utterance partitions; `v_surviving_taps` returns 11,446 rows — exactly `18594 - 808 - 6340`. Every partition's last tap is dropped.
+Rather than freezing counts that go stale on every reseed, verify with:
+
+```bash
+sqlite3 aac.db "SELECT
+  (SELECT COUNT(*) FROM events WHERE actor='child' AND type='card_tap')  AS child_taps,
+  (SELECT COUNT(*) FROM v_mistaps)                                       AS mistapped,
+  (SELECT COUNT(DISTINCT utterance_id) FROM events
+    WHERE actor='child' AND type IN ('card_tap','delete_last'))          AS partitions,
+  (SELECT COUNT(*) FROM v_surviving_taps)                                AS surviving;"
+```
+
+On the current build this reports 18,632 child taps, 808 mis-taps, 6,360 utterance partitions and 11,466 surviving rows — one dropped tap per mis-tap plus one per partition ending in a tap (6,358 of the 6,360; the two utterances that end in a slow, >= 1500 ms delete keep their last tap, which is why the naive `taps − mistaps − partitions` arithmetic can be off by a handful).
 
 Everything downstream of `v_surviving_taps` undercounts by one tap per utterance: `v_scene_matrix` (and therefore `v_i4_unused_vocabulary` case B and `v_i6_scene_bound`), `v_feeling_words` and `v_m_feeling_words`. A card only ever tapped last in its utterances disappears from `v_scene_matrix` entirely.
 
@@ -169,13 +189,13 @@ The intent is expressed correctly in the sibling `v_tap_sequence`/`v_mistaps` pa
 - [../pipeline/verification-gate.md](../pipeline/verification-gate.md) — `tools/verify.py` gates the build on `v_scene_matrix` and others
 
 ### Shared Resources
-- `v_tap_sequence` is the shared one-pass scan; `v_mistaps`, `v_m_mistap_rate`, `v_cell_heat`, `v_m_repeat_tap_rate`, `v_repeat_runs_by_card` and I1 all read it
-- The literal **1500 ms** mis-tap threshold appears in `v_mistaps`, `v_m_mistap_rate`, `v_cell_heat`, `v_surviving_taps`, and again in `v_i1_mistap_classification`
+- `v_tap_sequence` is the shared one-pass scan; `v_m_mistap_rate`, `v_cell_heat`, `v_repeat_runs_by_card`, `v_i1_mistap_classification` and `mcp/tools.ts:257` read it (`v_mistaps` and `v_m_repeat_tap_rate` no longer do)
+- The literal **1500 ms** mis-tap threshold appears in `v_mistaps`, `v_m_mistap_rate`, `v_cell_heat`, `v_surviving_taps`, and twice in `v_i1_mistap_classification` (the `agg` CTE filter and the exposed `mistap_threshold_ms` constant)
 - `v_daily_metrics_all` is the contract between this file and `agg_daily_metric`
 
 ## Change Risks
 
-- **Changing the 1500 ms threshold requires editing at least five places** in this file plus `v_i1_mistap_classification`. The catalogue documents 2500 ms as often more accurate for athetoid cerebral palsy, and there is no per-child override anywhere — the constant is inline SQL.
+- **Changing the 1500 ms threshold requires six edits**: four places in this file (`v_mistaps`, `v_m_mistap_rate`, `v_cell_heat`, `v_surviving_taps`) plus two in `db/views_insights.sql` (`v_i1_mistap_classification`'s `agg` CTE filter and its exposed `mistap_threshold_ms` constant). The catalogue documents 2500 ms as often more accurate for athetoid cerebral palsy, and there is no per-child override anywhere — the constant is inline SQL.
 - **Adding a scalar view without adding it to `v_daily_metrics_all`** means it never reaches `agg_daily_metric`, so the dashboard shows it as absent while the view computes fine.
 - **Changing a view's column order** breaks `v_daily_metrics_all` silently — the union uses `SELECT '<id>', *`, so a reordered view writes `n` into `value`.
 - **Counting repetition as error anywhere** (e.g. dropping the `delete_last` requirement from `v_mistaps`) violates C1 and would make `mistap_rate` pathologise stimming. The `metrics_catalog` caveat and the group-H header both exist to stop this.
@@ -183,4 +203,4 @@ The intent is expressed correctly in the sibling `v_tap_sequence`/`v_mistaps` pa
 - **Fixing `v_surviving_taps`** will raise `v_scene_matrix` tap counts by roughly one per utterance, which can newly trip `v_i6_scene_bound`'s `therapy_taps >= 10` and change `v_m_feeling_words` proportions. It is a correctness fix, but it moves numbers a teacher may already have seen.
 - **`v_m_silence_streak` anchors on the global `MAX(day_local)` over `utterances`.** If one child keeps using the device and another stops, the streak is measured from the *fleet's* latest day — correct for a demo dataset, wrong the moment a child's data stops arriving while others' continue. It also emits the same `day_local` for every child.
 - **`v_m_layout_stability` returning a disruption count while its catalogue polarity is `higher_better`** means fixing either side alone flips the colour of the tile. Change both together.
-- **`v_m_new_words` returns a proportion while the filtered index defines `new_words` as a count.** Consumers reading `agg_daily_metric` get the proportion; consumers reading `v_new_words_count` get the count. Any reconciliation must pick one.
+- **Both `new_words` views exist, and only the count reaches `agg_daily_metric`.** `v_daily_metrics_all` feeds from `v_new_words_count`; `v_m_new_words` (the proportion) is read solely by rule I7. Re-adding the proportion to the union, or pointing I7's `growth` CTE at the count, silently changes what the number means without breaking anything visibly.

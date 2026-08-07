@@ -850,7 +850,7 @@ function CardButton({
     >
       {/* Scales with the card, which is itself 14vh-based. The width cap in
           CardFace keeps it inside narrow phone cards; on laptop/iPad it grows
-          to 11vh, capped at 112px. */}
+          to 12vh, capped at 124px. */}
       <CardFace
         label={card.label}
         symbolKey={card.symbol}

@@ -1,8 +1,9 @@
 # Cloudflare Tunnel Ingress
 
 ## Function
-Publishes the single local Next.js origin on three public hostnames — `aac.kason.app`,
-`aac-dashboard.kason.app` and `aac-mcp.kason.app` — through one named Cloudflare Tunnel (`aac`),
+Publishes the single local Next.js origin on four public hostnames — `aac.kason.app`,
+`aac-dashboard.kason.app`, `aac-mcp.kason.app` and `aac-slides.kason.app` — through one named
+Cloudflare Tunnel (`aac`),
 supervised by the launchd job `app.kason.aac.tunnel`.
 
 ## Purpose
@@ -38,9 +39,10 @@ Ingress rules, **evaluated in order**:
 | 1 | `aac.kason.app` | `http://localhost:3000` | The communication board. **No Access policy** — *"a child cannot complete an email one-time-code, and a login between someone and their voice is the wrong trade. It holds one child's own vocabulary and nothing about anyone else."* |
 | 2 | `aac-dashboard.kason.app` | `http://localhost:3000` | Teacher and SLT analytics. |
 | 3 | `aac-mcp.kason.app` | `http://localhost:3000` | MCP analytics tools. *"Guarded by a bearer token checked in the route itself (`AAC_MCP_TOKEN`), so this hostname is never open even without Access."* |
-| 4 | *(catch-all)* | `http_status:404` | *"Anything else that resolves here."* |
+| 4 | `aac-slides.kason.app` | `http://localhost:3000` | Architecture / pitch slides. *"A static presentation page served from `public/` — no data, no session; middleware maps `/` to the page."* |
+| 5 | *(catch-all)* | `http_status:404` | *"Anything else that resolves here."* |
 
-All three hostnames resolve to the **same** origin and the same process. There is no
+All four hostnames resolve to the **same** origin and the same process. There is no
 port-per-surface split.
 
 ### Always pass `--config`
@@ -73,17 +75,22 @@ rule is actually enforced at run time. `cloudflared` is referenced by absolute H
 `deploy/*.plist` and `deploy/logs/` are both gitignored; `deploy/aac.yml` is not.
 
 ### Where the hostname split is actually enforced
-`middleware.ts` maps the `Host` header to a `Surface` (`'kid' | 'dashboard' | 'mcp' | 'any'`):
+`middleware.ts` maps the `Host` header to a `Surface` (`'kid' | 'dashboard' | 'mcp' | 'slides' | 'any'`):
 
 | Host prefix | Surface | Allowed paths |
 |---|---|---|
 | `aac-dashboard.` | `dashboard` | `/`, plus `/dashboard`, `/login`, `/api/dashboard`, `/api/auth`, `/api/chat`, `/api/reports` |
-| `aac-mcp.` | `mcp` | `/api/mcp` only — shared assets are explicitly excluded (`SHARED.includes(pathname)` returns `surface !== 'mcp'`) |
+| `aac-mcp.` | `mcp` | `/api/mcp` only — shared assets are explicitly excluded by **two** rules: the `SHARED` exact-path check and the `SHARED_PREFIXES` prefix check, both of which return `surface !== 'mcp'`. `tools/test-api.sh` K3 pins this: `/icons/ai/want.png` on the mcp host must 404 |
 | `aac.` | `kid` | `/`, plus `/who`, `/api/session`, `/api/events`, `/api/cards`, `/api/visuals`, `/api/categories` |
 | anything else (localhost, LAN, previews) | `any` | everything — *"so development is unchanged"* |
 
-Shared assets allowed on both browser surfaces: `/manifest.webmanifest`, `/icon.svg`, `/sw.js`,
-`/favicon.ico`, `/robots.txt`.
+Shared assets allowed on both browser surfaces: the `SHARED` exact paths `/manifest.webmanifest`,
+`/icon.svg`, `/sw.js`, `/favicon.ico`, `/robots.txt`, plus everything under
+`SHARED_PREFIXES = ['/icons/']`. The prefix list carries its own reason in `middleware.ts`:
+*"Card faces reference `/icons/ai/<slug>.png`; without this, every icon 404s on the public
+hostnames while localhost (surface 'any') serves them fine."* `tools/test-api.sh` K1–K3 pin the
+contract by spoofing the three `Host` values against localhost — see
+[Pre-Demo Test Harnesses](../pipeline/test-harnesses.md).
 
 A path that does not belong to its hostname returns a bare **404**, not a redirect, because *"a
 redirect confirms the route exists somewhere, which is a small thing to give away for nothing."*
@@ -99,8 +106,8 @@ stripping the port), the tunnel hostnames and the middleware prefixes are a **co
 
 ### Depends On
 - [Production Web Service](production-web-service.md) — every ingress rule targets `http://localhost:3000`, the port that job binds; with the web job down, `cloudflared` reports the origin unreachable.
-- [Host Routing](../auth/host-surface-routing.md) — `middleware.ts` turns three hostnames on one origin into three isolated surfaces.
-- [MCP HTTP Endpoint](../mcp/stdio-server.md) — `aac-mcp.kason.app` is only safe because `app/api/mcp/route.ts` checks `AAC_MCP_TOKEN` and refuses everything when it is unset.
+- [Host Routing](../auth/host-surface-routing.md) — `middleware.ts` turns four hostnames on one origin into four isolated surfaces. `aac-slides.` serves only `public/architecture.html` (canonical copy: `docs/architecture.html` — keep the two in sync when the slide changes).
+- [MCP stdio Server](../mcp/stdio-server.md) — `aac-mcp.kason.app` is only safe because `app/api/mcp/route.ts` checks `AAC_MCP_TOKEN` and refuses everything when it is unset.
 
 ### Depended On By
 - [Kid Board](../kid-app/communication-board.md) — reachable at `aac.kason.app`, deliberately without any login.
@@ -114,11 +121,12 @@ stripping the port), the tunnel hostnames and the middleware prefixes are a **co
 - **`deploy/logs/`** — shared log directory with the web job.
 
 ## Change Risks
-- **Renaming a hostname without updating `middleware.ts`.** `surfaceFor()` matches the prefixes `aac-dashboard.`, `aac-mcp.` and `aac.` in that order. A new host that matches none of them falls through to `'any'`, which allows **every** path — so `aac2.kason.app/dashboard` would serve the whole class's analytics to whoever has the link. This is a silent, fail-open failure.
+- **Renaming a hostname without updating `middleware.ts`.** `surfaceFor()` matches the prefixes `aac-dashboard.`, `aac-mcp.`, `aac-slides.` and `aac.` in that order. A new host that matches none of them falls through to `'any'`, which allows **every** path — so `aac2.kason.app/dashboard` would serve the whole class's analytics to whoever has the link. This is a silent, fail-open failure.
 - **Prefix-ordering mistakes.** `aac-dashboard.` and `aac-mcp.` must be tested before `aac.`; note that `startsWith('aac.')` does not match `aac-dashboard.`, so the current set is safe, but any new `aac.`-prefixed host inherits the kid surface's no-login posture.
 - **Adding a Cloudflare Access policy to `aac.kason.app`.** This is an explicit clinical/product decision, not an oversight: a child cannot complete an email one-time code, so an Access policy would put a login between a nonspeaking child and their voice.
 - **Removing the `http_status:404` catch-all.** Any other hostname routed to this tunnel would reach the origin, arrive as surface `'any'` in `middleware.ts`, and bypass the entire host split.
 - **Pointing a rule at a different port or a second process.** Two Next processes over the same WAL databases breaks the single-writer assumption behind `lib/sqlite.ts` and `tools/concurrency_test.py`.
+- **Dropping `/icons/` from `SHARED_PREFIXES` in `middleware.ts`.** Every card icon 404s on *both* public hostnames while localhost — surface `'any'`, which allows everything — keeps serving them, so development looks fine and the break ships. This exact failure shipped once; `tools/test-api.sh` K1/K2 now pin it by spoofing the public `Host` values against localhost.
 - **Dropping `--config` from `ProgramArguments`.** A stray `~/.cloudflared/config.yml` would then silently take over and route the tunnel somewhere else — the exact scenario the config header warns about.
 - **Moving or rotating the credentials file.** `credentials-file` is an absolute path; if the tunnel UUID `f50f1ef0-ea82-4ec2-953b-93404512a766` changes, `cloudflared` fails at startup and `KeepAlive` retries it every 10 seconds with the only evidence in `deploy/logs/tunnel.err.log`.
 - **Leaving `AAC_MCP_TOKEN` unset in production.** `aac-mcp.kason.app` has no Access policy, so the route's own refusal is the only barrier; it fails closed, but a *weak or leaked* token fails open to the analytics of every child on the roster.

@@ -36,6 +36,8 @@ type Utterance = { text: string; mode: 'phrase' | 'joined' }
 - An essential word pressed **inside** a sentence contributes its word form; the urgent full-phrase reading only wins when it is the only card, which the single-card branch already covers.
 - `previewChips(cards)` returns `cards.map(c => c.label)`. (The board renders `c.card.label` directly and does not currently call this helper.)
 
+Typed words join assembly as synthetic cards: the board's `addTypedWord` composes `{card_id: 'typed:<w>', label, word_form, spoken_text}` with all three text fields set to the literal typed word ([Keyboard & Modelling Help](keyboard-and-modeling-help.md)). Mid-sentence the word form joins like any card's; a lone typed word takes the phrase branch, and because its `spoken_text` is non-empty, `phraseForm` returns it as-is — the raw word, with no capitalisation and no full stop applied.
+
 `WORD_FORM_OVERRIDES` — listed explicitly rather than guessed by rule, "because a wrong guess puts words in a child's mouth":
 | label | word form |
 |---|---|
@@ -110,7 +112,7 @@ DEFAULT_VOICE = { voiceURI: null, rate: 0.95, pitch: 1 }
 - `localStorage` for the per-child voice choice.
 
 ### Depended On By
-- [Communication Board](communication-board.md) — calls `buildUtterance` for the sentence-bar preview and the `speak` event's `assembly` field, and `unlock`/`speak`/`stop`/`isSupported` for output.
+- [Communication Board](communication-board.md) — calls `buildUtterance` for the sentence-bar preview and the `speak` event's `assembly` field, `unlock`/`speak`/`stop`/`isSupported` for output, and `wordForm` for hold-to-hear: `previewCard` speaks a held card's word form without adding it to the sentence — the only path that speaks a word form outside `buildUtterance`.
 - [Card Customisation](card-customisation.md) — the edit sheet's "In a sentence, this word is" and "On its own, it says" fields set exactly the `word_form` and `spoken_text` that this module consumes.
 - ../analytics/metric-readers.md — `speak.payload.assembly` (`phrase` | `joined`) and `wordCount` come from `buildUtterance`'s output.
 

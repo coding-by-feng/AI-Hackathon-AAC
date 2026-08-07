@@ -21,7 +21,7 @@ that matters afterwards: did the new picture actually get used?
 
 `/api/categories` exists because folders used to be a constant in
 `lib/vocabulary/categories.ts`, so adding "Swimming club" meant a deploy. The constant is now
-only a seed; from first run the eleven entries are ordinary editable rows. Hiding is not
+only a seed; from first run the nine seeded entries are ordinary editable rows. Hiding is not
 deleting — a folder a child is not ready for disappears from their board and keeps its words,
 so turning it back on restores exactly what was there.
 

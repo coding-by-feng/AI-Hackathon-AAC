@@ -26,6 +26,8 @@ The file lives in `aac_app.db`, deliberately separate from the analytics databas
 | Handle | `globalThis.__aacVisuals` singleton |
 | PRAGMAs | `journal_mode = WAL`, `busy_timeout = 5000` |
 
+`aac_app.db` is a **shared** file: `lib/chat/settings.ts` owns the `ai_settings` table in the same database, behind its own `globalThis.__aacAiSettings` handle with the same WAL + `busy_timeout` pattern — two handles, one file, coordinated by WAL.
+
 ### Schema (`CREATE TABLE IF NOT EXISTS … STRICT`)
 ```sql
 generated_visuals (
@@ -60,7 +62,7 @@ Ordering by `used_count DESC` first means the most-reused picture for a concept 
 ### `findSemantic(embedding, threshold = 0.88)` — ladder step 4
 Loads **every** row where `embedding IS NOT NULL` and scans them in JS: `JSON.parse` each stored embedding (a parse failure `continue`s past that row), computes `cosine(embedding, stored)` (from `lib/visuals/openai.ts`), and keeps the highest score `>= threshold`. Returns `{ visual: StoredVisual, score } | null`. There is no index or ANN structure — a full table scan per lookup.
 
-The ladder renders the score as `Close enough to “<concept>” (<Math.round(score * 100)>%)`.
+The ladder renders the score as `Close enough to “<stored concept>” (<Math.round(score * 100)>%)`.
 
 ### `save(v)`
 `visual_id` = `` `vis_${crypto.randomUUID().slice(0, 12)}` `` — a 12-character slice of the UUID string (which includes the first hyphen group boundary), not a full UUID. Inserts all ten columns with `used_count = 0`; `embedding` is `JSON.stringify(v.embedding)` or `NULL`. `normalizeConcept(v.concept)` is computed twice (once for the insert, once for the returned object) and `Date.now()` is read twice, so the returned `created_at` can differ from the stored one by a millisecond.
@@ -96,8 +98,8 @@ Only `images[0]` is persisted; the other candidates are returned to the client a
 - [visual-resolution-ladder](visual-resolution-ladder.md) — the only consumer; steps 3, 4 and 5
 
 ### Shared Resources
-- `aac_app.db` (`AAC_APP_DB`) — the application database, separate from the analytics DB used by [scoped-tool-bridge](scoped-tool-bridge.md) (`AAC_DB`, default `aac.db`)
-- `globalThis.__aacVisuals` — process-wide SQLite handle, mirroring the `globalThis.__aacChatDb` pattern used on the chat side
+- `aac_app.db` (`AAC_APP_DB`) — the application database, separate from the analytics DB used by [scoped-tool-bridge](scoped-tool-bridge.md) (`AAC_DB`, default `aac.db`); also holds `ai_settings` (see [chat-providers](chat-providers.md))
+- Three process-wide SQLite handles on `globalThis`, one per concern: `__aacVisuals` (this cache, `aac_app.db`), `__aacAiSettings` (`ai_settings`, same `aac_app.db` file), and `__aacChatDb` (the analytics DB on the chat side)
 - `normalized_concept` values must agree with the `normalizedConcept` written into `gap_detected` payloads
 
 ## Change Risks
@@ -105,6 +107,6 @@ Only `images[0]` is persisted; the other candidates are returned to the client a
 - **Lowering the `0.88` threshold** returns visually wrong symbols for near-miss concepts on a board a child uses to speak; raising it pushes traffic to paid generation and shifts `visual_source_split` toward `generated`.
 - **Changing `normalizeConcept()`** invalidates every `normalized_concept` already stored — see [visual-prompt-and-sanitisation](visual-prompt-and-sanitisation.md).
 - **Switching image provider** changes embedding dimensionality; `cosine()` returns `0` on a length mismatch, so old rows silently stop matching and step 4 stops hitting.
-- **Deleting `aac_app.db`** loses every generated picture and every `used_count`; cards referencing those `visual_id`s lose their image, and the next resolution of each concept costs a fresh generation.
+- **Deleting `aac_app.db`** loses every generated picture and every `used_count`; cards referencing those `visual_id`s lose their image, and the next resolution of each concept costs a fresh generation. It also loses the `ai_settings` rows — provider selection, stored API keys, and the local model's address — so chat silently reverts to the env → `vertex`-default resolution.
 - **Adding a column without `IF NOT EXISTS` migration handling** — the table is created inline on first use with no migration path, so an existing `aac_app.db` will keep the old shape and `save()` will fail on the new column.
 - **`STRICT` mode** means any type drift (e.g. writing a number into `image_data`) is a hard SQLite error at insert time, not a silent coercion.

@@ -69,6 +69,8 @@ FROM s
 ### Page (`app/dashboard/sessions/page.tsx`)
 `export const dynamic = 'force-dynamic'`. `searchParams`: `{ child?, order?, days? }`.
 
+The page gained its first link from anywhere in the app on 2026-08-08 — the rail's **Sessions** item ([dashboard shell](dashboard-shell.md)); before that it was live but reachable only by typed URL.
+
 - No roster children → `EmptyState "No children shared with you"`.
 - **Window whitelist:** `Number(days) === 7 ? 7 : Number(days) === 42 ? 42 : 14`. Anything else becomes 14. (Only 7 and 42 are reachable via the code path; the UI exposes no day switcher, so the parameter is URL-only today.)
 - **Sort whitelist:** `ORDERS.find(o => o.key === order)?.key ?? 'recent'`.
@@ -110,7 +112,7 @@ Page footnote: *"A sitting where presses got harder towards the end usually mean
 
 ### Depends On
 - [Access control](../auth/role-consent-scoping.md) — `currentViewer`, `visibleChildren`; the roster list is what bounds every query
-- [Dashboard shell](dashboard-shell.md) — `Panel`, `EmptyState`, and the header nav entry
+- [Dashboard shell](dashboard-shell.md) — `Panel`, `EmptyState`, and the rail's **Sessions** item (the page's only inbound link)
 - [Database schema](../database/schema.md) — `sessions` (`fatigue_ratio`, `minutes`, `taps`, `mistaps`, `abandoned`, `utterances`), `children`, `events` (for the `MAX(day_local)` anchor), `utterances` (for the unused `sittingUtterances`)
 - [Rollup pipeline](../pipeline/l2-rollup.md) — materialises `sessions` rows by splitting the event stream on 20-minute idle gaps and computes `fatigue_ratio`
 

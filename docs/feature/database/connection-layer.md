@@ -125,7 +125,13 @@ export function previousWindow(w: Window): Window
 | `AAC_APP_DB` | `path.join(process.cwd(), 'aac_app.db')` | `lib/categories/store.ts` (separate application database) |
 
 ### Current call sites
-`app/actions.ts`, `app/page.tsx`, `app/login/page.tsx`, `app/api/auth/route.ts`, `app/api/cards/route.ts`, `app/api/reports/route.ts`, `app/dashboard/reports/actions.ts`, `app/dashboard/student/[id]/page.tsx`, `.../access/page.tsx`, `.../ai-impact/page.tsx`, `.../report/page.tsx`, `lib/ingest.ts`, `lib/categories/store.ts`.
+Regenerate with `grep -rl "from '@/lib/db'" app lib` for the app group (lib files import relatively, as `'./db'` / `'../db'`).
+
+**app/** (11 files, via `@/lib/db`): `app/actions.ts`, `app/page.tsx`, `app/login/page.tsx`, `app/api/auth/route.ts`, `app/api/cards/route.ts`, `app/api/reports/route.ts`, `app/dashboard/reports/actions.ts`, `app/dashboard/student/[id]/page.tsx`, `.../access/page.tsx`, `.../ai-impact/page.tsx`, `.../report/page.tsx`.
+
+**lib/** (13 files, via relative import): `lib/access.ts`, `lib/auth.ts`, `lib/baseline.ts`, `lib/catalog.ts`, `lib/categories/store.ts`, `lib/insights.ts`, `lib/metrics.ts`, `lib/queue.ts`, `lib/report-store.ts`, `lib/report.ts`, `lib/session.ts`, `lib/sittings.ts`, `lib/visuals/ladder.ts`.
+
+`lib/ingest.ts` is deliberately **not** on this list: it bypasses `lib/db.ts` and calls `connect()` from `lib/sqlite.ts` directly under its own `aac:ingest` key. `lib/categories/store.ts` sits in both worlds — `all` from `lib/db.ts` for `aac.db` reads, `connect()` from `lib/sqlite.ts` for `aac_app.db`.
 
 ### Not this layer
 The MCP server has its own connection module (`mcp/db.ts`) with a stricter guard — a `SELECT_ONLY` prefix test plus a `BANNED` keyword regex covering `attach|detach|pragma|insert|update|delete|drop|alter|create|replace|vacuum|reindex|begin|commit|rollback|savepoint`, because "ATTACH is still permitted on a read-only handle, and node:sqlite exposes no authorizer callback." It does not use `lib/sqlite.ts`.

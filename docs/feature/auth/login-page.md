@@ -7,9 +7,12 @@ account against a chosen row in the `adults` roster.
 
 ## Purpose
 This is the only page a signed-out visitor to the dashboard hostname can reach, and it is
-deliberately outside the `/dashboard` route group so it does not render inside
-`app/dashboard/layout.tsx` (which calls `currentViewer()` and throws `NOT_SIGNED_IN` with no
-session — see [Host and surface routing](host-surface-routing.md)).
+deliberately outside the `/dashboard` route group. `app/dashboard/layout.tsx` no longer calls
+`currentViewer()` — the signed-out throw now comes from the pages themselves: every
+`/dashboard` page calls `currentViewer()`, and `DashHeader` (`app/dashboard/header.tsx`),
+which the class view, settings and student pages render for the shared header row, calls it
+too and throws `NOT_SIGNED_IN` with no session (see
+[Host and surface routing](host-surface-routing.md)).
 
 The setup branch solves the bootstrap problem: `db/schema.sql` seeds the `adults` roster, but
 credentials live in a separate `adult_credentials` table in `aac_app.db` that starts empty.
@@ -115,11 +118,17 @@ and `consent` tables — see [Role and consent scoping](role-consent-scoping.md)
 
 ### Layout
 
-`<main className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center p-6">` — a
-single centred column capped at `max-w-md`, `100dvh` tall so the form is vertically centred on a
-phone with browser chrome. All colours come from CSS custom properties
-(`--color-ink-muted`, `--color-line`, `--color-surface`, `--color-accent`, `--color-alert`,
-`--color-alert-soft`, `--color-warn`, `--color-warn-soft`).
+`<main className="dash flex min-h-[100dvh] flex-col justify-center p-6">` wraps an inner card
+`<div className="mx-auto w-full max-w-md rounded-[var(--radius-card)] border
+border-[var(--color-line)] bg-[var(--color-surface)] p-6">` — a single centred column capped
+at `max-w-md`, `100dvh` tall so the form is vertically centred on a phone with browser
+chrome. The `.dash` class on `<main>` scopes the dashboard's fixed dark theme tokens onto
+this page: as the component's own comment puts it, the page belongs to the dashboard surface
+even though it renders outside its layout, so it picks up the same palette and the shared
+`--radius-card` corner radius rather than the kid app's adaptive theme. All colours come from
+CSS custom properties (`--color-ink-muted`, `--color-line`, `--color-surface`,
+`--color-accent`, `--color-alert`, `--color-alert-soft`, `--color-warn`,
+`--color-warn-soft`).
 
 ### Client-side vs server-side validation
 
@@ -153,10 +162,12 @@ localhost (`surface === 'any'`) it is always reachable.
   and the dashboard-hostname root here.
 - [Dashboard error boundary](../dashboard/dashboard-shell.md) — the "You need to sign in" card in
   `app/dashboard/error.tsx` links to `/login`.
+- [Adult sign-in](adult-sign-in.md) — `app/dashboard/user-chip.tsx` lands here after sign-out:
+  `DELETE /api/auth`, then `router.push('/login')`.
 
 ### Shared Resources
-- `/api/auth` — shared with the (currently uncalled) `DELETE` sign-out handler and the `GET`
-  setup probe.
+- `/api/auth` — shared with the `DELETE` sign-out handler (called by
+  `app/dashboard/user-chip.tsx`) and the `GET` setup probe.
 - The `adults` table — the same rows that `currentViewer()` resolves against.
 - Theme CSS custom properties shared with the rest of the dashboard shell.
 
@@ -181,6 +192,6 @@ localhost (`surface === 'any'`) it is always reachable.
   database that has no accounts at all — an unrecoverable state without shell access.
 - **Adding `/login` back under `/dashboard`** breaks it entirely; see
   [Host and surface routing](host-surface-routing.md).
-- **There is no rate limiting on this form.** Each attempt costs one scrypt derivation server-side
-  (which bounds throughput), but nothing counts or locks out failures, and `docs/TECH_STACK.md`'s
-  security checklist assumption of rate limiting does not hold for this endpoint.
+- **There is no rate limiting on this form.** Each attempt costs one scrypt derivation
+  server-side, which bounds throughput — but nothing counts failures and nothing locks an
+  account out.

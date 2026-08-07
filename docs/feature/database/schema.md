@@ -152,7 +152,7 @@ Sizing assumption stated in the header: **5 children × 6 weeks ≈ 180k events,
 **`ANALYZE;`** runs at this point — **before** the four v2 indices below it. Those four (`ix_sessions_child_day`, `ix_sessions_worst (child_id, mistaps DESC)`, `ix_utt_structures_pattern (pattern_id)`, `ix_reports_child_period (child_id, period_end DESC)`) therefore get no statistics from this file. In practice `tools/rollup.py` re-runs `ANALYZE` at build step 5/7, which populates them.
 
 ### Verified against the built database
-`sqlite3 aac.db` on the committed build reports **31 tables, 33 `ix_*` indices, 53 views**.
+`sqlite3 aac.db` on the committed build reports **32 tables (31 declared plus `sqlite_stat1`, created by the `ANALYZE` in `db/indices.sql`), 33 `ix_*` indices, 53 views**.
 
 ## Dependencies & Connections
 

@@ -1,7 +1,7 @@
 # Progress Reports
 
 ## Function
-The report-set metric surface in three forms: a **live** Progress tab per child (`/dashboard/student/[id]/report`), a **frozen** stored report (`/dashboard/reports` list, `/dashboard/reports/[id]` detail), and the presentation layer they share — `MetricCard` plus nine hand-rolled SVG chart types.
+The report-set metric surface in four forms: the **student page itself** (`/dashboard/student/[id]` — "the student page IS the report", per its header comment; layout in [student-overview.md](student-overview.md)), the older grouped **Progress view** (`/dashboard/student/[id]/report`), the **frozen** stored report (`/dashboard/reports` list, `/dashboard/reports/[id]` detail), and the **print/PDF output** (`GET /api/reports/[id]/print` and `…/pdf`, one HTML builder) — all sharing the presentation layer, `MetricCard` plus nine hand-rolled SVG chart types.
 
 ## Purpose
 Two decisions carry this feature.
@@ -19,7 +19,11 @@ Everything readable comes from `metrics_catalog`: the name, the one-line explana
 |------|------|
 | `lib/report.ts` | `reportMetrics()` — builds one `ReportMetric` per `report_set` row; `plainSummary()` — the deterministic prose writer |
 | `lib/report-store.ts` | `generateReport`, `listReports`, `readReport`; the canonical-set citation check |
-| `app/dashboard/student/[id]/report/page.tsx` | Live Progress tab with a 7/28/90-day selector |
+| `lib/report-html.ts` | `reportPrintHtml()` — the printable document as an HTML string; one builder, two consumers |
+| `app/api/reports/[id]/print/route.ts` | `GET` — serves the HTML as a page; the in-browser view and the no-Chrome fallback |
+| `app/api/reports/[id]/pdf/route.ts` | `GET` — renders the same HTML through headless Chrome, streams a PDF download |
+| `app/dashboard/student/[id]/page.tsx` | The student page — renders the report set as its main body ([student-overview.md](student-overview.md)) |
+| `app/dashboard/student/[id]/report/page.tsx` | Older grouped Progress view with a 7/28/90-day selector |
 | `app/dashboard/reports/page.tsx` | Report list + the generate form |
 | `app/dashboard/reports/actions.ts` | `generateReportAction` server action |
 | `app/dashboard/reports/[id]/page.tsx` | One frozen report + embedded Ask panel |
@@ -114,11 +118,13 @@ The header states the rule: the check is in the action, not in the form that ren
 ### Pages
 **`/dashboard/reports`** — `EmptyState` when the roster is empty. A `Panel "Write a new one"` with a `<form action={generateReportAction}>`: a `child_id` `<select>` (required, one option per roster child), a `days` `<select>` defaulting to `28` with options **Last week (7) / Last month (28) / This term (90)**, and a **Generate** submit. Below, `Panel "{n} report(s)"` listing `display_name`, `{period_start} → {period_end} · written {date}` and a 2-line-clamped summary, each linking to `/dashboard/reports/{report_id}`.
 
-**`/dashboard/reports/[id]`** — `readReport` → `notFound()` when missing, then `requireChild(viewer, report.child_id)` (*"Reading a report is reading a child's data. Scope it the same way."*). Header shows the period, the written date, and `({n} days ago)` when `ageDays > 0`. Two actions: **See live numbers** → `/dashboard/student/{child_id}/report`, and **Save as PDF** → `/api/reports/{report_id}/print` in a new tab. When **`ageDays >= 7`** a banner explains the numbers are frozen *"— that is deliberate, so the words below still describe the figures beside them."* Then the grouped metric grid, the "In plain words" section (`summary`, `guidance`, and the provenance line `Written from {metricsUsed.length} of the {metrics.length} numbers above and nothing else · {model}` / `· no model — deterministic summary`), `MetricCaveats`, and a `Panel "Ask about this report"` wrapping [`AskPanel`](ask-panel.md) with suggestions *"What should I try next?" · "Which of these matters most?" · "What does the pairs number mean?"*.
+**`/dashboard/reports/[id]`** — `readReport` → `notFound()` when missing, then `requireChild(viewer, report.child_id)` (*"Reading a report is reading a child's data. Scope it the same way."*). Header shows the period, the written date, and `({n} days ago)` when `ageDays > 0`. Two actions: **See live numbers** → `/dashboard/student/{child_id}/report`, and **Save as PDF** → `/api/reports/{report_id}/pdf` — a same-tab download (the route answers `content-disposition: attachment`, filename `aac-report-{first}-{period_start}-to-{period_end}.pdf`). When **`ageDays >= 7`** a banner explains the numbers are frozen *"— that is deliberate, so the words below still describe the figures beside them."* Then the grouped metric grid, the "In plain words" section (`summary`, `guidance`, and the provenance line `Written from {metricsUsed.length} of the {metrics.length} numbers above and nothing else · {model}` / `· no model — deterministic summary`), `MetricCaveats`, and a `Panel "Ask about this report"` wrapping [`AskPanel`](ask-panel.md) with suggestions *"What should I try next?" · "Which of these matters most?" · "What does the pairs number mean?"*.
 
-**`/dashboard/student/[id]/report`** — the same grid computed **live**. `period = Number(days) === 7 ? 7 : Number(days) === 90 ? 90 : 28`, selected by a three-link nav (**This week / This month / This term**) that sets `?days=`. Renders `StudentTabs active="report"`. Its "This period in plain words" block has an **"Ask about this"** link → `/dashboard/student/{id}/ask` and a **"Save as PDF" `<button>` with no handler — an inert stub**; the working PDF path exists only on the frozen report page.
+**`/dashboard/student/[id]/report`** — the same grid computed **live**. `period = Number(days) === 7 ? 7 : Number(days) === 90 ? 90 : 28`, selected by a three-link nav (**This week / This month / This term**) that sets `?days=`. Renders `StudentTabs active="report"`. Its "This period in plain words" block has an **"Ask about this"** link → `/dashboard/student/{id}/ask` and a **Save as PDF** control that resolves `listReports([id], 1)[0]`: when a frozen report exists it is an `<a>` to `/api/reports/{report_id}/pdf` — the latest report's download — and when none exists it is a `Link` to `/dashboard/reports` titled *"No frozen report yet — generate one first"*. (The button shipped as a handler-less `<button>` — an inert stub — until 2026-08-08; the source comment records the history.)
 
-**Group headings** (both report pages use the identical map):
+**`/dashboard/student/[id]`** — the student page renders the same `reportMetrics` + `plainSummary` output as its main body, with per-metric `n` attribution and the identical Save-as-PDF resolution (`listReports([id], 1)[0]` → `/pdf` link, or the titled `Link` to `/dashboard/reports`). Full layout and render order: [student-overview.md](student-overview.md).
+
+**Group headings** (the Progress view and the frozen report page use the identical map; the student page groups the same metrics into four sections of its own instead — see [student-overview.md](student-overview.md)):
 ```
 A: Effort and speed · B: Errors and reach · C: Words she uses
 D: How the board is laid out · E: Whose voice · G: The adult · H: How she communicates
@@ -126,9 +132,11 @@ D: How the board is laid out · E: Whose voice · G: The adult · H: How she com
 Sections with no items are filtered out. **Group `F` (AI value) has no heading** — a `report_set` metric in group F would be built and then silently dropped from the page. No current report-set metric is in F.
 
 ### `components/metric-card.tsx`
-`MetricCard` renders `name` (uppercase, small), `rank` in the corner, `headline` (2xl, tabular), `sub`, the chart, `plain` (the catalogue's `plain_explanation`), and `suppressed` when set. `Chart` dispatches on `m.chart` — `line · bar · table · calendar · donut · scatter · grid · ranked_bar · split_bar · none`, defaulting to `null` for anything unrecognised. `split_bar` injects the colours (`--color-accent` left, `--color-good` right) at the dispatch site.
+`MetricCard({ m, n? })` renders the plain-language `name` at 13 px medium weight — **not** uppercase, and there is no rank corner — then the `headline` at 28 px semibold tabular, then `sub` and the optional `n` on one baseline row: `n = {n}` renders **only when `n` is a positive number**, because per the header comment "a card with no real n renders no n, never `n = 0`" (the student page attributes n per metric shape via its `metricN()` — [student-overview.md](student-overview.md)). A suppressed metric shows its suppression sentence *instead of* a number — *"'too few corrections to tell' is a different fact from 0, and rendering either as the other is how a dashboard lies."* The chart sits in a `min-h-[72px]` body, and the catalogue's `plain_explanation` is always visible at the bottom of the card.
 
-`MetricCaveats` collects every metric with a `caveat` into a `<details>` labelled **"How to read these numbers ({n} things worth knowing)"**. The header explains why they are here and not on the cards: *"They are not footnotes. 'Counts words used, not how she feels' is the difference between a useful metric and a wrong conclusion about a child, and hiding it behind a hover would put it where nobody reads it."*
+`Chart` dispatches on `m.chart` — `line · bar · table · calendar · donut · scatter · grid · ranked_bar · split_bar · none`, defaulting to `null` for anything unrecognised. `split_bar` passes **one colour for both sides** (`color="var(--color-accent)"`); the dispatch-site comment states why: this is a classifier between two readings where neither is better, and *two colours would quietly rank them*.
+
+`MetricCaveats` collects every metric with a `caveat` into a `<details>` labelled **"How these numbers can mislead ({n})"**. The header explains why they are here and not on the cards: *"They are not footnotes. 'Counts words used, not how she feels' is the difference between a useful metric and a wrong conclusion about a child, and hiding it behind a hover would put it where nobody reads it."*
 
 ### `components/charts.tsx`
 Shared `scale(values, h, pad = 4)` maps values to y with `min = Math.min(0, …)` so a series is never drawn off a floating baseline. `AXIS = var(--color-line)`, `INK = var(--color-ink-faint)`. `Empty` renders the string **"not enough yet"**.
@@ -138,7 +146,7 @@ Shared `scale(values, h, pad = 4)` maps values to y with `min = Math.min(0, …)
 | `LineChart(points, height=64)` | `null`-safe; returns `<Empty>` below 2 points; filled area at `opacity 0.12` plus a 2.5 r dot on the last point; `aria-label="Trend ending at {value}"` |
 | `BarChart(points, height=64)` | gap 2, `bw = max(1, 100/n - 2)`; `value === null` bars drop to `opacity 0.15`; first and last labels printed beneath |
 | `DonutChart(slices, size=88)` | `r = 32`, `strokeWidth 12`, rotated −90°, `stroke-dasharray` arcs; legend prints each slice's rounded percentage |
-| `SplitBar(left, right, height=34)` | **deliberately not a gauge** — a gauge has a good end and "answers vs starts a topic" does not; always prints **"Neither one is better."** |
+| `SplitBar(left, right, color = 'var(--color-accent)')` | **deliberately not a gauge** — a gauge has a good end and "answers vs starts a topic" does not; the single `color` prop paints **both** sides; always prints **"Neither one is better."** |
 | `CalendarHeat(days, weeks=7)` | GitHub-contributions style; pads leading blanks to the first day's `getUTCDay()`; cell 11 px, gap 3; shade `color-mix(in oklab, var(--color-accent) {18 + t*82}%, transparent)`; legend "quiet → busy" |
 | `ScatterChart(points, height=72)` | x = depth, y = frequency; radius `clamp(2.5 … 6)` by y; axis labels "simpler" / "more complex" |
 | `PairTable(rows)` | first 4 pairs, columns **Pair** / **Used apart**; empty copy: *"No pairs like this right now — she is combining the words she uses most."* |
@@ -146,6 +154,12 @@ Shared `scale(values, h, pad = 4)` maps values to y with `min = Math.min(0, …)
 | `RankedBars(items)` | first 6, horizontal because the labels are words; `muted` items use `--color-neutral` instead of `--color-accent` |
 
 `GridHeat`'s header is emphatic that it is **not** `CalendarHeat` and not comparable across grid sizes, and that *a reach problem shows as a gradient down the rows, not as one hot cell* — which is why the row summary is the part worth reading.
+
+### The print & PDF path
+`lib/report-html.ts` exports `reportPrintHtml(report, { printHint })` — the printable document as a serif, print-stylesheet HTML string: metrics as a three-column table, the plain-words prose, **caveats printed in full** (*"On paper there is no hover and no expander, and a number that travels to a meeting without its caveat is how '60% positive' becomes a statement about how a child feels"*), and a provenance footer. Its header states the design: *one builder, two consumers — keeping them one function means the paper version and the downloaded version can never drift apart.*
+
+- **`GET /api/reports/[id]/print`** — `readReport` → 404, `requireChild` → 403, else the HTML with `printHint: true` (a `noprint` hint: *"Use your browser's Print dialog and choose 'Save as PDF'."*). This is the in-browser view and the fallback wherever Chrome is absent.
+- **`GET /api/reports/[id]/pdf`** — same scoping, then renders the same HTML (`printHint: false`) through headless Chrome: `CHROME = process.env.AAC_CHROME_BIN ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'`, run with `--headless --print-to-pdf` in a fresh `mkdtemp` directory (two teachers downloading at once must not race on file names), 30 s timeout. Streams `application/pdf` with `content-disposition: attachment; filename="aac-report-{first}-{period_start}-to-{period_end}.pdf"` and `cache-control: no-store`. Degradation is graceful, never broken: **no Chrome binary → 501** plain text pointing at `/print`; **failed render → 500** with the same pointer; the temp directory is removed in `finally`.
 
 ## Dependencies & Connections
 
@@ -155,12 +169,13 @@ Shared `scale(values, h, pad = 4)` maps values to y with `min = Math.min(0, …)
 - [Dashboard shell](dashboard-shell.md) — `Panel`, `EmptyState`, `StudentTabs`
 - [Ask panel](ask-panel.md) — embedded on the frozen report page
 - [Database schema](../database/schema.md) — `reports`, `agg_daily_metric`, `agg_card_stats`, `agg_cell_heat`, `agg_word_pairs`, `boards`, `board_cells`, `cards`, `child_vocabulary`, `syntax_patterns`, `utterances`, `events`, `v_first_uses`
-- [Report print route](../api/print-and-generate.md) — `GET /api/reports/{id}/print` renders the frozen snapshot as printable HTML
+- [Print & generate routes](../api/print-and-generate.md) — `lib/report-html.ts` is the one builder with two consumers: `GET /api/reports/[id]/print` (in-browser view and fallback) and `GET /api/reports/[id]/pdf` (headless-Chrome download via `AAC_CHROME_BIN`, degrading to 501 without Chrome and 500 on a failed render)
 
 ### Depended On By
-- [Sittings (Sessions)](sittings.md) — the Who column links to the live Progress tab
-- [Report print route](../api/print-and-generate.md) — consumes `readReport()` and the same `ReportMetric[]` shape
-- [Dashboard shell](dashboard-shell.md) — the **Reports** nav item and the `report` student tab
+- [Student overview](student-overview.md) — the student page renders the report set as its main body and resolves the latest frozen report for its Save-as-PDF button
+- [Sittings (Sessions)](sittings.md) — the Who column links to the live Progress view
+- [Print & generate routes](../api/print-and-generate.md) — consume `readReport()` and the same `ReportMetric[]` shape
+- [Dashboard shell](dashboard-shell.md) — the rail's **Reports** item and the `report` student tab
 
 ### Shared Resources
 - `metrics_catalog.report_set` — the single definition of "the canonical set", read by both `reportMetrics()` and `canonicalIds()`
@@ -174,13 +189,5 @@ Shared `scale(values, h, pad = 4)` maps values to y with `min = Math.min(0, …)
 - **Recomputing metrics on `/dashboard/reports/[id]` instead of reading the snapshot** breaks the guarantee the whole table exists for: the embedded Ask conversation would drift away from the prose above it while both still looked correct.
 - **`citedIn` matches on `name` and `headline` substrings.** A short headline (e.g. `—`, or a bare number) can match unrelated text; a longer or reworded catalogue `name` changes which metrics are recorded as cited, retroactively for new reports only.
 - **`monthly()` is dead code** — deleting it is safe; wiring it in changes the x-axis of every `line` chart from 8 weeks to 6 months.
-- **Making the live Progress tab's "Save as PDF" button work** should point at a route equivalent to `/api/reports/{id}/print`, which requires a stored report — the live tab has no `report_id` to print.
+- **Both live views' Save-as-PDF buttons download the *latest frozen report*** (`listReports([id], 1)[0]`), which can cover a different period than the live numbers on screen — a teacher reading a 7-day view can download a 90-day artifact without noticing. And **removing Chrome** (unset `AAC_CHROME_BIN`, no binary at the default macOS path) degrades the click to the `/pdf` route's 501 plain-text answer; `/print` remains the working fallback.
 - **Renaming a catalogue `name`** changes the report card heading *and* `citedIn`'s matching *and* the print output, all at once.
-
-> **2026-08-08:** "Save as PDF" now downloads a real PDF: `GET
-> /api/reports/[id]/pdf` renders the shared print HTML (`lib/report-html.ts`)
-> through headless Chrome (`AAC_CHROME_BIN`, default the macOS Chrome path) and
-> streams it back as `content-disposition: attachment`. `/print` remains as the
-> in-browser view and the fallback where Chrome is absent (501 with
-> instructions). The progress view's PDF button had shipped as a handler-less
-> `<button>` — now wired to the latest frozen report.

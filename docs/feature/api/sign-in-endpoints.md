@@ -25,12 +25,13 @@ A typed password would exclude the person the board is for; many AAC users canno
 |------|------|
 | `app/api/auth/route.ts` | Adult sign-in, sign-out, and the one-shot first-run setup branch |
 | `app/api/session/route.ts` | Child sign-in / sign-out, and the `session_start` / `session_end` events that bracket a sitting |
+| `app/api/session/switch/route.ts` | `GET` — sets the child cookie from a `?child=` link and redirects to `/`; the only place a link may write the session |
 
 ## Implementation
 
 ### `POST /api/auth` — sign in, or claim the first account
 
-Body: `{ username?, password?, adultId?, setup? }`. Both routes are `dynamic = 'force-dynamic'`.
+Body: `{ username?, password?, adultId?, setup? }`. All three routes are `dynamic = 'force-dynamic'`.
 
 | Condition | Status | Response |
 |---|---|---|
@@ -111,9 +112,16 @@ child in, or write a `session_end` for any `child` id. That is consistent with t
 `setCurrentChild()`, and 307s to `/`. Exists because the board page used to write the
 cookie in its own render when `?child=` was present — legal under `next dev`, but a
 production build throws (`Cookies can only be modified in a Server Action or Route
-Handler`), so every `?child=` link answered 500. The page now redirects here instead;
-this route is the only place a `?child=` link touches the cookie. Same trust model as
-`POST /api/session`: attribution, not access control.
+Handler`), so every `?child=` link answered 500. `app/page.tsx` now redirects here instead;
+this route is the only place a `?child=` link touches the cookie.
+
+There is **no passcode check on this path** — unlike `POST /api/session`, which challenges a
+child who has one. This is the dev/QA and dashboard "view as" convenience: it only shortcuts
+*which* board loads, and a board holds nothing about other children. A child with a picture
+passcode still goes through `/who`. The whole body is wrapped in `try {} catch {}` and always
+ends in the redirect to `/`, so an unknown id or a database error mid-rebuild lands on the
+board (which falls back to `/who` when no session survives) rather than answering 500 — the
+exact failure this route replaced.
 
 ### `today()` (`app/api/session/route.ts`)
 
@@ -160,8 +168,9 @@ a session, since it is the endpoint the login page posts to). `/api/session` is 
   branches on `setupOpen`.
 - [Who picker](../kid-app/child-sign-in.md) — `components/kid/who-picker.tsx` posts to
   `/api/session`.
-- [Board app](../kid-app/communication-board.md) — `components/kid/board-app.tsx` calls
-  `DELETE /api/session?child=<id>` when signing out.
+- [Board app](../kid-app/communication-board.md) — `app/page.tsx` redirects any `?child=` in
+  the URL to `GET /api/session/switch` rather than writing the cookie in its own render, and
+  `components/kid/board-app.tsx` calls `DELETE /api/session?child=<id>` when signing out.
 - [Access scoping](../auth/role-consent-scoping.md) — every dashboard read resolves `currentViewer()`
   from the cookie this endpoint sets.
 

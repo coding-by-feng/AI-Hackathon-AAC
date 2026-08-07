@@ -25,8 +25,8 @@ The fallback chain exists because "quota and billing failures are the norm here 
 | `GEMINI_API_KEY` | — | Presence makes `geminiAvailable()` true |
 | `GEMINI_IMAGE_MODEL` | `gemini-2.5-flash-image` | Overridable "because model names move faster than code" |
 | `VERTEX_PROJECT` / `GOOGLE_CLOUD_PROJECT` | — | Presence of either makes `vertexAvailable()` true |
-| `VERTEX_LOCATION` / `GOOGLE_CLOUD_LOCATION` | `us-central1` | `'global'` is treated as **unset**, because it is valid for some Vertex services and not for Imagen |
-| `VERTEX_IMAGE_MODEL` | `imagen-4.0-fast-generate-001` | |
+| `VERTEX_LOCATION` / `GOOGLE_CLOUD_LOCATION` | `us-central1` | `'global'` is treated as **unset**, because it is valid for some Vertex services but not for the image model used here. The *chat* Vertex client does the opposite — it forces `global` for `gemini-3*` models (see [chat-providers](chat-providers.md)); the two clients treat `'global'` oppositely |
+| `VERTEX_IMAGE_MODEL` | `gemini-2.5-flash-image` | The in-code comment: verified the **only** image path this project can reach — Imagen's `:predict` endpoint and even gemini text models answer 404 here |
 | `OPENAI_API_KEY` | — | Presence makes OpenAI usable; read via `requireKey()` from `lib/chat/provider.ts` |
 | `IMAGE_MODEL` | `gpt-image-1` | OpenAI image model |
 
@@ -66,23 +66,21 @@ Authenticates with **Application Default Credentials** — no API key to store, 
 Three things must be true, and the failure modes are easy to confuse:
 - `aiplatform.googleapis.com` enabled on the project
 - **billing enabled** — without it every model answers `403`
-- a real region — `GOOGLE_CLOUD_LOCATION=global` answers `404` for Imagen, which reads like the model does not exist
+- a real region — `GOOGLE_CLOUD_LOCATION=global` answers `404`, which reads like the model does not exist; `location()` treats `'global'` as unset and uses `us-central1`
 
-Images: `POST https://<loc>-aiplatform.googleapis.com/v1/projects/<proj>/locations/<loc>/publishers/google/models/<VERTEX_IMAGE_MODEL>:predict`
+Images: `POST https://<loc>-aiplatform.googleapis.com/v1/projects/<proj>/locations/<loc>/publishers/google/models/<VERTEX_IMAGE_MODEL>:generateContent` — **not** `:predict` — with body
 ```json
-{ "instances": [{ "prompt": "…" }],
-  "parameters": { "sampleCount": n, "aspectRatio": "1:1",
-                  "safetySetting": "block_medium_and_above",
-                  "personGeneration": "dont_allow" } }
+{ "contents": [{ "role": "user", "parts": [{ "text": "…prompt…" }] }],
+  "generationConfig": { "responseModalities": ["IMAGE"] } }
 ```
-*"A board is used by children; the strictest filter is the right default."*
+One `generateContent` call yields **one image**, so `n` candidates run as `n` parallel calls via `Promise.allSettled` — three sequential round-trips would leave an adult at a spinner. A rejected call must not lose the others: fulfilled non-null results are kept, and only when **zero** images survive does it throw — the first rejection's reason (`String(reason).slice(0, 300)`), or `Vertex returned no image` when every call fulfilled empty.
 
 Two error statuses are named explicitly because they are common and confusing:
 - `403` with `billing` in the body → `Vertex AI needs billing enabled on project <proj>. Enable it at console.cloud.google.com/billing, or set GEMINI_API_KEY instead.`
-- `404` → `Model <VERTEX_IMAGE_MODEL> is not available to project <proj> in <loc>. Check the model name and that Vertex AI is enabled for that region.`
+- `404` → `Model <VERTEX_IMAGE_MODEL> is not available to project <proj> in <loc>.`
 - anything else → `Vertex image generation failed (<status>): <body.slice(0,250)>`
 
-`dataUrl` = `data:<mimeType ?? 'image/png'>;base64,<bytesBase64Encoded>`; empty result throws `Vertex returned no image`.
+`dataUrl` = `data:<part.inlineData.mimeType ?? 'image/png'>;base64,<part.inlineData.data>`, taken from the first candidate's parts; `ms` is measured once across the whole batch.
 
 Embeddings: same host, model `text-embedding-005`, body `{ instances: [{ content: text }] }` → `predictions[0].embeddings.values`.
 
@@ -110,7 +108,7 @@ Embedding dimensionality differs per provider (`text-embedding-004`, `text-embed
 
 ### Shared Resources
 - `OPENAI_API_KEY` — shared with the chat provider (`lib/chat/openai.ts`)
-- The Vertex access-token cache is a module-level singleton shared by `generateWithVertex()` and `embedWithVertex()`
+- The Vertex access-token cache is a module-level singleton shared by `generateWithVertex()` and `embedWithVertex()` — but **not** with the chat side: `lib/chat/vertex.ts` keeps its own independent `accessToken()` cache, so a deployment shells out to `gcloud` twice, once per module, with no sharing (see [chat-providers](chat-providers.md))
 - `providerModel()`'s return value is persisted in `generated_visuals.model`
 
 ## Change Risks
@@ -118,7 +116,7 @@ Embedding dimensionality differs per provider (`text-embedding-004`, `text-embed
 - **Adding a fourth provider** requires touching `activeProvider()`, `providerModel()`, `usable()`, the `chain` array, `embed()`, and `unconfiguredMessage()` — six places in one file, none of them shared.
 - **Switching the active provider on an existing install** makes every previously stored embedding unmatchable (`cosine()` returns `0` on differing lengths), so step 4 stops hitting until the cache refills. Nothing logs this; it shows up as a rising `generated` share in `visual_source_split`.
 - **Replacing the `gcloud` shell-out** with `google-auth-library` is contained to `accessToken()` by design, but any deployment without `gcloud` on `PATH` fails Vertex with an `execFile` error, not a clear auth message.
-- **Reducing the 45-minute token cache margin** risks a token expiring mid-generation on a 5–15 s Imagen call.
+- **Reducing the 45-minute token cache margin** risks a token expiring mid-generation on an image generation call.
 - **Raising OpenAI `quality` above `'low'`** multiplies the real bill without changing what a ~40 px card shows, and desyncs the `IMAGE_COST_USD = 0.02` estimate the dashboard cost panel reports.
-- **Removing Gemini's `Promise.allSettled`** turns one rejected candidate into a total failure; the adult would get nothing rather than two pictures.
-- **Relaxing Vertex `personGeneration: 'dont_allow'` or `safetySetting: 'block_medium_and_above'`** loosens the safety posture on a board used by children — and would still not apply to the Gemini or OpenAI paths, which set no equivalent parameters.
+- **Removing Gemini's or Vertex's `Promise.allSettled`** turns one rejected candidate into a total failure; the adult would get nothing rather than two pictures.
+- **None of the three providers sets an explicit safety parameter.** The safety posture for a board used by children rests entirely on each provider's defaults plus the prompt template in `lib/visuals/prompt.ts` — there is no request-level filter to relax, and none to rely on either.

@@ -165,7 +165,7 @@ The `trigger_rule` text is human-readable prose; `db/views_insights.sql` is the 
 ## Dependencies & Connections
 
 ### Depends On
-- [Analytics Schema and Indices](schema.md) — `metrics_catalog` and `insights_catalog` must exist with exactly 14 and 12 columns respectively before this runs
+- [Analytics Schema and Indices](schema.md) — `metrics_catalog` and `insights_catalog` must exist with exactly 14 and 11 columns respectively before this runs (verify with `PRAGMA table_info`). Only `metrics_catalog`'s 14 is load-bearing for the positional INSERTs: the file itself widens that table to 17 columns with the three ALTERs, which is exactly why a re-run fails. `insights_catalog` is inserted positionally against its full 11 and never altered.
 
 ### Depended On By
 - [../analytics/data-dictionary.md](../analytics/data-dictionary.md) — `lib/catalog.ts` types `MetricMeta`/`InsightMeta` directly off these columns; "Nothing in the UI hardcodes a metric's name, unit, polarity or caveat"

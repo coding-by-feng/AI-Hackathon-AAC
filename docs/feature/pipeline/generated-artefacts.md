@@ -101,13 +101,7 @@ python3 tools/gen_fixtures.py --db aac.db --child sofia_r --window last_14d
 
 **Response unwrapping.** Each response's `result.content[0].text` is `json.loads`ed into the envelope body. An error response is stored as `{"request": …, "error": …}` instead. Requests and responses are zipped by position, so a dropped line would misalign the capture.
 
-**Fixture shape.** The written document is `{"_about": {...}, "tools": {<tool_name>: {"request":…, "response":…}}}`, JSON `indent=2`, `ensure_ascii=False`, trailing newline. `_about` carries, as data:
-
-- `description` — *"Real MCP responses captured from the seeded database. Not hand-written — regenerate with `tools/gen_fixtures.py` so this can never drift from the server."*
-- `child_id`, `window`, `generated_from` (the database filename)
-- `envelope` — one line per envelope key: `data`, `meta` (*"window, row_count, truncated, data_freshness"*), `dictionary` (*"one `metrics_catalog` entry per metric present — unit, polarity, min_n, caveat"*), `guidance` (*"warnings computed for THIS result. Read before the numbers."*), `forbidden_actions` (*"recommendations that must never be made, whatever the evidence suggests"*), `next_calls` (*"what the MCP CLIENT should fetch next. Not a hint to the model."*)
-- `null_semantics` — `"value null + n > 0"` → *"measured, but below min_n. NOT zero."*; `"value null + n = 0"` → *"never observed. The feature is not in use for this child."*; `"direction not_applicable"` → *"the metric's polarity is neutral — it is neither good nor bad."*
-- `read_first` — `docs/aac-clinical-constraints.md` and `docs/mcp-api.md`
+**Fixture shape.** The written document is `{"_about": {...}, "tools": {<tool_name>: {"request":…, "response":…}}}`, JSON `indent=2`, `ensure_ascii=False`, trailing newline. `_about` is itself teaching material — it carries the fixture's provenance, the envelope key glossary, the null semantics and the `read_first` pointers *as data*, so a client author who only ever opens the file still learns that a null value with `n > 0` is not zero. The field-by-field walkthrough of `_about`, and what the two checked-in captures actually contain, live in [Captured Response Fixtures](../mcp/response-fixtures.md).
 
 **Console report.** `wrote <path>  (<KB>, <n> tools)` then one line per tool with an approximate token count (`len(json.dumps(body)) // 4`) and flags counting `guidance`, `forbidden_actions` and `next_calls` entries. Errored tools print `ERROR <first 50 chars of message>`.
 
@@ -123,6 +117,7 @@ Checked-in fixtures: `mcp/fixtures/maya_t-last_14d.json` and `mcp/fixtures/sofia
 
 ### Depended On By
 - `docs/analytics-metrics.md` — its metric index block is machine-owned and must not be hand-edited
+- [Captured Response Fixtures](../mcp/response-fixtures.md) — documents the two checked-in files `gen_fixtures.py` produces, including the `_about` block and the captured payloads
 - [CSV Export](csv-export.md) — `--fixture` reads the JSON these produce
 - Dashboard and MCP-client development — the fixtures are the reference response shapes
 - [Data Dictionary](../analytics/data-dictionary.md) and [Metric Readers](../analytics/metric-readers.md) — same catalogue metadata, surfaced in-app

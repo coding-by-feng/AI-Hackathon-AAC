@@ -1,7 +1,7 @@
 # Symbol Set, Card Faces & Design Tokens
 
 ## Function
-A built-in inline-SVG AAC symbol set (68 symbols) coloured by the Fitzgerald key, the `CardFace` component that renders a card as photo → symbol → letter tile, and the shared CSS custom properties both the kid app and the dashboard draw from.
+A built-in inline-SVG AAC symbol set (68 symbols) coloured by the Fitzgerald key, the `CardFace` component that renders a card as photo → AI icon → SymbolArt SVG → letter tile, and the shared CSS custom properties — including three forced themes — both the kid app and the dashboard draw from.
 
 ## Purpose
 Inline SVG rather than image files, for four reasons that all matter on this device (`lib/icons/symbols.tsx` header):
@@ -20,8 +20,10 @@ The fallback tier is the point of `CardFace`: "A missing symbol must degrade to 
 | File | Role |
 |------|------|
 | `lib/icons/symbols.tsx` | `SYMBOLS` map, `CLASS_STYLE`, `SymbolArt`, `symbolFor`, `wordClassFor`, `allSymbolNames`, `isNumeral`, `CATEGORY_ICON`, `categoryIcon`. |
-| `components/kid/card-face.tsx` | `CardFace` (three-tier rendering) and `faceColours` (background/border/foreground for a card button). |
-| `app/globals.css` | Tailwind import, the `@theme` token set, dark-mode overrides, focus ring, reduced-motion and touch behaviour. |
+| `lib/icons/ai-manifest.ts` | GENERATED slug→path map `AI_ICONS` plus `aiIconFor(label)` — tier 2 of `CardFace`. Primary home: [AI Vocabulary Icons](ai-vocabulary-icons.md). |
+| `components/kid/card-face.tsx` | `CardFace` (four-tier rendering) and `faceColours` (background/border/foreground for a card button). |
+| `components/theme-toggle.tsx` | Three-way forced-theme toggle; writes `data-theme` on `<html>` and persists it. |
+| `app/globals.css` | Tailwind import, the `@theme` token set, dark-mode overrides, the three forced themes and their `.dash` dashboard overrides, focus ring, reduced-motion and touch behaviour. |
 
 ## Implementation
 
@@ -49,7 +51,7 @@ Helpers:
 - `symbolFor(label)` → `SYMBOLS[label.trim().toLowerCase()] ?? null`
 - `wordClassFor(label)` → the class or `null`
 - `allSymbolNames()` → `Object.keys(SYMBOLS).sort()` — the source list for the edit sheet's picker and for server-side validation in `PUT /api/cards`
-- `SymbolArt({label, size = 32})` → `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false">`, returning `null` when the label has no symbol
+- `SymbolArt({label, size = 32})` (`size?: number | string`) → `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden focusable="false">`, returning `null` when the label has no symbol; a string size goes through `style`, not the SVG attributes
 
 ### Numerals
 ```ts
@@ -63,13 +65,18 @@ Numbers render as digits, not drawings: "A picture of four apples means 'apple' 
 
 `categoryIcon(categoryId, firstWord?)` returns the mapped symbol if it exists in `SYMBOLS`, else the first word of the folder if *that* resolves, else `null`. The chips "were text-only, which makes the bar a row of words to read — the one thing an AAC user may not be able to do."
 
-### `CardFace` — three tiers, in priority order
+### `CardFace` — four tiers, in priority order
 ```ts
 CardFace({ label, symbolKey?, imageData?, size = 40, showLabel = true })
 ```
-1. **`imageData`** — an `<img>` at `size × size`, `rounded-md object-cover`, `alt=""`. "A real picture of *their* cup beats any generic drawing of a cup."
-2. **`SymbolArt`** for `symbolKey ?? label`.
-3. **The first letter**, uppercased, in a `--color-surface-sunk` tile at `fontSize: size * 0.55` with `--color-ink-muted` — the legible degradation.
+1. **`imageData`** — a photo `<img>`, `rounded-md object-cover`, `alt=""`. "A real picture of *their* cup beats any generic drawing of a cup."
+2. **The AI-generated icon** — `aiIconFor(symbolKey ?? label)` from `lib/icons/ai-manifest.ts` resolves a static `/icons/ai/<slug>.png` (pre-generated at build time, never a runtime call), rendered as an `<img>` exactly like a photo. See [AI Vocabulary Icons](ai-vocabulary-icons.md).
+3. **`SymbolArt`** for `symbolKey ?? label` — the built-in offline SVG set.
+4. **The first letter**, uppercased, in a `--color-surface-sunk` tile with `--color-ink-muted` — the legible degradation.
+
+`size` is `number | string` (default `40`). A number is pixels and lands on the `<img>`/SVG `width`/`height` attributes. A string is any CSS length — the board passes `clamp()` expressions — in which case the attributes stay `undefined` and the box is styled `{ width: min(<size>, 100%), height: auto, aspect-ratio: 1 }`, capping the icon at the card's own width. The letter tile's `fontSize` is `size * 0.55` for a number and `calc(<size> * 0.55)` for a string. `SymbolArt` gets the same treatment, because SVG `width`/`height` attributes cannot parse CSS functions like `clamp()`.
+
+The face column is `min-w-0 max-w-full` and the label wraps with `[overflow-wrap:anywhere]`: without them a long label ("different") sets the column's min-content width wider than the card button, the icon sized at 100% follows it past the card borders, and neighbouring labels collide.
 
 **Colour is owned here, not inherited.** The face sets `color` from `CLASS_STYLE[wordClass].fg` (falling back to `var(--color-ink)` when the word has no class), and both the symbol (`stroke="currentColor"`) and the label inherit it. Without this, the page's ink colour flips in dark mode and "a near-white label on pale yellow is invisible: the word disappears and only the picture is left."
 
@@ -97,6 +104,11 @@ Two surfaces share this stylesheet — the dashboard on a laptop and the kid PWA
 
 `--color-neutral` exists **because clinical constraint C1 forbids styling repetition or stimming as a problem** — the comment points at `docs/aac-clinical-constraints.md`, where `metrics_catalog.polarity = 'neutral'` blocks red/warning styling. Stimming does not get a red badge.
 
+#### Forced themes
+`html[data-theme='white' | 'warm' | 'black']` each define the **full token set** plus `color-scheme`, overriding the adaptive defaults above. The toggle (`components/theme-toggle.tsx`) cycles **black → white → warm**, writes `data-theme` on `<html>` and persists it in `localStorage('aac-theme')`; the inline `THEME_SCRIPT` in `app/layout.tsx` re-applies it pre-paint so a reload never flashes the wrong theme ([Offline & PWA Shell](offline-pwa.md)). No attribute = the adaptive behaviour: OS scheme for the kid surface, fixed dark for the dashboard.
+
+The dashboard's `.dash` scope follows the forced theme through `[data-theme='white'] .dash` and `[data-theme='warm'] .dash` overrides — `black` needs no block, because `.dash` already is black. The warm palette centres on ink `#2c2316`, surface `#fbf5ea`, sunk `#f2e9d8`, line `#e3d7bf`, accent `#a05a24`. The Fitzgerald card pastels are inline styles from `CLASS_STYLE` and are deliberately untouched by every theme.
+
 Global rules:
 - `html { color-scheme: light dark }`
 - `body { touch-action: manipulation }` — "iOS Safari: stop double-tap zoom eating the second tap on an AAC card."
@@ -107,6 +119,7 @@ Global rules:
 
 ### Depends On
 - Tailwind CSS v4 (`@import 'tailwindcss'` plus `@theme`) — tokens are consumed as `var(--color-*)` throughout the kid components.
+- [AI Vocabulary Icons](ai-vocabulary-icons.md) — `CardFace` consumes `aiIconFor` from the generated manifest as tier 2.
 
 ### Depended On By
 - [Communication Board](communication-board.md) — every grid cell and rail button uses `CardFace` + `faceColours`.
@@ -120,7 +133,8 @@ Global rules:
 - `app/globals.css` is the single stylesheet for both the kid app and the dashboard.
 
 ## Change Risks
-- **Making `CLASS_STYLE` backgrounds theme-aware** breaks the Fitzgerald colour code: the child re-learns the grouping every time the theme flips.
+- **Making `CLASS_STYLE` backgrounds theme-aware** — including moving the pastels into a `data-theme` block — breaks the Fitzgerald colour code: the colour code is learned and must survive every theme, forced or adaptive, or the child re-learns the grouping every time the theme flips.
+- **Removing `min-w-0`/`max-w-full` from the face column or `[overflow-wrap:anywhere]` from the label** brings back the overflow bug: a long label sizes the column past the card button and pushes the icon over the borders.
 - **Removing the `ink` assignment in `CardFace`** makes labels near-invisible in dark mode on pale pastel cards — the word vanishes and only the picture is left.
 - **Deleting or renaming a `SYMBOLS` key** silently degrades every card with that label to a letter tile, and if the key is in `PIN_SYMBOLS` or `CATEGORY_ICON`, degrades the passcode pad or the folder chips as well. Stored `card_overrides.symbol` values referencing it also stop resolving.
 - **Replacing inline SVG with image files** re-introduces network dependence and 404s on a device that must work offline.

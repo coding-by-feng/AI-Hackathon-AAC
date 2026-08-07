@@ -84,14 +84,20 @@ Ingest is idempotent on `event_id` (`INSERT OR IGNORE`), "so a retry after a par
 |---|---|---|
 | `session_start` / `session_end` | board mount / unmount (also written server-side on sign-in and sign-out) | — |
 | `card_tap` | `tap()` (`source: 'board' \| 'essential'`) and `pickFromCategory` (`source: 'search'`, `nav_depth: 1`) | five starred fields, `ms_delta` |
-| `speak` | Speak button | `payload {cardIds, labels, symbolCount, wordCount, assembly, msCompose, usedSuggestion}` |
+| `keyboard_input` | `addTypedWord` — a word committed on the keyboard layer with space or Done ([Keyboard & Modelling Help](keyboard-and-modeling-help.md)) | `utterance_id`, `board_id`, `label` = the typed word, `source: 'keyboard'`, `payload {word, length}`; the only source for metric `keyboard_use` (H2) |
+| `speak` | Speak button, and the message window re-speaking the sentence (`respeak`) | `payload {cardIds, labels, symbolCount, wordCount, assembly, msCompose, usedSuggestion}`; a re-speak adds `trigger: 'message_window'` and **reuses the same `utterance_id`** |
 | `delete_last` | Undo button | `ms_delta` = ms between tap and delete |
 | `abandon` | Clear button | `payload {cardIds, msAlive, reason: 'cleared'}` |
 | `board_switch` | mode chips | `payload {from, to, trigger: 'manual'}` |
 | `scene_change` | scene `<select>` | `payload {from, to, setBy: 'manual'}` |
 | `card_created` | written server-side by `PUT /api/cards` | `payload {origin, changed}` |
 
+A `speak` is no longer one-per-utterance: re-speaking from the message window emits another `speak` for the **same** `utterance_id`, distinguished only by `payload.trigger = 'message_window'`. A metric reader counting `speak` rows as utterances must dedupe on `utterance_id` or filter the trigger ([Communication Board](communication-board.md)).
+
 `lib/ingest.ts` validates against a closed set of types, scenes, actors and sources (`board`, `suggestion`, `essential`, `recent`, `search`, `keyboard`), and **rejects** a `card_tap` from `board`/`essential` that is missing any of the five starred fields with `"...it cannot be reconstructed later"`. A `card_tap` from `search` only needs `nav_depth`, because a folder word has no cell and inventing `(0,0)` would corrupt the heat map.
+
+### Known behaviour: typed words are stored verbatim
+`keyboard_input.payload.word` — and the event's `label` — is the literal string the child spelled ([Keyboard & Modelling Help](keyboard-and-modeling-help.md)). Private Mode is the only gate: `log()` returns before anything is queued, but nothing else redacts free text. A consent tier that forbids storing free text has to strip or hash the word **here**, in the logging path, before the event is persisted — there is no server-side scrubbing to fall back on.
 
 ## Dependencies & Connections
 

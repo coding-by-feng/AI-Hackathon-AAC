@@ -17,7 +17,7 @@ The viewport lock exists because "an AAC user must never be able to pinch the bo
 ## Source Files
 | File | Role |
 |------|------|
-| `app/layout.tsx` | Root layout: metadata, manifest and icon links, viewport lock, mounts `<RegisterSW />`. |
+| `app/layout.tsx` | Root layout: metadata, manifest and icon links, viewport lock, pre-paint theme script (`THEME_SCRIPT`, with `suppressHydrationWarning` on `<html>`), mounts `<RegisterSW />`. |
 | `components/kid/register-sw.tsx` | Client component that registers `/sw.js` after `load`. |
 | `public/sw.js` | The service worker: versioned cache, split fetch strategy, offline fallback page. |
 | `public/manifest.webmanifest` | Install metadata — name, `start_url`, display mode, colours. |
@@ -42,7 +42,16 @@ viewport = {
   viewportFit: 'cover', // so env(safe-area-inset-*) is meaningful
 }
 ```
-`<html lang="en">`, `<body>{children}<RegisterSW /></body>`. `viewportFit: 'cover'` is what makes the board's `env(safe-area-inset-bottom)` padding on the essential rail and the category drawer meaningful on a notched device.
+`<html lang="en" suppressHydrationWarning>` with an inline script in `<head>`, then `<body>{children}<RegisterSW /></body>`. `viewportFit: 'cover'` is what makes the board's `env(safe-area-inset-bottom)` padding on the essential rail and the category drawer meaningful on a notched device.
+
+The head script re-applies any stored forced theme **before paint** — "Applied before paint so a stored theme never flashes the default first":
+
+```ts
+const THEME_SCRIPT =
+  "try{var t=localStorage.getItem('aac-theme');if(t==='black'||t==='white'||t==='warm')document.documentElement.dataset.theme=t}catch(e){}"
+```
+
+The server cannot know `data-theme` — it lives in the browser's `localStorage` — so the server-rendered `<html>` never carries the attribute and the script adds it before first paint; `suppressHydrationWarning` on `<html>` silences that deliberate server/client mismatch. Theme tokens and the toggle live in [Symbol Set & Card Faces](symbol-set.md).
 
 ### Registration (`components/kid/register-sw.tsx`)
 Returns `null`. In a `useEffect`:
@@ -116,6 +125,7 @@ A 512×512 SVG: a `#2f5fd0` rounded square (`rx=96`) holding four white 136×136
 - **Caching `/dashboard`** shows a teacher stale metrics with no indication they are stale — worse than an empty panel, per the staleness rule in `docs/TECH_STACK.md`.
 - **Editing `sw.js` without bumping `CACHE`** leaves old entries in place; the version string is the only eviction mechanism.
 - **Removing `skipWaiting()`/`clients.claim()`** means a fix only lands after every tab is closed — on a kiosk tablet that may be never.
+- **Moving `THEME_SCRIPT` out of `<head>` or dropping `suppressHydrationWarning`** — run after first paint the script flashes the default theme before the stored one lands; without the suppression React warns on every themed load, because the server can never render the `data-theme` the client applies.
 - **Dropping `maximumScale: 1`** lets a stray pinch shift the grid mid-sentence, which changes where every learned button appears on screen.
 - **Dropping `viewportFit: 'cover'`** makes `env(safe-area-inset-bottom)` collapse to `0`, so the essential rail sits under the home indicator on an iPad.
 - **Failing to serve `/manifest.webmanifest` or `/icon.svg`** makes the app un-installable, which on iPad re-exposes the queued events in `aac-events` to Safari's 7-day eviction.

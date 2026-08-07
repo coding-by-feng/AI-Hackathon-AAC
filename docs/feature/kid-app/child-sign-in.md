@@ -57,7 +57,7 @@ There is deliberately **no lockout, no attempt counter and no error state that r
 - `PIN_SYMBOLS = ['ball', 'book', 'home', 'music', 'water', 'apple', 'play', 'garden']` — eight recognisable symbols, "nothing abstract", each resolving to a real entry in `lib/icons/symbols.tsx`.
 - Passcode length: the attempt is submitted as soon as `next.length >= 3`.
 - Face grid: `grid-cols-2 sm:grid-cols-3 lg:grid-cols-4`, each tile `minHeight: 160` with a 20×20 (`h-20 w-20`) initial circle and the child's first name. A real photo belongs there; "until one is uploaded, initials are at least stable and recognisable — never a generic avatar that looks the same for every child." A child with a passcode shows the hint `pictures needed`.
-- Passcode screen: heading *"Hello <FirstName>. Tap your three pictures."*, three 14×14 slots (`aria-label="pictures chosen so far"`), an 8-button `grid-cols-4` pad at `minHeight: 96`, and a `Someone else` escape button.
+- Passcode screen: heading *"Hello <FirstName>. Tap your three pictures."*, three 14×14 slots (`aria-label="pictures chosen so far"`) whose chosen symbols render `CardFace` at `size 28`, an 8-button `grid-cols-4` pad at `minHeight: 96` with faces at `size 40` — fixed pixels on purpose: a passcode symbol must look identical every time it is entered — and a `Someone else` escape button.
 - Retry copy on a wrong sequence is *"Let's try that again."* — the attempt is cleared and nothing is phrased as failure.
 - Root list copy: *"Signing in keeps each person's words in their own record, so the reports describe the right child."*
 
@@ -79,7 +79,7 @@ The board header's signed-in chip calls `DELETE /api/session?child=<id>` and the
 
 ### Depends On
 - ../database/schema.md — the `children` table (read through `lib/db.ts`).
-- ../api/sign-in-endpoints.md — `POST /api/session`, `DELETE /api/session?child=`.
+- ../api/sign-in-endpoints.md — `POST /api/session`, `DELETE /api/session?child=`, `GET /api/session/switch?child=` (validates the id and writes the cookie for `?child=` links).
 - [Symbol Set & Card Faces](symbol-set.md) — `CardFace` renders both the passcode pad and the chosen-symbol slots.
 - `aac_app.db` — the app-owned SQLite file that also holds card overrides and categories.
 

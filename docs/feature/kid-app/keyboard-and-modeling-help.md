@@ -13,13 +13,14 @@ Two documented gaps drive this:
 
 Modeling help exists because aided language stimulation only works if adults actually do it, and the existing Modeling Mode (see [Communication Board](communication-board.md)) already separates adult presses from child data — what is missing is the guidance layer telling an adult *what* to model.
 
-## Source Files (planned)
+## Source Files
 | File | Role |
 |------|------|
-| `components/kid/*` (kid agent's boundary, except `card-face.tsx`) | Keyboard surface, message-window behaviour, modeling help popover. |
-| `lib/kid/*` | Assembly/logging support for typed input. |
-| `app/page.tsx` | Wiring into the board. |
-| `app/api/events` validation (`lib/ingest.ts`) | `keyboard_input` is already in the allowed event-name list and `keyboard` in the allowed `source` set — the ingest seam pre-dates the UI. |
+| `components/kid/keyboard-layer.tsx` | The QWERTY spelling overlay: one-word buffer, Done/space commit, Escape closes (it claims `aria-modal`, so the modal keyboard contract applies), its own `EssentialRail` copy so help/stop/yes/no stay one tap away while spelling. |
+| `components/kid/modeling-help.tsx` | The "What is modelling?" dialog — `role="dialog"` + `aria-modal`, Escape closes, initial focus on the Got-it button. |
+| `components/kid/essential-rail.tsx` | The always-available words; the keyboard layer mounts a second copy inside itself. |
+| `components/kid/board-app.tsx` | Wiring: the `ABC` chip (passed to `CategoryBar` as `leading`), `keyboardOpen`/`helpOpen` state, `addTypedWord()` emitting `keyboard_input` and appending the `typed:<w>` synthetic card. |
+| `lib/ingest.ts` | `keyboard_input` in `TYPES` and `keyboard` in `SOURCES` — the ingest seam pre-dated the UI. |
 
 ## Design (from the plan and the manuals)
 - **Keyboard**: an on-screen alphabet surface reachable from the board without leaving it; typed text joins the sentence bar exactly like a card selection, is spoken by the same speech path, and is logged with `source: 'keyboard'` / `keyboard_input` events so H2 (`keyboard_use`) counts words typed rather than selected.

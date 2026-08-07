@@ -15,7 +15,7 @@ Several tools exist only because of a constraint: `get_partner_metrics` is separ
 ## Source Files
 | File | Role |
 |------|------|
-| `mcp/tools.ts` | The `tools` export (20 tool definitions), the `Envelope`/`Guidance` types, `resolveWindow`, `computeGuidance`, `base`, `dictionaryFor`, `sliceMetrics`/`bucketExpr`, and the `SLICEABLE_IDS` / `WINDOWS` / `DIMENSIONAL` / `SPATIAL` tables |
+| `mcp/tools.ts` | The `tools` export (20 tool definitions), the `Envelope`/`Guidance` types, `resolveWindow`, `computeGuidance`, `base`, `dictionaryFor`, `sliceMetrics`/`bucketExpr`, and the `SLICEABLE_IDS` / `WINDOWS` / `SUM_METRICS` / `LAST_METRICS` / `DIMENSIONAL` / `SPATIAL` tables |
 
 ## Implementation
 
@@ -62,9 +62,9 @@ const WINDOWS = { today: 1, last_7d: 7, last_14d: 14, last_28d: 28, term: 90 }
 
 1. `maxDay = SELECT MAX(day_local) FROM events` — **every window is anchored to the newest event day, not to wall-clock today.** A stale database yields a stale but self-consistent window.
 2. `window === 'custom'` → requires both `start` and `end`, else `McpError('SQL_REJECTED', 'custom window needs start and end')`. `days = round((Date.parse(end) - Date.parse(start)) / 86_400_000) + 1`. More than **120** days → `McpError('WINDOW_TOO_LARGE', '<days> days requested; maximum is 120.', retryable = true)`.
-3. Otherwise `days = WINDOWS[window] ?? 7` and `start = date(maxDay, '-<days-1> days')`, `end = maxDay`.
+3. Otherwise `days = WINDOWS[window]`; an unknown token **throws** `McpError('SQL_REJECTED', "'<window>' is not a window. Allowed: today, last_7d, last_14d, last_28d, term, custom.")`. The in-code comment: *"Loud rejection, not a silent 7-day fallback: a model that asked for '28d' and silently received 7 days of numbers would caption them as a month — the wrong window is worse than no answer."* A known token resolves to `start = date(maxDay, '-<days-1> days')`, `end = maxDay`.
 
-An unrecognised window string falls back to 7 days rather than erroring — but `validateArgs` rejects it first on the tools whose schema declares the enum.
+The rejection is two-layered. Over stdio, `validateArgs` rejects a bad token first on the two tools whose schema declares the window enum (`get_metrics`, `get_report_set`); over HTTP, `app/api/mcp/route.ts` skips `validateArgs` entirely, so `resolveWindow`'s own throw is what the caller sees. `tools/test-api.sh` L5 pins the HTTP path: `get_metrics` with `window: "28d"` must come back "rejected" (message contains "not a window"), never a silent 7-day answer.
 
 ### `computeGuidance(db, childId, w, metrics = [])`
 
@@ -88,7 +88,7 @@ Three distinct reasons a value can be null are kept apart deliberately — the c
 
 `HIGH_REPETITION_NEUTRAL` carries constraint C1 verbatim: *"This is NOT an error: it is exploration, motor learning, gestalt processing or stimming. If vocabulary coverage is thin here, treat it as a possible vocabulary gap — never as a mistake to correct."*
 
-`PARTNER_WAIT_SHORT` carries C7: *"AAC output runs around 15 words per minute; any finding about the child being slow is confounded by this."* Its detail says "waits a median of X ms" but the SQL is `AVG(ms_to_next_partner_turn)` — a mean, labelled as a median.
+`PARTNER_WAIT_SHORT` carries C7: *"AAC output runs around 15 words per minute; any finding about the child being slow is confounded by this."* Its detail reads *"The adult waits about X ms on average before speaking again"* — an `AVG(ms_to_next_partner_turn)` labelled as an average. (The mean-under-a-median's-name problem survives only in `get_partner_metrics`' `median_wait_ms` field, below.)
 
 Three codes documented in `docs/mcp-api.md` §6 are **not implemented**: `MODE_POSITION_DRIFT`, `CONSENT_LIMITED`, `GESTALT_FLAG`. Three more are emitted only by individual tools: `SLICED_RECOMPUTED`, `AGGREGATED_PERIOD`, `PREVIOUSLY_DISMISSED`.
 
@@ -167,7 +167,11 @@ The workhorse. Schema: `child_id` (required), `window` enum `today·last_7d·las
 
 **Sliced path** (`group_by` present). Metrics default to `SLICEABLE_IDS` when `metric_ids` is empty. If the caller named unsliceable ids explicitly → `McpError('METRIC_NOT_SLICEABLE', 'Cannot group <ids> by <dim>. These have no per-<dim> form. Sliceable metrics: <SLICEABLE_IDS>.')`. If the caller took the default set, unsupported ids are quietly dropped. A `SLICED_RECOMPUTED` info guidance is appended: values are recomputed from the event log, so *"they will not sum to the blended figure exactly. Each row carries its own n."*
 
-**Blended path.** Previous window is `prevEnd = date(w.start, '-1 day')`, `prevStart = date(prevEnd, '-<days-1> days')`. A CTE pair (`cur`, `prev`) averages `agg_daily_metric` per metric and left-joins onto `metrics_catalog` filtered by `m.status = 'shown'` plus optional `metric_id IN (…)` and `group_code IN (…)`. Values are `ROUND(…, 4)`.
+**Blended path.** Previous window is `prevEnd = date(w.start, '-1 day')`, `prevStart = date(prevEnd, '-<days-1> days')`. Three CTEs read `agg_daily_metric` over `value IS NOT NULL` rows: `cur` (this window's `sum_value` and `wmean_value = SUM(value * n) / NULLIF(SUM(n), 0)`, plus `n = SUM(n)` and `days_with_data`), `prev` (the same two aggregates for the previous window), and `latest` (the newest non-null value via `ROW_NUMBER()`). All three left-join onto `metrics_catalog` filtered by `m.status = 'shown'` plus optional `metric_id IN (…)` and `group_code IN (…)`.
+
+Sum and weighted mean are computed side by side and the pick happens per metric in JS, mirroring `lib/metrics.ts` `ROLLUP`: `SUM_METRICS` (`new_words`, `teacher_modeling`, `taps_saved`, `vocabulary_gaps`, `layout_stability`, `keyboard_use`) take the sum, `LAST_METRICS` (`silence_streak`, `zero_activation_days`, `position_consistency`) take the newest value (and get a `null` comparison), and everything else takes the weighted mean so a 3-utterance day cannot outvote a 60-utterance day. The comment records the failure this replaced: a plain AVG of daily rows reported `teacher_modeling` (catalogue unit: count) as a per-day figure — *"348 modelled presses read back as '12.4'"*.
+
+Two JS passes follow the pick. A tally (`SUM_METRICS`) with no in-window rows is **zero-filled** when the metric has ever been produced for this child (`everIds`) and the child was present in the window (`activeInWindow` — any child event between start and end): *"the catalogue's own new_words example: 0 after a batch of card additions means the additions missed, and that must be reportable."* Then window-grain `min_n` suppression: a non-null value with `n < min_n` is withheld (`value = null`) while `n` is kept — matching the dashboard. Values are rounded to 4 dp.
 
 `direction` is derived from `polarity`, once:
 - `delta === null` or `polarity === 'neutral'` → `'not_applicable'`
@@ -175,7 +179,7 @@ The workhorse. Schema: `child_id` (required), `window` enum `today·last_7d·las
 - `polarity === 'higher_better'` → `delta > 0 ? 'improved' : 'worsened'`
 - otherwise (`lower_better`) → `delta < 0 ? 'improved' : 'worsened'`
 
-`suppressed_reason` is `'small_sample'` when `value === null && Number(n) > 0`, `'not_collected'` when `value === null`, else `null`. The `Number(…)` rather than `?? 0` is deliberate — a comment records that `r.n ?? 0` widens to `{}` and fails Next's stricter typecheck.
+`suppressed_reason` is **three-valued**: `'small_sample'` when `value === null && Number(n) > 0`, `'no_data_in_window'` when `value === null` but the metric is `ever_recorded` (produced before, nothing this window), `'not_collected'` when it has never been produced, else `null`. The comment gives the "absent child" rationale: *"Three distinct absences: too few samples ≠ the pipeline never produced this metric ≠ produced before but nothing this window (an absent child). Conflating them told a teacher a feature was broken when the child was simply away."* Each returned row also carries `days_with_data` (`ever_recorded` stays on the intermediate row that feeds the ternary). The `Number(…)` rather than `?? 0` is deliberate — a comment records that `r.n ?? 0` widens to `{}` and fails Next's stricter typecheck.
 
 The `compare_to` parameter is accepted by the schema but **never read** — the previous window is always the comparison basis.
 
@@ -234,7 +238,7 @@ The comment explains the design: a reach problem shows up as a **gradient** acro
 
 `filter` maps: `abandoned → AND spoken = 0`, `used_suggestion → AND used_suggestion = 1`, `multi_symbol → AND symbol_count > 1`.
 
-**Dead code:** `run()` reads `a.window ?? 'last_7d'`, but `window` is not in this tool's schema, so `validateArgs` rejects it with `unknown parameter 'window'`. The window is therefore always `last_7d`. The same applies to `get_card_stats`, `get_cell_heat`, `get_word_pairs` and `get_scene_breakdown`, all of which `docs/mcp-api.md` documents as taking a `window` parameter.
+**Dead over stdio — this tool alone:** `run()` reads `a.window ?? 'last_7d'`, but `window` is not in this tool's schema, so `validateArgs` rejects it with `unknown parameter 'window'` on the stdio and chat paths and the window there is always `last_7d`. Only the HTTP transport, which skips `validateArgs`, lets a supplied token through to `resolveWindow`. `get_card_stats`, `get_cell_heat`, `get_word_pairs` and `get_scene_breakdown` are different: their `run()` never reads a window argument at all — each calls `resolveWindow(db, 'last_28d')` hardcoded — even though `docs/mcp-api.md` still documents a `window` parameter on them.
 
 #### `get_partner_metrics`
 Fixed `last_14d` window. From `partner_turns`: `partner_turns` (count), `median_wait_ms` (**actually `ROUND(AVG(ms_to_next_partner_turn))`** — a mean under a median's name), `interruptions`, `interruption_rate` (3 dp), `turns_with_no_child_response`. From `events WHERE actor = 'adult'`: `modeling_taps`, `modeling_days`.
@@ -363,7 +367,7 @@ The escape hatch. `sql` required, `limit` default 200 capped at 500. Delegates e
 - **Loosening `write_insight`'s `fired_rule_id` requirement** lets model prose reach a teacher with no deterministic SQL rule behind it — the stated reason `fired_rules` and `insights` are separate tables.
 - **Renaming a metric id** silently changes behaviour in several places at once: `SLICEABLE_IDS`, the `SPATIAL` set in `compare_windows`, the `DIMENSIONAL` map in `get_report_set`, the `affects` arrays in `computeGuidance`, and the `next_calls` thresholds in `get_metrics` all match on string ids that no type checks.
 - **Changing a tool's schema** propagates to three consumers: `tools/list`, `app/api/mcp/route.ts`, and `lib/chat/schema-adapter.ts` which rewrites schemas for Gemini's stricter JSON-Schema subset. Adding a keyword Gemini rejects breaks the chat path only.
-- **Adding a `window` parameter to `get_utterances`/`get_card_stats`/etc.** would activate the currently-dead `a.window` read in `get_utterances` and change results for every existing caller that has been getting `last_7d`.
+- **Adding `window` to `get_utterances`' schema** activates its currently stdio-dead `a.window` read and changes results for every existing caller that has been getting `last_7d`. `get_card_stats`, `get_cell_heat`, `get_word_pairs` and `get_scene_breakdown` would need a code change too — they hardcode `resolveWindow(db, 'last_28d')` and read no argument.
 - **Switching `get_fired_rules` back to the live `v_i1…v_i8` views** reintroduces the 5s p99 under concurrent write load that made the dashboard stall.
 - **Changing `resolveWindow`'s anchor from `MAX(day_local)` to wall-clock now** makes every window empty on a seeded demo database whose newest event is in the past.
-- **Fixing `median_wait_ms` to a real median** changes the number the `PARTNER_WAIT_SHORT` guidance and the I2 dashboard card both quote; the 2000 ms threshold would need re-checking against the new statistic.
+- **Fixing `median_wait_ms` to a real median** changes the number the I2 dashboard card quotes; the 2000 ms threshold — used both in its inline note and in `PARTNER_WAIT_SHORT`'s own `AVG` check — would need re-checking against the new statistic.

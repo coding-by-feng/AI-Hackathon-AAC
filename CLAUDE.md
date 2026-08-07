@@ -57,13 +57,13 @@ reading the deleted inode — which is why `lib/sqlite.ts` exists.
 
 **Feature docs are manifest-backed.** `docs/feature/.manifest.json` is the machine-readable source of truth for file→doc mapping, symbol inventory, and last-aligned timestamps. Skills read and update this file — do not edit it by hand. If it gets out of sync, run `/align-existing-feature-docs` (use `--rebuild-manifest` if the manifest itself is corrupted).
 
-**63 features across 10 domains** — start at [`docs/feature/README.md`](docs/feature/README.md).
+**67 features across 10 domains** — start at [`docs/feature/README.md`](docs/feature/README.md).
 
 | Domain | Covers | Docs |
 |---|---|---|
-| [`kid-app/`](docs/feature/README.md#kid-app) | Board, sentence bar, speech, symbols, categories, offline queue, child sign-in | 8 |
+| [`kid-app/`](docs/feature/README.md#kid-app) | Board, sentence bar, speech, symbols, categories, offline queue, child sign-in | 10 |
 | [`api/`](docs/feature/README.md#api) | Route handlers and server actions for both surfaces | 8 |
-| [`dashboard/`](docs/feature/README.md#dashboard) | Attention queue, student tabs, reports, ask panel, insight cards | 8 |
+| [`dashboard/`](docs/feature/README.md#dashboard) | Attention queue, student tabs, reports, ask panel, insight cards | 10 |
 | [`analytics/`](docs/feature/README.md#analytics) | Metric readers, fired rules, baseline gating, data dictionary | 4 |
 | [`ai/`](docs/feature/README.md#ai) | Ask agent, provider split, forbidden-action guard, visual ladder | 8 |
 | [`mcp/`](docs/feature/README.md#mcp) | stdio server, tool surface, read-only DB access, validation | 5 |
@@ -75,7 +75,7 @@ reading the deleted inode — which is why `lib/sqlite.ts` exists.
 ## Impact Matrix
 
 The precise file→doc mapping is in
-[`docs/feature/README.md#impact-matrix`](docs/feature/README.md#impact-matrix) (117 rules,
+[`docs/feature/README.md#impact-matrix`](docs/feature/README.md#impact-matrix) (149 rules,
 generated from the manifest). These are the high-leverage ones:
 
 | If you change … | Also check … |

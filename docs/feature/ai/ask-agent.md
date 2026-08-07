@@ -1,7 +1,7 @@
 # Ask Agent Loop
 
 ## Function
-`runAgent()` drives the question → model → tool calls → results → answer loop for the Ask panel, bounded at `MAX_STEPS = 6`, streaming typed `AgentEvent`s as it goes. It also builds the system prompt, including the condensed clinical rules that must be in context on every turn.
+`runAgent()` drives the question → model → tool calls → results → answer loop for the Ask panel, bounded at `MAX_STEPS = 8`, streaming typed `AgentEvent`s as it goes. It also builds the system prompt, including the condensed clinical rules that must be in context on every turn.
 
 ## Purpose
 A teacher will not act on an unattributed claim about a child, and should not be asked to. Instead of a spinner, the loop emits an event for every tool call, every tool result, every piece of server-computed `guidance`, and every regeneration — so the adult sees which numbers were retrieved and from where. The clinical rules are inlined rather than fetched as an MCP resource because they must be in context for *every single turn*, and the header comment states the trade plainly: 3,600 tokens per question to say the same eight things is not a good trade.
@@ -10,13 +10,14 @@ A teacher will not act on an unattributed claim about a child, and should not be
 | File | Role |
 |------|------|
 | `lib/chat/agent.ts` | The agent loop, `AgentEvent` union, `CLINICAL_RULES`, `systemPrompt()` |
+| `lib/chat/settings.ts` | `chatConfig()` — picks the provider and model the loop runs on (via `resolveProvider()`) |
 
 ## Implementation
 
 ### Constants
 | Name | Value | Meaning |
 |------|-------|---------|
-| `MAX_STEPS` | `6` | Maximum model turns in one question |
+| `MAX_STEPS` | `8` | Maximum model turns in one question — matches what an MCP-connected desktop agent gets in practice: enough iterations to explore, compare windows, and self-correct a rejected argument without hitting the ceiling on honest multi-part questions |
 
 ### `AgentEvent` union (yielded, one per SSE frame by `/api/chat`)
 | Event | Fields |
@@ -50,7 +51,9 @@ Followed by a `READING THE DATA` block, which encodes the envelope contract:
 - thresholds are given, not applied; a rule that fired just over its line deserves hedging
 
 ### `systemPrompt(scope: ChatScope)`
-Assembled in this order: role statement → register block → `SCOPE.` line → `CLINICAL_RULES` → `HOW TO ANSWER`.
+Assembled in this order: role statement → `TODAY` block → register block → `SCOPE.` line → `CLINICAL_RULES` → `HOW TO ANSWER`.
+
+The **`TODAY`** block states `TODAY is <date>` using `new Date().toLocaleDateString('en-CA')` — the local date, not `toISOString()`, because the rollups bucket by server-local day and UTC is yesterday for half of every day in this timezone (NZ, UTC+12). It tells the model that recorded data ends at or near today and begins a few weeks earlier — never query years in the past — and to prefer the tools' named windows (`last_7d`, `last_14d`, `last_28d`) over guessed custom dates, anchoring any unavoidable custom range to today.
 
 The **register** branches on `scope.viewer.role === 'parent'`:
 
@@ -80,10 +83,10 @@ The `SCOPE.` line lists `display_name (child_id)` for every child in `scope.chil
 8. Any thrown error is caught and yielded as `error` with `e.message ?? 'The assistant failed.'` and `e.retryable ?? false` (`ProviderError` carries both).
 
 ### Behaviours worth knowing
-- **`steps` in `done` can be `7`.** `steps` is declared outside the `for` header; when the loop runs to exhaustion the post-increment leaves it at `MAX_STEPS + 1`. A `break` reports the true step count.
+- **`steps` in `done` can be `9`.** `steps` is declared outside the `for` header; when the loop runs to exhaustion the post-increment leaves it at `MAX_STEPS + 1`. A `break` reports the true step count.
 - **The guard only inspects `answer`.** Text streamed in a turn that *also* returned tool calls is yielded to the UI but never assigned to `answer`, so it is never scanned by `checkForbidden`.
 - **Both the original and the rewrite are streamed as `text`.** The server does not retract the first answer; `components/chat/ask-panel.tsx` clears its buffer on `regenerated` (`buffered = ''`, `content: ''`).
-- The MAX_STEPS summary turn and both guard turns are sent with `tools = []`, so no further tool calls are possible after step 6.
+- The MAX_STEPS summary turn and both guard turns are sent with `tools = []`, so no further tool calls are possible after step 8 (the `MAX_STEPS` turn).
 
 ## Dependencies & Connections
 

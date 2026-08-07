@@ -88,7 +88,7 @@ const errorHot = cells.filter(c => c.mistaps >= Math.max(2, maxMis * 0.6))
 const reachSuspects = dead.filter(d => errorHot.some(e =>
   Math.abs(e.grid_row - d.grid_row) <= 1 && Math.abs(e.grid_col - d.grid_col) <= 1))
 ```
-`errorHot` requires **at least 2 mis-taps** and at least **60% of the busiest error cell**. Adjacency is Chebyshev distance ≤ 1 — the same 8-neighbourhood definition `analytics-metrics.md` §3.3 uses for correction adjacency. A cell is its own neighbour under this test, so a masked-out dead cell that is itself error-hot cannot occur (dead cells have `taps === 0`, error-hot needs `mistaps ≥ 2` — both are possible on one cell, and such a cell qualifies as its own suspect).
+`errorHot` requires **at least 2 mis-taps** and at least **60% of the busiest error cell**. Adjacency is Chebyshev distance ≤ 1 — the same 8-neighbourhood definition `analytics-metrics.md` §3.3 uses for correction adjacency. Note that `dead` excludes masked cells (`!c.masked`), and Chebyshev ≤ 1 includes the cell itself: an unmasked cell with `taps === 0` and `mistaps >= Math.max(2, maxMis * 0.6)` is therefore **its own reach suspect**. That is intended — a button only ever pressed in error is the reach signature in its purest form.
 
 **Resize banner** — when `grid.resizedInWindow`, an alert-bordered paragraph: *"The grid was resized inside this window. Cell positions before and after mean different buttons, so these two maps are not comparable across that date."* This is the UI form of `mcp-api.md`'s `GRID_RESIZED_MID_WINDOW`.
 

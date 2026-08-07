@@ -113,7 +113,7 @@ memory over days; it is not something to leave running."* `package.json` still p
 ### Depended On By
 - [Cloudflare Tunnel Ingress](cloudflare-tunnel-ingress.md) — all three ingress rules point at `http://localhost:3000`, the port hardcoded here.
 - [Host Routing](../auth/host-surface-routing.md) — `middleware.ts` runs inside this process and is what separates the three hostnames.
-- [MCP HTTP Endpoint](../mcp/stdio-server.md) — `/api/mcp` authenticates against `AAC_MCP_TOKEN`, injected here.
+- [MCP stdio Server](../mcp/stdio-server.md) — `/api/mcp` authenticates against `AAC_MCP_TOKEN`, injected here.
 - [Dashboard Shell](../dashboard/dashboard-shell.md) — `AAC_VIEWER` selects which adult the demo renders as.
 
 ### Shared Resources

@@ -56,9 +56,13 @@ Returns `{ mean, stdev, n } | null` — the child's own recent comparison basis,
 
 ```sql
 WITH recent AS (
-  SELECT value FROM agg_daily_metric
-  WHERE child_id = ? AND metric_id = ? AND value IS NOT NULL
-  ORDER BY day_local DESC LIMIT ?
+  -- Day-grain read: below-min_n days are real values now (the rollup no
+  -- longer NULLs them) but too noisy for a spread estimate — mask here.
+  SELECT a.value FROM agg_daily_metric a
+  JOIN metrics_catalog mc ON mc.metric_id = a.metric_id
+  WHERE a.child_id = ? AND a.metric_id = ? AND a.value IS NOT NULL
+    AND a.n >= mc.min_n
+  ORDER BY a.day_local DESC LIMIT ?
 )
 SELECT AVG(value) AS mean,
        -- population stdev; SQLite has no stdev()
@@ -66,7 +70,7 @@ SELECT AVG(value) AS mean,
        COUNT(*) AS n
 FROM recent
 ```
-- `days` is a **row limit on non-null daily values**, not a date range: 28 rows going backwards, however far back they reach.
+- `days` is a **row limit on non-null daily values that also clear the metric's `min_n`**, not a date range: up to 28 qualifying rows going backwards, however far back they reach. A thin child whose days rarely clear `min_n` reaches further into the past for fewer rows; one with **no** qualifying rows at all gets a null baseline via the `!row || !row.n` guard.
 - Population (not sample) standard deviation, computed as `SQRT(E[x²] − E[x]²)` because SQLite ships no `stdev()`.
 - `if (!row || !row.n) return null` — `n = 0` returns `null` rather than `{mean: 0, stdev: 0}`.
 - **No caller in the repository imports `rollingBaseline` today.** The equivalent "own 4-week baseline + 2σ" comparison for I2 currently lives in the SQL rule views (`db/views_insights.sql`).

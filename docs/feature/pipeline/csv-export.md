@@ -71,6 +71,8 @@ END AS status
 
 In the wide pivot, a non-`ok` row writes `""` into the value column and puts the reason in the sibling `<metric_id>__status` column. Inline comment: *"Writing 0 here would be a lie a spreadsheet cannot detect."*
 
+Since 2026-08-08 the rollup stores the **true** daily value for every day and leaves `min_n` suppression to each reader at its own grain (see [L2 Rollup](l2-rollup.md)). `export_csv.py` is one of those read-time consumers — and it does **not** gate: `metrics_daily_long.csv` ships `value`, `n` and `min_n` side by side, so gating is the reader's job. That leaves the `status` column with a real gap: because `value` is now non-NULL even on under-powered days, the `CASE` above makes `below_min_n` effectively unreachable — a day with `n = 3` against `min_n = 10` exports `status = 'ok'` with a real value. The fix — deriving `status` from `a.n < m.min_n` rather than from `value IS NULL` — is an open item; until it lands, the header's promise that a suppressed value writes nothing is aspirational, and the exported `n` / `min_n` columns are the trustworthy signal.
+
 ### Fixture exports
 
 `TABULAR` maps an MCP tool to `(payload key, output filename)`:
@@ -130,7 +132,7 @@ Per-file row counts and KB sizes, a total, then a fixed reminder block:
 ## Dependencies & Connections
 
 ### Depends On
-- [L2 Rollup](l2-rollup.md) — `agg_daily_metric` (`value`/`n` semantics), `agg_card_stats`, `agg_cell_heat`, `agg_word_pairs`
+- [L2 Rollup](l2-rollup.md) — `agg_daily_metric` (true value + `n`; suppression is the reader's job), `agg_card_stats`, `agg_cell_heat`, `agg_word_pairs`
 - [Nightly Rule Materialisation](rule-materialisation.md) — `fired_rules` and the `superseded_by IS NULL` filter
 - [Seed Cohort Generation](seed-generation.md) — `utterances`, `children`, `child_vocabulary`
 - [Analytics Schema and Indices](../database/schema.md) — every table and the catalogue columns

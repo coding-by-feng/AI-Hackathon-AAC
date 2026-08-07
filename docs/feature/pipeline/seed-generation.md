@@ -20,6 +20,7 @@ From `generate.py`: *"Deterministic: every child has its own PRNG seed, so addin
 | `tools/seed/generate.py` | Reference-data writer, event/utterance generator, sitting materialisation, CLI entry point |
 | `tools/seed/personas.py` | The five personas, their planted conditions, and `EXPECTED_FIRING` |
 | `tools/seed/vocab.py` | Core word list, card library, part-of-speech table, emotion lexicon, syntax patterns, board grids, buried-card depths |
+| `db/seed_core_words.sql` | 200-word core vocabulary (ranks 1–200), `INSERT OR IGNORE` into `core_word_list` plus a `cards.is_core` recompute-by-join — applied **by hand** after `seed_catalogues.sql`, never run by the build; cites constraint C5 |
 
 ## Implementation
 
@@ -87,7 +88,7 @@ Baseline behaviour fields: `utterances_per_school_day` (min,max), `mean_symbols`
 
 ### Vocabulary (`vocab.py`)
 
-- `CORE_WORDS` — 30 `(word, rank, word_class)` tuples, a trimmed standard core set; `CORE_SET` is the word set. `is_core(card_id)` = `CARD_BY_ID[card_id].label in CORE_SET` — never hardcoded on the card.
+- `CORE_WORDS` — 30 `(word, rank, word_class)` tuples, a trimmed standard core set; `CORE_SET` is the word set. `is_core(card_id)` = `CARD_BY_ID[card_id].label in CORE_SET` — never hardcoded on the card. These 30 tuples are what `generate.py` writes into `core_word_list`; `db/seed_core_words.sql` supersedes them with the full 200-word list (ranks 1–200) and recomputes `cards.is_core` by joining it — but the build never runs that file, so a built `aac.db` carries the 30-word list unless the SQL was applied manually afterwards.
 - `CARDS` — 49 `Card(card_id, label, spoken_text, category, function, is_essential, pos)` rows. Six essentials: `yes`, `no`, `stop`, `help`, `toilet`, `pain` (label `hurt`) — *"always available, never re-ranked, never AI-generated."*
 - `POS` — part-of-speech table applied after construction via `CARDS = [c._replace(pos=POS.get(c.label)) for c in CARDS]`. *"Used ONLY to spot which structures are appearing — never to mark anything missing. A board with no determiner card cannot produce a determiner, and counting that against the child would score them for our vocabulary decisions."*
 - `EMOTION_LEXICON` — 11 `(word, category)` pairs across `positive` / `neutral` / `upset`. *"Deliberately SHORT: assigning an emotional reading to core vocabulary ('help' = distress) is the overreach the metric's caveat warns about."*
@@ -128,7 +129,7 @@ Zero-weight cards are dropped from the candidate list. The disliked-item plant i
 
 ### `write_reference()` — reference rows
 
-Writes, in order: `orgs` (`org_demo`, "Demo Primary School"), `classes` (`class_y3`, "Year 3 — Mrs Patel"), three `adults` (`adult_patel` teacher, `adult_slt` "J. Okonkwo (SLT)", `adult_parent_maya` parent), `emotion_lexicon`, `syntax_patterns`, `core_word_list`, `cards` (image path `/icons/<card_id>.png`, source `icon_pack`).
+Writes, in order: `orgs` (`org_demo`, "Demo Primary School"), `classes` (`class_y3`, "Year 3 — Mrs Patel"), three `adults` (`adult_patel` teacher, `adult_slt` "J. Okonkwo (SLT)", `adult_parent_maya` parent), `emotion_lexicon`, `syntax_patterns`, `core_word_list`, `cards` (image path `/icons/<card_id>.png`, source `icon_pack`). `core_word_list` gets the 30 `CORE_WORDS` rows; to widen it to the full 200-word standard set, apply `db/seed_core_words.sql` by hand after the build (`sqlite3 aac.db < db/seed_core_words.sql`).
 
 Per persona: `children`, two `roster` rows (`adult_patel` teacher, `adult_slt` slt), `consent` for tiers `aggregate` and `card_labels`. Only `maya_t` additionally gets `adult_parent_maya` on the roster and a `utterance_text` consent row — *"Parents hold the `utterance_text` tier that teachers do not — the tier difference is the point."*
 

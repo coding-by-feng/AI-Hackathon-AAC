@@ -358,3 +358,159 @@ If you change a file matching the pattern on the left, read every doc on the rig
 | Docs have drifted over many commits | `/align-existing-feature-docs` |
 | The manifest is missing or corrupt | `/align-existing-feature-docs --rebuild-manifest` |
 | Full regeneration from scratch | `/extract-features` |
+
+## Impact Matrix
+
+149 rules, generated from `.manifest.json` (2026-08-07T22:38:06Z). If you change the file on the left, re-check every doc on the right.
+
+| If you change… | Check… |
+|---|---|
+| `.env.local` | [deploy/production-web-service.md](deploy/production-web-service.md) |
+| `.mcp.json` | [mcp/stdio-server.md](mcp/stdio-server.md) |
+| `aac.db` | [database/connection-layer.md](database/connection-layer.md) · [pipeline/build-pipeline.md](pipeline/build-pipeline.md) |
+| `aac_app.db` | [ai/chat-providers.md](ai/chat-providers.md) · [kid-app/category-folders.md](kid-app/category-folders.md) · [kid-app/child-sign-in.md](kid-app/child-sign-in.md) |
+| `app/actions.ts` | [api/insight-dismissal-action.md](api/insight-dismissal-action.md) |
+| `app/api/auth/route.ts` | [api/sign-in-endpoints.md](api/sign-in-endpoints.md) |
+| `app/api/cards/route.ts` | [api/board-content-endpoints.md](api/board-content-endpoints.md) |
+| `app/api/categories/route.ts` | [api/board-content-endpoints.md](api/board-content-endpoints.md) |
+| `app/api/chat/route.ts` | [api/ask-chat-endpoint.md](api/ask-chat-endpoint.md) |
+| `app/api/dashboard/settings/route.ts` | [dashboard/ai-settings.md](dashboard/ai-settings.md) |
+| `app/api/events/route.ts` | [api/event-ingest.md](api/event-ingest.md) |
+| `app/api/mcp/route.ts` | [api/mcp-http-transport.md](api/mcp-http-transport.md) |
+| `app/api/reports/[id]/pdf/route.ts` | [api/print-and-generate.md](api/print-and-generate.md) · [dashboard/progress-reports.md](dashboard/progress-reports.md) |
+| `app/api/reports/[id]/print/route.ts` | [api/print-and-generate.md](api/print-and-generate.md) · [dashboard/progress-reports.md](dashboard/progress-reports.md) |
+| `app/api/reports/route.ts` | [api/print-and-generate.md](api/print-and-generate.md) |
+| `app/api/session/route.ts` | [api/sign-in-endpoints.md](api/sign-in-endpoints.md) |
+| `app/api/session/switch/route.ts` | [api/sign-in-endpoints.md](api/sign-in-endpoints.md) |
+| `app/api/visuals/route.ts` | [api/visual-resolution-endpoint.md](api/visual-resolution-endpoint.md) |
+| `app/dashboard/ask/page.tsx` | [dashboard/ask-panel.md](dashboard/ask-panel.md) |
+| `app/dashboard/error.tsx` | [dashboard/dashboard-shell.md](dashboard/dashboard-shell.md) |
+| `app/dashboard/header.tsx` | [dashboard/attention-queue.md](dashboard/attention-queue.md) · [dashboard/dashboard-shell.md](dashboard/dashboard-shell.md) · [dashboard/student-overview.md](dashboard/student-overview.md) |
+| `app/dashboard/layout.tsx` | [dashboard/dashboard-shell.md](dashboard/dashboard-shell.md) |
+| `app/dashboard/page.tsx` | [dashboard/attention-queue.md](dashboard/attention-queue.md) |
+| `app/dashboard/rail.tsx` | [dashboard/dashboard-shell.md](dashboard/dashboard-shell.md) |
+| `app/dashboard/reports/[id]/page.tsx` | [dashboard/progress-reports.md](dashboard/progress-reports.md) |
+| `app/dashboard/reports/actions.ts` | [dashboard/progress-reports.md](dashboard/progress-reports.md) |
+| `app/dashboard/reports/page.tsx` | [dashboard/progress-reports.md](dashboard/progress-reports.md) |
+| `app/dashboard/sessions/page.tsx` | [dashboard/sittings.md](dashboard/sittings.md) |
+| `app/dashboard/settings/page.tsx` | [dashboard/ai-settings.md](dashboard/ai-settings.md) |
+| `app/dashboard/settings/settings-form.tsx` | [dashboard/ai-settings.md](dashboard/ai-settings.md) |
+| `app/dashboard/student/[id]/access/page.tsx` | [dashboard/reach-and-errors.md](dashboard/reach-and-errors.md) |
+| `app/dashboard/student/[id]/ai-impact/page.tsx` | [dashboard/student-overview.md](dashboard/student-overview.md) |
+| `app/dashboard/student/[id]/ask/page.tsx` | [dashboard/ask-panel.md](dashboard/ask-panel.md) |
+| `app/dashboard/student/[id]/page.tsx` | [dashboard/progress-reports.md](dashboard/progress-reports.md) · [dashboard/student-overview.md](dashboard/student-overview.md) |
+| `app/dashboard/student/[id]/report/page.tsx` | [dashboard/progress-reports.md](dashboard/progress-reports.md) |
+| `app/dashboard/user-chip.tsx` | [auth/adult-sign-in.md](auth/adult-sign-in.md) · [dashboard/dashboard-shell.md](dashboard/dashboard-shell.md) |
+| `app/error.tsx` | [dashboard/dashboard-shell.md](dashboard/dashboard-shell.md) |
+| `app/globals.css` | [kid-app/symbol-set.md](kid-app/symbol-set.md) |
+| `app/layout.tsx` | [kid-app/offline-pwa.md](kid-app/offline-pwa.md) |
+| `app/login/page.tsx` | [auth/login-page.md](auth/login-page.md) |
+| `app/page.tsx` | [kid-app/communication-board.md](kid-app/communication-board.md) |
+| `app/who/page.tsx` | [kid-app/child-sign-in.md](kid-app/child-sign-in.md) |
+| `components/charts.tsx` | [dashboard/progress-reports.md](dashboard/progress-reports.md) |
+| `components/chat/ask-panel.tsx` | [dashboard/ask-panel.md](dashboard/ask-panel.md) |
+| `components/chat/markdown.tsx` | [dashboard/ask-panel.md](dashboard/ask-panel.md) |
+| `components/heat-grid.tsx` | [dashboard/reach-and-errors.md](dashboard/reach-and-errors.md) |
+| `components/insight-card.tsx` | [dashboard/insight-cards.md](dashboard/insight-cards.md) |
+| `components/insight-list.tsx` | [dashboard/insight-cards.md](dashboard/insight-cards.md) |
+| `components/kid/board-app.tsx` | [kid-app/communication-board.md](kid-app/communication-board.md) · [kid-app/keyboard-and-modeling-help.md](kid-app/keyboard-and-modeling-help.md) |
+| `components/kid/card-face.tsx` | [kid-app/ai-vocabulary-icons.md](kid-app/ai-vocabulary-icons.md) · [kid-app/symbol-set.md](kid-app/symbol-set.md) |
+| `components/kid/category-drawer.tsx` | [kid-app/category-folders.md](kid-app/category-folders.md) |
+| `components/kid/category-editor.tsx` | [kid-app/category-folders.md](kid-app/category-folders.md) |
+| `components/kid/edit-sheet.tsx` | [kid-app/card-customisation.md](kid-app/card-customisation.md) |
+| `components/kid/essential-rail.tsx` | [kid-app/communication-board.md](kid-app/communication-board.md) · [kid-app/keyboard-and-modeling-help.md](kid-app/keyboard-and-modeling-help.md) |
+| `components/kid/keyboard-layer.tsx` | [kid-app/communication-board.md](kid-app/communication-board.md) · [kid-app/keyboard-and-modeling-help.md](kid-app/keyboard-and-modeling-help.md) |
+| `components/kid/modeling-help.tsx` | [kid-app/communication-board.md](kid-app/communication-board.md) · [kid-app/keyboard-and-modeling-help.md](kid-app/keyboard-and-modeling-help.md) |
+| `components/kid/register-sw.tsx` | [kid-app/offline-pwa.md](kid-app/offline-pwa.md) |
+| `components/kid/voice-picker.tsx` | [kid-app/utterance-and-speech.md](kid-app/utterance-and-speech.md) |
+| `components/kid/who-picker.tsx` | [kid-app/child-sign-in.md](kid-app/child-sign-in.md) |
+| `components/kpi-tile.tsx` | [dashboard/student-overview.md](dashboard/student-overview.md) |
+| `components/login-form.tsx` | [auth/login-page.md](auth/login-page.md) |
+| `components/metric-card.tsx` | [dashboard/progress-reports.md](dashboard/progress-reports.md) · [dashboard/student-overview.md](dashboard/student-overview.md) |
+| `components/status.tsx` | [dashboard/dashboard-shell.md](dashboard/dashboard-shell.md) |
+| `components/theme-toggle.tsx` | [dashboard/dashboard-shell.md](dashboard/dashboard-shell.md) · [kid-app/communication-board.md](kid-app/communication-board.md) · [kid-app/symbol-set.md](kid-app/symbol-set.md) |
+| `components/ui.tsx` | [dashboard/dashboard-shell.md](dashboard/dashboard-shell.md) |
+| `db/indices.sql` | [database/schema.md](database/schema.md) |
+| `db/schema.sql` | [database/schema.md](database/schema.md) |
+| `db/seed_catalogues.sql` | [database/catalogues.md](database/catalogues.md) |
+| `db/seed_core_words.sql` | [pipeline/seed-generation.md](pipeline/seed-generation.md) |
+| `db/views_insights.sql` | [database/insight-views.md](database/insight-views.md) |
+| `db/views_metrics.sql` | [database/metric-views.md](database/metric-views.md) |
+| `deploy/aac.yml` | [deploy/cloudflare-tunnel-ingress.md](deploy/cloudflare-tunnel-ingress.md) |
+| `deploy/app.kason.aac.tunnel.plist` | [deploy/cloudflare-tunnel-ingress.md](deploy/cloudflare-tunnel-ingress.md) |
+| `deploy/app.kason.aac.web.plist` | [deploy/production-web-service.md](deploy/production-web-service.md) |
+| `deploy/run-web.sh` | [deploy/production-web-service.md](deploy/production-web-service.md) |
+| `docs/analytics-metrics.md` | [pipeline/generated-artefacts.md](pipeline/generated-artefacts.md) |
+| `lib/access.ts` | [auth/role-consent-scoping.md](auth/role-consent-scoping.md) |
+| `lib/auth.ts` | [auth/adult-sign-in.md](auth/adult-sign-in.md) |
+| `lib/baseline.ts` | [analytics/baseline-gating.md](analytics/baseline-gating.md) |
+| `lib/catalog.ts` | [analytics/data-dictionary.md](analytics/data-dictionary.md) |
+| `lib/categories/store.ts` | [kid-app/category-folders.md](kid-app/category-folders.md) |
+| `lib/categories/types.ts` | [kid-app/category-folders.md](kid-app/category-folders.md) |
+| `lib/chat/agent.ts` | [ai/ask-agent.md](ai/ask-agent.md) |
+| `lib/chat/anthropic.ts` | [ai/chat-providers.md](ai/chat-providers.md) |
+| `lib/chat/gemini.ts` | [ai/chat-providers.md](ai/chat-providers.md) |
+| `lib/chat/guard.ts` | [ai/forbidden-action-guard.md](ai/forbidden-action-guard.md) |
+| `lib/chat/local.ts` | [ai/chat-providers.md](ai/chat-providers.md) |
+| `lib/chat/openai.ts` | [ai/chat-providers.md](ai/chat-providers.md) |
+| `lib/chat/provider.ts` | [ai/chat-providers.md](ai/chat-providers.md) |
+| `lib/chat/schema-adapter.ts` | [ai/chat-providers.md](ai/chat-providers.md) |
+| `lib/chat/settings.ts` | [ai/ask-agent.md](ai/ask-agent.md) · [ai/chat-providers.md](ai/chat-providers.md) · [dashboard/ai-settings.md](dashboard/ai-settings.md) |
+| `lib/chat/tools.ts` | [ai/scoped-tool-bridge.md](ai/scoped-tool-bridge.md) |
+| `lib/chat/vertex.ts` | [ai/chat-providers.md](ai/chat-providers.md) |
+| `lib/db.ts` | [database/connection-layer.md](database/connection-layer.md) |
+| `lib/dismiss.ts` | [dashboard/insight-cards.md](dashboard/insight-cards.md) |
+| `lib/icons/ai-manifest.ts` | [kid-app/ai-vocabulary-icons.md](kid-app/ai-vocabulary-icons.md) · [kid-app/symbol-set.md](kid-app/symbol-set.md) |
+| `lib/icons/symbols.tsx` | [kid-app/symbol-set.md](kid-app/symbol-set.md) |
+| `lib/ingest.ts` | [api/event-ingest.md](api/event-ingest.md) · [kid-app/keyboard-and-modeling-help.md](kid-app/keyboard-and-modeling-help.md) |
+| `lib/insights.ts` | [analytics/fired-rules-and-evidence.md](analytics/fired-rules-and-evidence.md) · [dashboard/student-overview.md](dashboard/student-overview.md) |
+| `lib/kid/log.ts` | [kid-app/event-logging.md](kid-app/event-logging.md) |
+| `lib/kid/sentence.ts` | [kid-app/utterance-and-speech.md](kid-app/utterance-and-speech.md) |
+| `lib/kid/speech.ts` | [kid-app/utterance-and-speech.md](kid-app/utterance-and-speech.md) |
+| `lib/kid/voice.ts` | [kid-app/utterance-and-speech.md](kid-app/utterance-and-speech.md) |
+| `lib/metrics.ts` | [analytics/metric-readers.md](analytics/metric-readers.md) |
+| `lib/overrides.ts` | [kid-app/card-customisation.md](kid-app/card-customisation.md) |
+| `lib/queue.ts` | [dashboard/attention-queue.md](dashboard/attention-queue.md) |
+| `lib/report-html.ts` | [api/print-and-generate.md](api/print-and-generate.md) · [dashboard/progress-reports.md](dashboard/progress-reports.md) |
+| `lib/report-store.ts` | [dashboard/progress-reports.md](dashboard/progress-reports.md) · [dashboard/student-overview.md](dashboard/student-overview.md) |
+| `lib/report.ts` | [dashboard/progress-reports.md](dashboard/progress-reports.md) |
+| `lib/session.ts` | [kid-app/child-sign-in.md](kid-app/child-sign-in.md) |
+| `lib/sittings.ts` | [dashboard/sittings.md](dashboard/sittings.md) |
+| `lib/sqlite.ts` | [database/connection-layer.md](database/connection-layer.md) |
+| `lib/visuals/gemini.ts` | [ai/image-providers.md](ai/image-providers.md) |
+| `lib/visuals/ladder.ts` | [ai/visual-resolution-ladder.md](ai/visual-resolution-ladder.md) |
+| `lib/visuals/openai.ts` | [ai/chat-providers.md](ai/chat-providers.md) · [ai/image-providers.md](ai/image-providers.md) |
+| `lib/visuals/prompt.ts` | [ai/visual-prompt-and-sanitisation.md](ai/visual-prompt-and-sanitisation.md) |
+| `lib/visuals/provider.ts` | [ai/image-providers.md](ai/image-providers.md) |
+| `lib/visuals/sanitize.ts` | [ai/visual-prompt-and-sanitisation.md](ai/visual-prompt-and-sanitisation.md) |
+| `lib/visuals/store.ts` | [ai/visual-cache.md](ai/visual-cache.md) |
+| `lib/visuals/vertex.ts` | [ai/image-providers.md](ai/image-providers.md) |
+| `lib/vocabulary/categories.ts` | [kid-app/category-folders.md](kid-app/category-folders.md) |
+| `mcp/db.ts` | [mcp/read-only-db-access.md](mcp/read-only-db-access.md) |
+| `mcp/fixtures/maya_t-last_14d.json` | [mcp/response-fixtures.md](mcp/response-fixtures.md) |
+| `mcp/fixtures/sofia_r-last_14d.json` | [mcp/response-fixtures.md](mcp/response-fixtures.md) |
+| `mcp/server.ts` | [mcp/stdio-server.md](mcp/stdio-server.md) |
+| `mcp/tools.ts` | [mcp/tool-surface.md](mcp/tool-surface.md) |
+| `mcp/validate.ts` | [mcp/argument-validation.md](mcp/argument-validation.md) |
+| `middleware.ts` | [auth/host-surface-routing.md](auth/host-surface-routing.md) |
+| `next.config.ts` | [deploy/next-build-config.md](deploy/next-build-config.md) |
+| `package.json` | [deploy/npm-scripts.md](deploy/npm-scripts.md) |
+| `postcss.config.mjs` | [deploy/typescript-and-css-toolchain.md](deploy/typescript-and-css-toolchain.md) |
+| `public/icon.svg` | [kid-app/offline-pwa.md](kid-app/offline-pwa.md) |
+| `public/manifest.webmanifest` | [kid-app/offline-pwa.md](kid-app/offline-pwa.md) |
+| `public/sw.js` | [kid-app/offline-pwa.md](kid-app/offline-pwa.md) |
+| `tools/build.sh` | [pipeline/build-pipeline.md](pipeline/build-pipeline.md) |
+| `tools/concurrency_test.py` | [pipeline/test-harnesses.md](pipeline/test-harnesses.md) |
+| `tools/csv_docs.py` | [pipeline/csv-export.md](pipeline/csv-export.md) |
+| `tools/export_csv.py` | [pipeline/csv-export.md](pipeline/csv-export.md) |
+| `tools/gen_fixtures.py` | [pipeline/generated-artefacts.md](pipeline/generated-artefacts.md) |
+| `tools/gen_metric_index.py` | [pipeline/generated-artefacts.md](pipeline/generated-artefacts.md) |
+| `tools/generate-icons.mjs` | [kid-app/ai-vocabulary-icons.md](kid-app/ai-vocabulary-icons.md) |
+| `tools/rollup.py` | [pipeline/l2-rollup.md](pipeline/l2-rollup.md) |
+| `tools/run_rules.py` | [pipeline/rule-materialisation.md](pipeline/rule-materialisation.md) |
+| `tools/seed/generate.py` | [pipeline/seed-generation.md](pipeline/seed-generation.md) |
+| `tools/seed/personas.py` | [pipeline/seed-generation.md](pipeline/seed-generation.md) |
+| `tools/seed/vocab.py` | [pipeline/seed-generation.md](pipeline/seed-generation.md) |
+| `tools/test-api.sh` | [pipeline/test-harnesses.md](pipeline/test-harnesses.md) |
+| `tools/verify.py` | [pipeline/verification-gate.md](pipeline/verification-gate.md) |
+| `tsconfig.json` | [deploy/typescript-and-css-toolchain.md](deploy/typescript-and-css-toolchain.md) |

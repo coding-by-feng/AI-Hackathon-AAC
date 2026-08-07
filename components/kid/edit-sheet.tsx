@@ -16,10 +16,11 @@ export type EditableCard = {
 /**
  * Downscale a photo in the browser before it is ever sent.
  *
- * A phone photo is 3–8 MB; on the board it is displayed at about 40 px. Sending
- * the original would put megabytes into the database for something rendered
- * postage-stamp size — and on a school connection the upload would be the
- * slowest thing in the app.
+ * A phone photo is 3–8 MB; the board renders it at up to ~124 px (the card
+ * face's clamp), so a 256 px longest edge is about 2× the largest render.
+ * Sending the original would put megabytes into the database for something
+ * rendered postage-stamp size — and on a school connection the upload would
+ * be the slowest thing in the app.
  */
 async function downscale(file: File, max = 256): Promise<string> {
   const bitmap = await createImageBitmap(file)

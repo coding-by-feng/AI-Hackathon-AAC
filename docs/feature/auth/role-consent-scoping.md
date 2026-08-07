@@ -17,7 +17,8 @@ It implements `docs/analytics-metrics.md` §10 (Roles and permissions) and §11 
 retention). §11's tier table — aggregate and card labels ON by default, full utterance text
 parent/SLT only and OFF by default, partner speech off entirely — is encoded here as
 `TIER_RELATIONS` plus a live query against `consent`. `docs/TECH_STACK.md` pins the same
-decision: *"Role scoping lives in the tool/route layer, never in a prompt."*
+decision: *"Role and consent scoping live in the query/tool layer (`lib/access.ts`, MCP
+handlers), never in a prompt."*
 
 ## Source Files
 | File | Role |
@@ -162,11 +163,12 @@ not need. Showing the boundary, and what sits either side of it, usually ends th
 
 | Caller | Uses |
 |---|---|
-| `app/dashboard/layout.tsx` | `currentViewer()` — renders `display_name · role` in the header |
+| `app/dashboard/header.tsx` | `currentViewer()` — `DashHeader` renders the `UserChip` (`display_name · role`); the class view, settings and student pages render it for the shared header row |
 | `app/dashboard/page.tsx` | `currentViewer` + `visibleChildren` |
 | `app/dashboard/sessions/page.tsx` | `currentViewer` + `visibleChildren` |
 | `app/dashboard/reports/page.tsx` | `currentViewer` + `visibleChildren` |
 | `app/dashboard/ask/page.tsx` | `currentViewer` + `visibleChildren` |
+| `app/dashboard/settings/page.tsx` | `currentViewer` + an inline role check (`teacher`/`slt`/`admin`) |
 | `app/dashboard/student/[id]/page.tsx` | `currentViewer` + `requireChild` |
 | `app/dashboard/student/[id]/access/page.tsx` | `currentViewer` + `requireChild` + `canSee(child, 'partner_speech')` |
 | `app/dashboard/student/[id]/ask/page.tsx`, `.../report/page.tsx`, `.../ai-impact/page.tsx` | `currentViewer` + `requireChild` |
@@ -174,8 +176,18 @@ not need. Showing the boundary, and what sits either side of it, usually ends th
 | `app/dashboard/reports/actions.ts` | `requireChild` — *"so a report cannot be produced for a child the viewer cannot see"* |
 | `app/actions.ts` | `requireChild` — *"so a dismissal cannot be forged for a child the viewer cannot see"* |
 | `app/api/chat/route.ts` | `currentViewer`, `visibleChildren`, `requireChild` (403 on `NOT_AUTHORISED`) |
-| `app/api/reports/route.ts`, `app/api/reports/[id]/print/route.ts` | same |
+| `app/api/reports/route.ts`, `app/api/reports/[id]/print/route.ts`, `app/api/reports/[id]/pdf/route.ts` | same |
+| `app/api/dashboard/settings/route.ts` | `currentViewer` inside `gate()` — a throw → 401, a role outside `ALLOWED_ROLES` → 403 |
 | `components/status.tsx` | `lockReason` |
+
+### The one role-gated surface
+
+The AI-settings surface is the single place that gates on **role** rather than relation:
+`app/api/dashboard/settings/route.ts` allows `teacher`, `slt` and `admin` (`ALLOWED_ROLES`)
+and `app/dashboard/settings/page.tsx` repeats the same set as an inline check, turning
+parents away. That is defensible — provider selection and API keys are shared infrastructure,
+not any child's data, so the relation-and-consent machinery above does not apply — but the
+allowed set is written twice and belongs in `lib/access.ts` beside the other policy tables.
 
 ## Dependencies & Connections
 
@@ -187,8 +199,9 @@ not need. Showing the boundary, and what sits either side of it, usually ends th
 - [Query layer](../database/connection-layer.md) — `all` / `one` from `lib/db`, read-only handle.
 
 ### Depended On By
-- [Dashboard shell](../dashboard/dashboard-shell.md) and every page under `/dashboard` — the
-  layout itself calls `currentViewer()`, which is why `/login` must live outside `/dashboard`
+- [Dashboard shell](../dashboard/dashboard-shell.md) and every page under `/dashboard` — each
+  page calls `currentViewer()` itself, and `DashHeader` calls it again where rendered — which
+  is why `/login` must live outside `/dashboard`
   (see [Host and surface routing](host-surface-routing.md)).
 - [Consent lock](role-consent-scoping.md) — `ConsentLock` in `components/status.tsx` calls
   `lockReason`.
@@ -231,3 +244,8 @@ not need. Showing the boundary, and what sits either side of it, usually ends th
 - **Turning `consentTiers` into a join inside `visibleChildren`** (removing the N+1) is safe for
   correctness but must keep `revoked_at IS NULL`; dropping it resurrects withdrawn consent, which
   is the one failure §11 treats as non-negotiable.
+- **The two copies of the AI-settings role set drifting** — `ALLOWED_ROLES` in
+  `app/api/dashboard/settings/route.ts` and the inline check in
+  `app/dashboard/settings/page.tsx` list `teacher`/`slt`/`admin` independently. A role added
+  to one and not the other yields a page that renders a form whose saves 403, or an API that
+  accepts a role the page turns away. Hoisting the set into `lib/access.ts` removes the risk.

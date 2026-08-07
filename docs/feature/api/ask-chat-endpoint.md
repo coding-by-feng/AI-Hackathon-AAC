@@ -16,7 +16,7 @@ yourself that `child_id` is absent from every tool when the panel is focused on 
 constrained to an enum of the roster when it is not.
 
 Node runtime, not Edge, because `node:sqlite` needs a filesystem — the same constraint
-`TECH_STACK.md` pins for the whole dashboard backend.
+`docs/TECH_STACK.md` pins for the whole dashboard backend.
 
 ## Source Files
 | File | Role |
@@ -131,12 +131,17 @@ No model call, no arguments. 200:
 ```jsonc
 {
   "viewer":   { "adult_id": "...", "display_name": "...", "role": "teacher|parent|slt|admin" },
-  "provider": process.env.CHAT_PROVIDER ?? "openai",
+  "provider": chatConfig().provider,   // and "model": chatConfig().model
   "children": [ { "child_id": "...", "display_name": "..." } ],
   "focused":  "<child_id>" | null,
   "tools":    [ { "name": "get_metrics", "child_id": <the scoped schema fragment> | null } ]
 }
 ```
+
+`provider` and `model` come from `chatConfig()` in `lib/chat/settings.ts` — the settings row
+in `ai_settings`, then the environment, then the `vertex` default — the same resolution the
+answering path uses, so this endpoint cannot disagree with the provider that actually
+answers.
 
 `focused` here is computed only from `children.length === 1` — the GET takes no `childId`
 parameter, so the per-student pinned case is not reflected. Any thrown error returns **500**,
@@ -153,7 +158,7 @@ verified inside `currentViewer()`.
 ### Depends On
 - [Access scoping](../auth/role-consent-scoping.md) — `currentViewer`, `visibleChildren`,
   `requireChild`; the `NOT_AUTHORISED:` prefix this route pattern-matches on comes from there.
-- [Chat agent](../ai/ask-agent.md) — `runAgent`, `MAX_STEPS = 6`, the inlined clinical rules and
+- [Chat agent](../ai/ask-agent.md) — `runAgent`, `MAX_STEPS = 8`, the inlined clinical rules and
   the `AgentEvent` stream.
 - [Chat tool scoping](../ai/scoped-tool-bridge.md) — `toolsForScope`, `SCOPED_PARAMS`
   (`child_id`, `class_id`, `adult_id`), `EXCLUDED_FROM_CHAT` (`query`).
@@ -169,7 +174,11 @@ verified inside `currentViewer()`.
 ### Shared Resources
 - The `aac_adult` cookie and the `roster` / `consent` tables behind `visibleChildren`.
 - The cached read-only `Db` handle (`globalThis.__aacChatDb`) over `aac.db`.
-- Environment: `CHAT_PROVIDER` (reported by GET, defaulting to `openai`), `AAC_DB`.
+- Provider selection: the `ai_settings` table in `aac_app.db`, written by
+  `POST /api/dashboard/settings` (see [AI settings](../dashboard/ai-settings.md)), then the
+  `CHAT_PROVIDER` / `CHAT_MODEL` / provider-key environment variables, then the `vertex`
+  default — resolved by `chatConfig()` in `lib/chat/settings.ts`.
+- Environment: `AAC_DB`.
 
 ## Change Risks
 - **Taking `childId` as scope without `requireChild`** is the single failure this route is
@@ -182,7 +191,8 @@ verified inside `currentViewer()`.
   looks like a slow model rather than a header problem.
 - **Changing the `data: [DONE]` sentinel or the `data: ` prefix** breaks `ask-panel.tsx`'s
   parser, which hardcodes both.
-- **Raising `MAX_HISTORY` or `MAX_MESSAGE`** grows the per-turn context; `TECH_STACK.md` budgets
-  the tool definitions alone at 1,149 tokens per request.
+- **Raising `MAX_HISTORY` or `MAX_MESSAGE`** grows the per-turn context on top of the tool
+  definitions, which already cost on the order of a thousand tokens per request before any
+  history is added.
 - **Returning a non-200 after the stream has begun** is impossible — anything failing inside
   `runAgent` must surface as an `error` event, or the panel silently ends the turn.

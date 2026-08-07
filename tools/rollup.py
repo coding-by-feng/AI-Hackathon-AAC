@@ -135,7 +135,7 @@ def main() -> int:
     print(f"rollup complete in {elapsed:.2f}s")
     for table, n in counts.items():
         print(f"  {table:<20} {n:>7,}")
-    print(f"  {'suppressed (n<min_n)':<20} {suppressed:>7,}")
+    print(f"  {'no value from view':<20} {suppressed:>7,}")
     return 0
 
 

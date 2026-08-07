@@ -47,7 +47,7 @@ Five values, matching `mcp-api.md` §4's `dismiss_reason` enum exactly:
   narration: string | null           // model prose, when a model has written one
   narrationModel: string | null      // e.g. 'gemma-3-4b'
   firedAt: number
-  window: string                     // '{window_start} → {window_end}'
+  window: string                     // '{window_start} to {window_end}'
   evidence: { values: [string, string][]; thresholds: [string, string][] }
   classification: Record<string, unknown> | null   // I1's motor/semantic split
   recommended_actions: string[]
@@ -57,16 +57,19 @@ Five values, matching `mcp-api.md` §4's `dismiss_reason` enum exactly:
   safety_note: string | null
 }
 ```
-Built by [the student overview](student-overview.md) from `openInsights()` + `splitEvidence()`. Note `classification` is carried on the type but **is not rendered anywhere in the card today**.
+Built by **`toCardData()` in `lib/insights.ts`** from `openInsights()` + `splitEvidence()` — [the student page](student-overview.md) just maps over it. `window` is the plain string `` `${window_start} to ${window_end}` `` — the word *to*, rendered verbatim in the provenance line. The fallbacks are chosen for safety, not convenience (source comment): a firing whose catalogue row is missing renders as `informational` — no action button — rather than inviting an intervention nobody specified. Note `classification` is carried on the type but **is not rendered anywhere in the card today**.
 
 ### Card state (client component)
 ```ts
-const [open, setOpen]         = useState(false)   // evidence disclosure
-const [choosing, setChoosing] = useState(false)   // dismissal reason picker
-const [done, setDone]         = useState(false)   // dismissed in this session
-const [pending, start]        = useTransition()
-if (done) return null                             // the card removes itself
+const [open, setOpen]           = useState(false)  // evidence disclosure
+const [choosing, setChoosing]   = useState(false)  // dismissal reason picker
+const [confirmed, setConfirmed] = useState(false)  // "Yes" pressed in this session
+const [done, setDone]           = useState(false)  // dismissed in this session
+const [pending, start]          = useTransition()
+const detailRef                 = useRef<HTMLDivElement>(null)  // the evidence panel
+if (done) return null                              // the card removes itself
 ```
+A `useEffect` on `confirmed` scrolls the evidence panel into view, reduced-motion aware: `detailRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' })`, where `reduced` reads `matchMedia('(prefers-reduced-motion: reduce)')` — per the comment, *"Yes" must always visibly answer the click, even when the numbers were already open.*
 
 ### Render order
 1. **Header** — `name`, then pills on the right: `about our software` (`tone="warn"`) when `target_audience === 'system'`; `for the adult` (`tone="accent"`) when `'adult'`; always the `insight_id` pill.
@@ -100,9 +103,9 @@ Anything unmapped falls back to `action.replace(/_/g, ' ')`. These are the copy 
 
 ### Dismissal flow
 Footer, `choosing === false`:
-- Prompt: **"Does that match what you see?"**
-- **"No, that's not it"** → `setChoosing(true)`
-- **"Yes — show me the detail"** → `setOpen(true)`. This records nothing; it only expands the evidence. There is no "accept" write path.
+- Prompt: **"Does that match what you see?"** — or, once confirmed, **"Noted — the numbers behind it are shown above."**
+- **"No, that's not it"** → `setChoosing(true)`. Offered in both states, so a teacher can still dismiss after confirming.
+- **"Yes — show me the detail"** → sets `open` **and** `confirmed`: the evidence panel opens, the `confirmed` effect scrolls it into view (reduced-motion aware), the footer prompt swaps to the "Noted" line, and the button itself unmounts (`{!confirmed && …}`). Its old behaviour was `setOpen(true)` alone — a visible no-op when the numbers were already open (user-reported, fixed 2026-08-08). It still records **nothing server-side**; there is no "accept" write path — dismissal remains the only feedback the system stores.
 
 Footer, `choosing === true`: **"Why not? This is how the rules get better."** followed by one button per `DISMISS_LABELS` entry plus a `cancel` link. Choosing a reason runs inside `useTransition`:
 
@@ -155,8 +158,3 @@ Renders `EmptyState tone="good"` titled **"Nothing needs your attention here"** 
 - **`if (done) return null`** removes the card optimistically. If `dismissAction` throws after the write, or the `revalidatePath` fails, the card disappears while the row may or may not be updated — a refresh is the only way to find out.
 - **Removing `AND dismissed_at IS NULL`** from `dismissInsight` would let a second click overwrite the original `dismissed_by`, corrupting the only audit trail of who rejected a finding.
 - **Rendering `classification`** (currently carried but unused) would expose I1's `motor_share` / `semantic_share`; per constraint C1's safety note, ambiguous splits must default to the MOTOR reading, so any such UI needs the same defaulting the [Reach & errors](reach-and-errors.md) page already applies.
-
-> **2026-08-08:** "Yes — show me the detail" sets a `confirmed` state: opens the
-> evidence, scrolls it into view (reduced-motion aware), swaps the footer text, and
-> removes itself. It was previously `setOpen(true)` only — a no-op when the numbers
-> were already open (user-reported).

@@ -1,96 +1,66 @@
 # Student Overview & AI Impact
 
-> **Partially stale (2026-08-08).** The Overview was rebuilt in the dark-report redesign:
-> it now renders `lib/report.ts` metrics through `MetricCard` sections (Effort & speed /
-> Errors & reach / Vocabulary / Layout & voice), a **Findings** section that mounts
-> `InsightList` (`openInsights(id).map(toCardData)` — the only mount point of the insight
-> cards, added by the 2026-08-08 verification pass after discovering they had never been
-> wired to any page), the frozen-report block, and a docked Ask panel. `KpiTile`,
-> `BaselineBanner` and the trend panels described below no longer appear on this page.
-> The clinical constraints in this doc still bind — they moved surfaces, not meaning
-> (neutral polarity enforcement now lives in `MetricCard` via `catalog.direction()`).
-> See [dashboard-redesign.md](dashboard-redesign.md) for the shipped layout.
-
 ## Function
-The two per-child metric tabs: **Overview** (`/dashboard/student/[id]`) with four KPI tiles, a words-per-minute caption, the open-findings list and three trend panels; and **AI impact** (`/dashboard/student/[id]/ai-impact`) which argues the product claim in one number — presses the child did not have to make. Both are driven by `KpiTile`/`lib/metrics` readers rather than by hardcoded numbers.
+The per-child landing page (`/dashboard/student/[id]`) — which **is** the report, per its own header comment: four sections of metric cards rendered from the report set, the open findings, the deterministic prose report block, the collected caveats and a docked Ask panel, in one scroll — plus the **AI impact** tab (`/dashboard/student/[id]/ai-impact`), which argues the product claim in one number: presses the child did not have to make.
 
 ## Purpose
-The Overview is the per-child answer to the [Attention Queue](attention-queue.md)'s "who". It carries the four P0 metrics from `analytics-metrics.md` §9 (`taps_per_utterance`, `silence_streak`, `independence_rate`, plus `repeat_tap_rate`) and the findings that have fired.
+The Overview is the per-child answer to the [Attention Queue](attention-queue.md)'s "who": the queue ranks, this page shows the evidence. Since the dark-report redesign it renders the same 13-metric report set as [the report pages](progress-reports.md) — "one scroll, nothing hidden behind tabs" — so a teacher clicking through from the queue reads real numbers, the findings that fired with their evidence and forbidden actions, and what to try, without visiting a second page.
 
-Three constraints are enforced structurally, not editorially:
+Three clinical decisions shape the page. The redesign moved their surfaces, not their meaning:
 
-- **`words_per_minute` is caption text and never a tile.** The inline comment: AAC output runs at 2–15 wpm against 150+ for speech, so a headline tile invites a comparison against typing that is both meaningless and demoralising (`analytics-metrics.md` §6).
-- **`repeat_tap_rate` is neutral.** It carries an explicit hint — *"Exploration, motor practice or self-regulation — recorded, never treated as a fault"* — and `KpiTile` refuses to colour it. This is clinical constraint **C1**: trying to reduce repetitive tapping leads to less overall communication, so no surface may pathologise it.
-- **Nothing is flagged during the baseline window.** `BASELINE_ACTIVE_DAYS = 14`; below that the findings panel is replaced with an explanation and every tile suppresses its delta.
+- **`words_per_minute` is never a headline.** The rationale stands from `analytics-metrics.md` §6: AAC output runs at 2–15 wpm against 150+ for speech, so a headline number invites a comparison against speech that is both meaningless and demoralising. It now holds structurally — the report set contains no wpm metric, so the rebuilt page simply shows none.
+- **`repeat_tap_rate` is neutral** (constraint **C1** — trying to reduce repetitive tapping leads to less overall communication, so no surface may pathologise it). Enforcement lives in the catalogue's `neutral` polarity — `catalog.direction()` returns `'flat'` regardless of delta — and in the report card's sub-line, which states "this is normal" unconditionally. Nothing on this page colours it.
+- **Baseline gating lives where flagging happens.** Nothing is *flagged* before 14 active days and 40 own utterances, and that gate is applied in the [attention queue](attention-queue.md)'s scoring ([baseline gating](../analytics/baseline-gating.md)). This page renders real numbers and open findings without a banner — `BaselineBanner` is currently unmounted product-wide ([dashboard shell](dashboard-shell.md)).
 
 The AI-impact page has its own header comment: *one screen, one argument.* F2 (`taps_saved`) is the whole claim in the unit that matters to someone with cerebral palsy — presses not made. F1, F3 and F4 depend on `suggestion_shown`, `suggestion_tap` and `gap_detected` events that **no client emits yet**, so they render as "not recorded" rather than as zeroes: a 0% acceptance rate would read as "the suggestions are useless", which is a different and false claim.
 
 ## Source Files
 | File | Role |
 |------|------|
-| `app/dashboard/student/[id]/page.tsx` | Overview tab — tiles, caption, findings, three panels |
+| `app/dashboard/student/[id]/page.tsx` | The student page — metric sections, findings, report block, docked Ask; `metricN()` |
 | `app/dashboard/student/[id]/ai-impact/page.tsx` | AI impact tab — taps saved, suggestion funnel, visual sourcing, vocabulary gaps |
-| `components/kpi-tile.tsx` | The headline-number tile with its three enforced rules |
+| `app/dashboard/header.tsx` | `DashHeader` — name, `{year_group} · {profile_note}`, period chip, freshness, user chip |
+| `components/metric-card.tsx` | `MetricCard` + `MetricCaveats` — every number on the page |
+| `lib/insights.ts` | `openInsights()` + `toCardData()` — the findings section's data |
+| `lib/report-store.ts` | `listReports()` — resolves the latest frozen report for Save as PDF |
+| `components/kpi-tile.tsx` | **Unmounted** — zero importers since the redesign; see below |
 
 ## Implementation
 
 Both pages: `export const dynamic = 'force-dynamic'`, `await params` for `{ id }`, `currentViewer()` then `requireChild(viewer, id)` (throws `NOT_AUTHORISED…`, caught by the dashboard boundary).
 
-### Overview — data reads
-| Call | Window |
-|---|---|
-| `readMetric('taps_per_utterance' \| 'independence_rate' \| 'words_per_minute' \| 'repeat_tap_rate', id, w)` | `windowOf(7)` |
-| `silenceStreak(id)` | point-in-time — read directly, *not* through the aggregate reader, because it is not a windowed average |
-| `topCards(id, w)` | 7 days |
-| `newWords(id, windowOf(14))` | 14 days |
-| `abandonmentTrend(id, windowOf(14))` | 14 days |
-| `openInsights(id)` | all open, undismissed, unsuperseded |
+### Overview — window and data reads
+- `period = [7, 14, 28, 90].includes(Number(days)) ? Number(days) : 14` — **default 14 days**. The whitelist is reachable only via `?days=`; the page renders no period selector.
+- `reportMetrics(id, windowOf(period))` and `plainSummary(first, metrics)` — the same builders the [report pages](progress-reports.md) use
+- `metricN(id, m, w)` per metric — sample-size attribution, below
+- `openInsights(id).map(toCardData)` — the findings
+- `listReports([id], 1)[0]` — the latest frozen report, if any
 
-### Overview — building `InsightCardData`
-Each `FiredRule` is mapped for [the insight card](insight-cards.md):
+### `metricN` — per-shape n attribution
+`ReportMetric` does not carry `n`, and the card contract requires it, so the page attributes a sample size per metric shape: the scalar metrics (`taps_per_utterance`, `correction_adjacent_rate`, `core_fringe_ratio`, `repeat_tap_rate`, `teacher_modeling`, `partner_wait_time`, `keyboard_use`) sum `agg_daily_metric.n` over the window; `silence_streak` counts spoken utterances; `card_frequency` sums `agg_card_stats.taps`; `cell_heat` sums `agg_cell_heat.taps + mistaps`; `new_words` reuses its own headline count; `word_pairs` and `nav_depth_by_card` count their rows. **A metric whose n cannot be attributed gets none rendered, never `n = 0`** — the `default` branch returns `null`, and `MetricCard` prints `n = {n}` only when `n` is a positive number.
 
-```ts
-const ev = f.evidence[0] ?? {}          // ONLY the first evidence row is rendered
-const split = splitEvidence(ev)
-```
-`split.values` and `split.thresholds` are passed through `humanKey(k)` and `humanEvidenceValue(k, v)` into `[string, string]` pairs. Missing catalogue metadata falls back to: `name → insight_id`, `plain_statement → ''`, `recommended_actions → []`, `forbidden_actions → []`, `action_kind → 'informational'`, `target_audience → 'adult'`, `safety_note → null`. The `informational` default is the safe one — it suppresses the action list entirely.
+### Overview — render order
+1. `DashHeader` — title `display_name`, subtitle `{year_group} · {profile_note}`, period **`Last {period} days`**
+2. Four metric-card sections mapping the catalogue's group codes: **Effort & speed** (A) · **Errors & reach** (B) · **Vocabulary** (C) · **Layout & voice** (D, E, G, H — grouped together "because all three describe the environment around the child rather than the child's own output"). Layout is wrap-and-grow flex: each card wrapper is `basis-[300px] grow min-w-[min(280px,100%)]` inside a `max-w-[1400px]` page, so one-card sections and orphan cards on a last row stretch to fill — no empty tracks at any width. Sections with no items are filtered out.
+3. **Findings — {n} open** → `<InsightList items={findings} />`. The source comment states why the mount matters: the card contract carries two clinical invariants (informational ⇒ no action button; `forbidden_actions` displayed), *"so this list being mounted is itself a safety property, not decoration."* It sits below the numbers by request — the queue already surfaces urgency; these cards are guidance to read after the metrics.
+4. **Report block** — heading `Report — {start} to {end}` (en-GB day-month dates), then **Summary:** and **What to try:** from `plainSummary`, the provenance line *"Written from {metrics.length} numbers, nothing else."*, and two actions: **Save as PDF** (below) and **Ask about this** → the `#ask` anchor.
+5. `MetricCaveats` — the collected caveats disclosure ([progress-reports.md](progress-reports.md)).
+6. **`#ask` section** — `AskPanel childId={id}` with role-switched suggestions (quoted in [ask-panel.md](ask-panel.md); their "fortnight" phrasing tracks the 14-day default) under the note that answers come from the same data as the cards above and that it cannot read what the child actually said.
+7. More-detail links: `reach & errors` · `AI impact` · `progress view`.
 
-### Overview — layout, in render order
-1. Header: `← class` link → `/dashboard`, `{display_name}`, `{year_group} · {profile_note} · last 7 days`, `<StudentTabs active="overview">`
-2. `<BaselineBanner>` when `!base.ready`, passing `BASELINE_ACTIVE_DAYS`
-3. Four-column tile grid:
-   - `KpiTile` — `taps` / **"Presses per sentence"**
-   - A hand-rolled **"Last spoke"** tile (not a `KpiTile`, because `silenceStreak` returns a plain number): value is `today` / `yesterday` / `{n}d`; sub-line `Worth checking in.` when `silence >= 2`, else `Talking regularly.`; footnote *"Days since the last spoken sentence."*
-   - `KpiTile` — `independence` / **"Her own words"**
-   - `KpiTile` — `repeat` / **"Repeat runs per sentence"** with the neutral `hint` quoted above
-4. Caption paragraph: `{formatValue('words_per_minute', v)} this week.` or *"Speaking rate is not available for this window."*, followed by *"Typical AAC output is 2–15 words per minute. Compare {firstName} only against her own history, never against speech or another child."*
-5. `Panel "Needs your attention"`, subtitle `{n} open` → `<InsightList>` when `base.ready`, otherwise `EmptyState` *"No findings during the settling-in period"*
-6. Three-column panel row:
-   - **"Her go-to words" / "Last 7 days"** — `topCards` as label + tap count + `<Bar>`; `tone="accent"` when `c.is_core`, else `neutral`; `maxTaps = Math.max(1, ...cards.map(c => c.taps))`; footnote *"Blue marks core words — the flexible ones that work in any situation."* (constraint **C5**)
-   - **"New words" / "First ever use, last 14 days"** — label + `first_day`; empty state points at the AI-impact tab's vocabulary gaps
-   - **"Giving up on sentences" / "Built, then never spoken · 14 days"** — `<Sparkline points={trend.map(t => t.rate)} height={60} />`, first day on the left, `{round(last.rate * 100)}% now` on the right, footnote *"The quietest failure: she composed something and gave up, so nothing was said and nobody noticed."*
+### Save as PDF resolves a frozen report
+`latest = listReports([id], 1)[0]`. When one exists, the button is a plain `<a>` to **`/api/reports/{report_id}/pdf`** — a same-tab download of the **latest frozen report**, which can cover a different period than the live numbers on screen; the source comment is explicit that the live page is "not silently passed off as a frozen artifact". When none exists, it renders as a `Link` to `/dashboard/reports` titled *"No frozen report yet — generate one first"*.
 
-### `KpiTile` — the three rules it exists to enforce
-```ts
-const dir     = inBaseline ? 'flat' : direction(m.metric_id, m.delta)
-const neutral = m.meta?.polarity === 'neutral'
-```
-1. **`n` is always visible** when `m.n > 0`. 38% from 121 impressions and 38% from 8 are not the same claim.
-2. **Colour comes from the catalogue's polarity, never from the sign of the delta.** `direction()` returns `'flat'` for any `neutral` metric, so `repeat_tap_rate` is never green or red (constraint C1). Tones: `better → --color-good`, `worse → --color-alert`, `flat → --color-ink-muted`.
-3. **During the baseline window the delta is suppressed entirely.** "Down 4 points" against three days of history is noise dressed as a finding.
+### Findings mapping
+The `FiredRule → InsightCardData` shaping lives in `toCardData()` (`lib/insights.ts`) — first-evidence-row split, `humanKey`/`humanEvidenceValue` formatting, and fallbacks chosen for safety (a missing catalogue row renders as `informational`, i.e. no action list). See [insight-cards.md](insight-cards.md); this page just maps over it.
 
-Sub-line state machine, in priority order:
+### `KpiTile` — unmounted since the redesign
+`components/kpi-tile.tsx` has zero importers. The three rules its header enforced did not die with it — they moved:
+- *n is always visible* → `MetricCard` renders `n = {n}` whenever a positive n is attributed by `metricN`, and nothing otherwise
+- *colour comes from catalogue polarity, never the delta's sign* → `catalog.direction()` still returns `'flat'` for neutral metrics; `MetricCard` colours nothing by delta at all
+- *suppressed states are words, not zeroes* → `MetricCard` renders `m.suppressed` ("too few corrections to tell") in place of a headline number
 
-| Condition | Text |
-|---|---|
-| `suppressed === 'not_collected'` | `not recorded yet` |
-| `suppressed === 'small_sample'` | `too few to report (needs {meta.min_n})` |
-| `inBaseline` | `still learning what is normal` |
-| `delta !== null && !neutral` | `{+}{formatValue(delta)} vs last week` |
-| `neutral` | `not a target` |
-| otherwise | `no comparison yet` |
-
-The headline shows `—` whenever `suppressed` is set. The footer line is `hint ?? meta.plain_explanation`, i.e. the catalogue's own plain-language sentence unless the caller overrides it.
+Deleting the file is safe today; re-mounting it must re-verify those rules against `metrics_catalog`.
 
 ### AI impact — data reads and derived values
 ```ts
@@ -105,6 +75,8 @@ const totalVisuals = sources.reduce((n, s) => n + s.count, 0)
 const freeVisuals  = sources.filter(s => s.resolved_by !== 'generated' && s.resolved_by !== 'failed')
                             .reduce((n, s) => n + s.count, 0)
 ```
+
+Header: a `← {display_name}` link back to the Overview, `AI impact`, `Last 7 days`, `<StudentTabs active="ai-impact">`.
 
 **Panel — "Presses she did not have to make" / "The whole claim, in one number"**
 - Empty when `saved.saved === null || saved.uses === 0`: *"No suggestions were used this week — every sentence {firstName} spoke was built from the board herself."*
@@ -128,33 +100,33 @@ const freeVisuals  = sources.filter(s => s.resolved_by !== 'generated' && s.reso
 
 ### Depends On
 - [Access control](../auth/role-consent-scoping.md) — `currentViewer`, `requireChild`
-- [Metric readers](../analytics/metric-readers.md) — `readMetric`, `silenceStreak`, `topCards`, `newWords`, `abandonmentTrend`, `tapsSaved`, `suggestionFunnel`, `vocabularyGaps`, `visualSourceSplit`, `eventTypeCollected`
-- [Metric catalogue](../analytics/metric-readers.md) — `formatValue`, `direction`, `MetricMeta.polarity`, `min_n`, `plain_explanation`
-- [Baseline gating](../analytics/baseline-gating.md) — `baseline()`, `BASELINE_ACTIVE_DAYS`
-- [Insight rules](../analytics/fired-rules-and-evidence.md) — `openInsights`, `splitEvidence`, `humanKey`, `humanEvidenceValue`
+- [Progress reports](progress-reports.md) — `reportMetrics` / `plainSummary` (`lib/report.ts`), `MetricCard` / `MetricCaveats`, and the `/api/reports/[id]/pdf` download the Save-as-PDF button resolves to
+- [Metric readers](../analytics/metric-readers.md) — the AI-impact reads: `tapsSaved`, `suggestionFunnel`, `vocabularyGaps`, `visualSourceSplit`, `eventTypeCollected`
+- [Metric catalogue](../analytics/metric-readers.md) — `name`, `plain_explanation`, `caveat`, `chart`, `group_code` per card (through `lib/report.ts`); polarity semantics via `catalog.direction()`
+- [Insight rules](../analytics/fired-rules-and-evidence.md) — `openInsights`, `toCardData`, `splitEvidence`
 - [Insight cards](insight-cards.md) — `InsightList` / `InsightCardData`
-- [Dashboard shell](dashboard-shell.md) — `Panel`, `Bar`, `Sparkline`, `EmptyState`, `NotCollected`, `StudentTabs`, `BaselineBanner`
+- [Ask panel](ask-panel.md) — the docked `#ask` section
+- [Dashboard shell](dashboard-shell.md) — `DashHeader` on the Overview; `Panel`, `Bar`, `EmptyState`, `NotCollected`, `StudentTabs` on the AI-impact tab
 - [Event ingest](../api/event-ingest.md) — the missing `suggestion_shown` / `suggestion_tap` / `gap_detected` events the AI-impact page is waiting on
+- [Database schema](../database/schema.md) — `agg_daily_metric`, `agg_card_stats`, `agg_cell_heat`, `utterances` (for `metricN`); `reports` (for `listReports`)
 
 ### Depended On By
 - [Attention queue](attention-queue.md) — every queue row and roster row links to the Overview
-- [Sittings (Sessions)](sittings.md) — links to the sibling Progress tab
-- [Dashboard shell](dashboard-shell.md) — `StudentTabs` assumes both routes exist
+- [Sittings (Sessions)](sittings.md) — the Who column links to the sibling Progress view
+- [Insight cards](insight-cards.md) — this page's Findings section is the only mount of `InsightList`
 
 ### Shared Resources
-- `agg_daily_metric` (scalar metrics), `utterances` (`tapsSaved`, `suggestionFunnel`), `events` (`vocabularyGaps`, `visualSourceSplit`, `eventTypeCollected`)
-- `metrics_catalog` — supplies polarity, `min_n` and `plain_explanation` to every tile
+- `metrics_catalog` — name, explanation, caveat, chart and grouping for every card, shared with all report surfaces
+- `agg_daily_metric`, `agg_card_stats`, `agg_cell_heat` — read by both `lib/report.ts` and `metricN`
+- `utterances` (`tapsSaved`, `suggestionFunnel`), `events` (`vocabularyGaps`, `visualSourceSplit`, `eventTypeCollected`)
 
 ### Change Risks
-- **Promoting `words_per_minute` to a `KpiTile`** re-introduces the comparison `analytics-metrics.md` §6 cut it to avoid. The caption placement is the decision, not a layout accident.
-- **Removing the `hint` on the repeat-runs tile, or changing `repeat_tap_rate`'s catalogue polarity away from `neutral`**, makes `direction()` start returning `better`/`worse` and paints stimming red — a direct violation of constraint C1 and of `metrics_catalog.polarity`'s stated purpose.
-- **Rendering `saved.saved` without the `perSentence < 0.05` guard** would headline a rounding artefact as a product result.
+- **Re-adding a `words_per_minute` headline** (promoting it into the report set) re-introduces the comparison `analytics-metrics.md` §6 cut it to avoid — its absence from this page is the decision, not an oversight.
+- **Changing `repeat_tap_rate`'s catalogue polarity away from `neutral`** turns `direction()` judgement back on wherever deltas render, and contradicts the report card's unconditional "this is normal" — a direct violation of constraint C1.
+- **Dropping the Findings section** repeats the pre-2026-08-08 regression in which `InsightList` was mounted nowhere and its two clinical invariants existed only in unreachable code — see the history note in [insight-cards.md](insight-cards.md).
+- **The Save-as-PDF button downloads the *latest frozen report*, not the page.** With `?days=7` on screen and a 90-day report stored, the download covers a different period than the numbers the teacher is reading. And removing Chrome (`AAC_CHROME_BIN` unset, binary absent) degrades the click to the `/pdf` route's 501 plain-text answer.
+- **Making `metricN` return `0` instead of `null`** for unattributable metrics puts a false `n = 0` badge on cards — "no sample recorded" and "sample of zero" are different claims.
+- **Only `fr.evidence[0]` is rendered** — `toCardData` splits the first evidence row. A rule that fires with multiple evidence rows (e.g. I5 word pairs, I3 buried cards) shows only the first; widening this changes what every insight card displays.
 - **Replacing `NotCollected` with zeroes** on the suggestion funnel or the visuals split turns an instrumentation gap into a false claim about the AI; the `eventTypeCollected` check is the only thing distinguishing the two.
-- **Wiring the "Add to her board" button** must go through a server action with `requireChild` — the pattern already used by `dismissAction` and `generateReportAction` — and should also make `unreviewedGapCount` review-aware, or the queue will keep scoring resolved gaps.
-- **Only `f.evidence[0]` is rendered.** A rule that fires with multiple evidence rows (e.g. I5 word pairs, I3 buried cards) shows only the first; widening this changes what every insight card displays.
-- **Changing `KpiTile`'s suppressed-state ordering** would let a small-sample value display as a real number, breaking the `n < min_n ⇒ null` contract that `mcp-api.md` §2 also depends on.
-
-> **2026-08-08:** Section order is now metrics → Findings → Report → Ask (Findings
-> moved to the bottom by request). Metric cards lay out as wrap-and-grow flex
-> (`basis-[300px] grow`, width-capped wrappers) inside a 1400 px max-width page —
-> one-card and orphan rows stretch to fill, no empty tracks at any width.
+- **Wiring the "Add to her board" button** must go through a server action with `requireChild` — the pattern used by `dismissAction` and `generateReportAction` — and should make `unreviewedGapCount` review-aware, or the queue will keep scoring resolved gaps.
+- **Rendering `saved.saved` without the `perSentence < 0.05` guard** would headline a rounding artefact as a product result.

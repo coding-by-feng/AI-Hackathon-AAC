@@ -49,7 +49,7 @@ node mcp/server.ts --db aac.db --allow-writes
 | `schema://insights` | Insight rules | `application/json` | `SELECT * FROM insights_catalog` |
 | `schema://interpretation-guide` | AAC clinical constraints | `text/markdown` | `readFileSync(resolve(ROOT, 'docs/aac-clinical-constraints.md'), 'utf8')` |
 
-Descriptions verbatim: dictionary is *"All 38 metrics: formula, unit, polarity, min_n, caveat."*; insights is *"The 8 rules, their thresholds, and the actions each one forbids."*; the interpretation guide is *"READ BEFORE WRITING ANY RECOMMENDATION. Eight constraints from AAC practice."* The header comment states plainly that `interpretation-guide` "is not optional reading: it holds the clinical constraints that make otherwise sensible advice harmful."
+Descriptions verbatim: dictionary is *"All 41 metrics: formula, unit, polarity, min_n, caveat."* (matching the 41 rows the resource serves); insights is *"The 8 rules, their thresholds, and the actions each one forbids."*; the interpretation guide is *"READ BEFORE WRITING ANY RECOMMENDATION. Eight constraints from AAC practice."* The header comment states plainly that `interpretation-guide` "is not optional reading: it holds the clinical constraints that make otherwise sensible advice harmful."
 
 `docs/mcp-api.md` §5 lists a fifth resource, `schema://sample-questions` (20 worked question→tool-sequence examples). **It is not implemented.**
 

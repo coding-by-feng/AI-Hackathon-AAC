@@ -16,7 +16,7 @@ The folders used to be a constant, "so adding 'Swimming club' meant a deploy" (`
 | `lib/vocabulary/categories.ts` | The built-in `CATEGORIES` seed, `Category`/`DrawerWord` types, `categoryByKey`. |
 | `lib/categories/store.ts` | SQLite store in `aac_app.db`: schema, `seedIfEmpty`, reads, and all writes. |
 | `lib/categories/types.ts` | `Category`, `CategoryWord`, `ChildCategory` — shared between server store and client editor. |
-| `components/kid/category-drawer.tsx` | `CategoryDrawer` (the folder itself) and `CategoryBar` (the chip row). |
+| `components/kid/category-drawer.tsx` | `CategoryDrawer` (the folder itself) and `CategoryBar` (the chip row, with a `leading` slot hosting the board's ABC chip). |
 | `components/kid/category-editor.tsx` | The adult modal: folder list with tick/reorder/add, and a per-folder word list. |
 
 ## Implementation
@@ -79,14 +79,14 @@ Deleting "removes the folder for every child, so it is refused for the built-in 
 `categoriesForChild(child_id)` is filtered to `c.shown && c.words.length > 0` and mapped to `{category: {key: category_id, name, dbCategories: [], extras: []}, words: DrawerWord[]}`, where `DrawerWord.onBoard = onGrid.has(card_id)` against the set of `card_id`s currently on the grid. The full `ChildCategory[]` is passed separately as `editableCategories`, used only by the editor.
 
 ### `CategoryBar`
-A horizontally scrollable row of pill buttons above the sentence bar, `minHeight: 44`. Each chip renders `categoryIcon(c.key, firstWords[c.key])` through `CardFace` with `showLabel={false}` plus the folder name — "recognisable by shape, not only by reading."
+A horizontally scrollable row of pill buttons above the sentence bar, `minHeight: 44`. A `leading` prop renders a chip before the folders — the board passes its ABC keyboard toggle there, so the bar stays a dumb list and the board owns the keyboard state ([Keyboard & Modelling Help](keyboard-and-modeling-help.md)). The bar renders even with zero folders, so the leading chip — alphabet access — never disappears. Each folder chip renders `categoryIcon(c.key, firstWords[c.key])` through `CardFace` at `size 20` with `showLabel={false}` plus the folder name — "recognisable by shape, not only by reading."
 
 ### `CategoryDrawer`
 - `role="dialog" aria-modal="true" aria-label={category.name}`, a full-screen `bg-black/30` scrim; clicking the scrim closes, clicks inside `stopPropagation()`.
 - Panel: `max-h-[78dvh]`, `rounded-t-2xl`, `paddingBottom: max(1rem, env(safe-area-inset-bottom))`.
 - Header: the folder name plus a `Back to board` button at `minHeight: 48`.
 - Grid: `repeat(auto-fill, minmax(84px, 1fr))` for the `numbers` folder, `repeat(auto-fill, minmax(112px, 1fr))` otherwise; tiles `minHeight: 84` tinted by `faceColours(label)`.
-- A word matching `isNumeral` renders as a `text-3xl font-bold` digit; everything else as `CardFace` at `size 32`.
+- A word matching `isNumeral` renders as a `text-3xl font-bold` digit; everything else as `CardFace` at `size "clamp(40px, 9vh, 96px)"` — a CSS length, so the face scales with the drawer tile.
 - A word already on the grid carries an `on board` badge (`title="This word is also on the board"`) — "a child who finds 'water' in Food and then sees it on the board next time is learning where it lives, which is the whole argument for a stable layout."
 - Empty state: *"No words in here yet."* Footer: *"Words used often from here can be added to the main board — the dashboard flags them."*
 

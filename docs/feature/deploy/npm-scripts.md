@@ -73,10 +73,11 @@ Dev:
 | `@types/react-dom` | `^19.1.9` |
 
 There is **no SQLite package**. Database access goes through the `node:sqlite` builtin, imported
-by 11 files (`lib/db.ts`, `lib/sqlite.ts`, `lib/session.ts`, `lib/auth.ts`, `lib/ingest.ts`,
-`lib/dismiss.ts`, `lib/overrides.ts`, `lib/visuals/store.ts`, `mcp/db.ts`, `mcp/server.ts`,
-`app/api/chat/route.ts`), which is why `next.config.ts` lists it in `serverExternalPackages` —
-see [Next.js Build Configuration](next-build-config.md).
+by 13 files (`lib/db.ts`, `lib/sqlite.ts`, `lib/session.ts`, `lib/auth.ts`, `lib/ingest.ts`,
+`lib/dismiss.ts`, `lib/overrides.ts`, `lib/visuals/store.ts`, `lib/chat/settings.ts`,
+`mcp/db.ts`, `mcp/server.ts`, `app/api/chat/route.ts`,
+`app/api/dashboard/settings/route.ts`), which is why `next.config.ts` lists it in
+`serverExternalPackages` — see [Next.js Build Configuration](next-build-config.md).
 
 There is also **no `@modelcontextprotocol/sdk`** and **no OpenAI/Gemini SDK**; the MCP surface
 and the chat providers are hand-written against `fetch`.

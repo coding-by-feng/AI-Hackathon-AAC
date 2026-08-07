@@ -13,12 +13,13 @@ import { NextResponse, type NextRequest } from 'next/server'
  * exists somewhere, which is a small thing to give away for nothing.
  */
 
-type Surface = 'kid' | 'dashboard' | 'mcp' | 'any'
+type Surface = 'kid' | 'dashboard' | 'mcp' | 'slides' | 'any'
 
 function surfaceFor(host: string): Surface {
   const h = host.toLowerCase().split(':')[0]
   if (h.startsWith('aac-dashboard.')) return 'dashboard'
   if (h.startsWith('aac-mcp.')) return 'mcp'
+  if (h.startsWith('aac-slides.')) return 'slides'
   if (h.startsWith('aac.')) return 'kid'
   // localhost, LAN addresses, previews: everything, so development is unchanged.
   return 'any'
@@ -44,11 +45,12 @@ const DASH_PREFIXES = [
  * Reachable without a session: the login page and the endpoint it posts to.
  *
  * `/login` sits OUTSIDE /dashboard on purpose. It used to be
- * /dashboard/login, which rendered it inside app/dashboard/layout.tsx — and
- * that layout calls currentViewer(), which throws NOT_SIGNED_IN when there is
- * no session. So the one page a signed-out visitor could reach was the one page
- * guaranteed to crash, and the root error boundary showed them the AAC board's
- * child-facing fallback.
+ * /dashboard/login, rendered inside the dashboard route group — whose layout
+ * then called currentViewer(), which throws NOT_SIGNED_IN when there is no
+ * session (that call now lives in DashHeader, app/dashboard/header.tsx, and
+ * in the pages themselves, not the layout). So the one page a signed-out
+ * visitor could reach was the one page guaranteed to crash, and the root
+ * error boundary showed them the AAC board's child-facing fallback.
  */
 const PUBLIC_DASH = ['/login', '/api/auth']
 
@@ -65,6 +67,9 @@ function allowed(surface: Surface, pathname: string): boolean {
       return pathname === '/' || DASH_PREFIXES.some((p) => pathname.startsWith(p))
     case 'mcp':
       return pathname.startsWith('/api/mcp')
+    case 'slides':
+      // A static presentation page from public/ — no data, no session.
+      return pathname === '/' || pathname === '/architecture.html'
   }
 }
 
@@ -87,6 +92,13 @@ export function middleware(request: NextRequest) {
    * This runs before the session check so an unauthenticated visitor to the
    * root is still sent to the login page rather than served the dashboard.
    */
+  // On the slides hostname, the root IS the architecture presentation.
+  if (surface === 'slides' && pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/architecture.html'
+    return NextResponse.rewrite(url)
+  }
+
   if (surface === 'dashboard' && pathname === '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'

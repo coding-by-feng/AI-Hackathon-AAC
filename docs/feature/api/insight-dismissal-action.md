@@ -59,9 +59,12 @@ component's error handling / the nearest error boundary.
 
 ### `DismissReason` (`lib/dismiss.ts`)
 
-Kept in its own module free of any database import, because the insight card is a client
-component and anything it imports gets bundled for the browser — re-exporting from
-`lib/insights.ts` would drag `node:sqlite` into the client build.
+The type and its labels live in their own module because the insight card is a client
+component, and anything it imports gets bundled for the browser. `lib/insights.ts` re-exports
+the **type only** (`export type { DismissReason }` — erased at build time), which is what
+`app/actions.ts` imports alongside `dismissInsight`; the client card imports the runtime
+`DISMISS_LABELS` object from `lib/dismiss.ts` directly, so nothing that touches `node:sqlite`
+ever reaches the client build.
 
 | Value | `DISMISS_LABELS` string shown to the adult |
 |---|---|

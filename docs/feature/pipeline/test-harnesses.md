@@ -16,7 +16,7 @@ Neither is invoked by `tools/build.sh` — the build only prints the concurrency
 | File | Role |
 |------|------|
 | `tools/concurrency_test.py` | WAL writer/reader load harness, latency stats, pass/fail policy |
-| `tools/test-api.sh` | `curl`-driven API acceptance cases across six lettered sections |
+| `tools/test-api.sh` | `curl`-driven API acceptance cases — 33 assertions across eight lettered sections (E, F, J, L, C, G, H, K) |
 
 ## Implementation
 
@@ -78,24 +78,25 @@ Counters `PASS` / `FAIL` / `BLOCK` with helpers `ok`, `no`, `bl` and `eq <id> <g
 | **E. Pictures — resolution ladder** | |
 | E1 | `POST /api/visuals {"concept":"water","childId":"maya_t"}` → `resolvedBy == "icon_pack"` (*built-in symbol, free*) |
 | E2 | same with `"Toilet"` → `icon_pack` (case-insensitive) |
-| E3 | `"chocolate milkshake"` with `--max-time 90` → `resolvedBy == "generated"`. If the response matches `credit\|quota\|API key`, E3, E4 and E5 are all reported **BLOCK** instead. E4 and E5 have no implementation on the success path — they exist only as blocked cases. |
+| E3 | `"chocolate milkshake"` with `--max-time 90` → `resolvedBy` accepted via `case` as any of `generated\|hash_cache\|semantic`. Script comment: *"First run generates; every later run must hit the cache — both prove the paid step works, and re-generating on each test run would spend real money."* If the response matches `credit\|quota\|API key`, E3, E4 and E5 are all reported **BLOCK** instead. E4 and E5 have no implementation on the success path — they exist only as blocked cases. |
 | E6 | `sqlite3 aac.db "SELECT count(*) FROM events WHERE type='gap_detected';"` > 0 |
 | **F. Sign-in and attribution** | |
 | F1 | `GET /` with no session → HTTP `307` |
 | F2 | `/who` mentions exactly 5 distinct names from `Maya\|Jonah\|Amara\|Liam\|Sofia` |
 | F3 | `POST /api/session {"childId":"jonah_k"}` → `ok == True`, cookie jar `/tmp/t.jar` |
 | F4 | board loads as Jonah. **Emitted twice**: an `eq F4` comparing two identical `curl` invocations (always passes, a no-op assertion), then a real `grep -c 'Jonah' > 0` check. |
-| **J. Event integrity** | |
+| **J. Event integrity** | event ids are per-run: `EID="j$(date +%s)"`. Script comment: *"a fixed event_id only passes if the previous run's cleanup succeeded, and that DELETE can silently lose to SQLITE_BUSY under WAL — which made J2 a flake that failed exactly once after any interrupted run."* |
 | J1 | a `card_tap` with `source: "board"` and no `grid_row`/`grid_col` → response contains `requires grid_row` |
 | J2 | a `card_tap` with `source: "search"`, `nav_depth: 1`, no coordinates → `accepted == 1` |
 | J3 | replaying the identical J2 body → `duplicates == 1` (idempotent replay) |
 | J4 | `scene: "moon"` → response contains `unknown scene` |
-| cleanup | `sqlite3 aac.db "DELETE FROM events WHERE session_id='t';"` |
+| cleanup | `sqlite3 -cmd ".timeout 3000" aac.db "DELETE FROM events WHERE session_id='t';"` — the `.timeout` is what stops the DELETE losing to `SQLITE_BUSY` under WAL |
 | **L. MCP** | `TOKEN=$(grep AAC_MCP_TOKEN .env.local \| cut -d= -f2)` |
 | L1 | `POST /api/mcp` with no `Authorization` → `401` |
 | L2 | `Authorization: Bearer wrong` → `401` |
 | L3 | `tools/list` with the real token → at least **14** tools |
 | L4 | `tools/call list_children {adult_id: adult_patel}` → 5 children |
+| L5 | `get_metrics` with `window: "28d"` → error message contains `not a window` (loud rejection). Script comment: *"An unknown window token must reject loudly, never silently fall back to 7d — a model that asked for a month and got a week would caption it as a month."* |
 | **C. Categories** | |
 | C1 | `GET /api/categories?child=maya_t` → 10 categories |
 | C2 | the `Feelings` category has 8 words |
@@ -105,6 +106,16 @@ Counters `PASS` / `FAIL` / `BLOCK` with helpers `ok`, `no`, `bl` and `eq <id> <g
 | **G. Dashboard login** | |
 | G1 | `GET /dashboard` with no session → `307` |
 | G7 | `GET /dashboard/student/maya_t` with no session → `307` |
+| **H. Child session switch** | script comment: *"?child= must never render in-page (cookie writes are illegal in a Server Component — this exact path 500'd in production once). It bounces through the switch route, which owns the cookie write."* |
+| H1 | `GET /?child=maya_t` → `%{redirect_url}` is `$BASE/api/session/switch?child=maya_t` (board hands `?child=` to the switch route) |
+| H2 | `GET /api/session/switch?child=maya_t` → response headers include `set-cookie: aac_child=` |
+| H3 | same response → `location:` ends in `/` (switch lands back on the board) |
+| H4 | `GET /api/session/switch?child=not_a_child` → **no** `set-cookie` header (unknown child sets no cookie) |
+| **K. Hostname surface routing (static assets)** | Host-header spoofing against localhost reproduces the tunnel. Script comment: *"Card icons under `/icons/ai/` must be served on both browser surfaces — they 404'd on the public site once while localhost (surface 'any') hid it. MCP serves nothing but `/api/mcp`."* |
+| K1 | `Host: aac.kason.app` → `GET /icons/ai/want.png` → `200` (board host serves card icons) |
+| K2 | `Host: aac-dashboard.kason.app` → `GET /icons/ai/want.png` → `200` (dashboard host serves card icons) |
+| K3 | `Host: aac-mcp.kason.app` → `GET /icons/ai/want.png` → `404` (mcp host serves no static assets) |
+| K4 | `Host: aac.kason.app` → `GET /dashboard` → `404` (board host still refuses `/dashboard`) |
 
 The script mutates the live `aac.db` — J1–J4 write events through the API and the J-section cleanup deletes them by `session_id='t'`; E3 may generate and cache a real image; C5/C6 toggle category visibility and restore it. Case ids are non-contiguous (E4, E5 only appear blocked; C3, C4, G2–G6 are absent) because the numbering follows `docs/test-plan.md`, of which this covers the API-level subset.
 
@@ -129,6 +140,8 @@ The script mutates the live `aac.db` — J1–J4 write events through the API an
 - `.env.local` → `AAC_MCP_TOKEN`
 - `/tmp/t.jar` cookie jar
 - `BASE` environment variable, default `http://localhost:3000`
+- The three spoofed `Host` values — `aac.kason.app`, `aac-dashboard.kason.app`, `aac-mcp.kason.app` — which section K sends against localhost; they are the same prefixes `middleware.ts` matches, so renaming a public hostname changes this script too
+- `public/icons/ai/want.png` — the asset K1–K3 fetch; its absence would fail K1/K2 with a 404 for a non-routing reason
 
 ## Change Risks
 - **Pointing the reader queries at the live insight views instead of `agg_*` reproduces the 5-second p99** the header records, and the harness will fail at `reader p99 > 1000 ms` — which is the harness doing its job, and the reason [Nightly Rule Materialisation](rule-materialisation.md) exists at all.
@@ -139,4 +152,6 @@ The script mutates the live `aac.db` — J1–J4 write events through the API an
 - **Changing the tool count on the MCP server below 14** fails L3; adding tools is safe (the assertion is `>= 14`).
 - **Changing the unauthenticated redirect status** from `307` breaks F1, G1 and G7 together.
 - **The duplicated F4 assertion inflates the pass count by one** and can never fail; anyone reading the totals should know one PASS is structural.
-- **E4 and E5 are only ever reported when E3 is blocked.** A green run with real OpenAI credit reports fewer cases than a blocked one, and cache-reuse and semantic-match are therefore never actually exercised by this script.
+- **E4 and E5 are only ever reported when E3 is blocked.** They have no success-path implementation of their own — but E3's `generated|hash_cache|semantic` acceptance means the cache path *is* exercised in practice: the first run generates, every later run hits the cache, and either outcome passes. What E3 cannot tell you is *which* path ran on a given execution; a regression that silently re-generates (and spends money) on every run still passes.
+- **Narrowing `SHARED_PREFIXES` in `middleware.ts`** (currently `['/icons/']`) fails K1/K2 — and that is the harness doing its job, because the icons would 404 on both public hostnames while localhost (surface `'any'`) hides it. Widening it onto the mcp surface fails K3. The K section is the only automated check of this contract.
+- **Making `get_metrics` fall back silently on an unknown window token** fails L5, which pins the loud `not a window` rejection. The failure L5 guards against is a model asking for a month, getting a week, and captioning it as a month.

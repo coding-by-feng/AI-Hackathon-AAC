@@ -13,7 +13,7 @@ Two problems solved in one file.
 ## Source Files
 | File | Role |
 |------|------|
-| `lib/chat/tools.ts` | `toolsForScope()`, `invokeTool()`, `ChatScope`, `ToolInvocation`, `readCatalogueSummary()`, the cached `Db` handle |
+| `lib/chat/tools.ts` | `toolsForScope()`, `invokeTool()`, `ChatScope`, `ToolInvocation`, `readCatalogueSummary()`, the inode-checked `Db` handle, `validMetricIds()` + its per-handle `metricIdCache` (`WeakMap`), `DIMENSIONAL_HINT` |
 
 ## Implementation
 
@@ -28,9 +28,15 @@ Two problems solved in one file.
 ### Database handle
 ```ts
 const path = process.env.AAC_DB ?? `${process.cwd()}/aac.db`
-globalThis.__aacChatDb = new Db(path)
+const ino = statSync(path, { bigint: true }).ino
+if (!globalThis.__aacChatDb || globalThis.__aacChatDb.ino !== ino) {
+  globalThis.__aacChatDb?.db.close()
+  globalThis.__aacChatDb = { db: new Db(path), ino }
+}
 ```
-Stored on `globalThis.__aacChatDb` because "Next reloads modules on every edit in dev; without the global, each reload leaks a SQLite handle until the WAL reader count blocks the writer." The module-level `let cached: Db | undefined` is assigned in `db()` but never read anywhere — dead state.
+Stored on `globalThis.__aacChatDb` (a `{ db, ino }` pair) because "Next reloads modules on every edit in dev; without the global, each reload leaks a SQLite handle until the WAL reader count blocks the writer."
+
+The inode check is the `lib/sqlite.ts` lesson applied here: `tools/build.sh` deletes and recreates `aac.db`, and a handle opened before that keeps reading the deleted inode — the chatbot would answer from a database that no longer exists. `db()` re-stats per call (cheap next to a model turn) and closes + reopens when the file identity changes.
 
 ### `ChatScope`
 ```ts
@@ -52,8 +58,15 @@ type ChatScope = {
    - For each of `SCOPED_PARAMS` present in `properties`:
      - `child_id` **and not single** (teacher) → replaced with `{ type: 'string', enum: ids, description: 'Which child. Only these ids exist for you; any other value is rejected.' }`
      - otherwise → `delete props[param]`
+   - **Metric ids become an enum.** `props.metric_ids.items` (and scalar `props.metric_id`) are rewritten to `{ type: 'string', enum: validMetricIds() }`. The in-code rationale: metric ids as free strings let the model invent names — `"mean_symbols_per_utterance"` produced 0 rows and a confident "no data" answer about a metric that exists as `taps_per_utterance`. An enum both rejects the invention and *shows* the model the vocabulary it may use.
    - `required` is filtered to remove `class_id`, `adult_id`, and `child_id` when `single`.
-3. Returns `ToolDef[]` (`name`, `description`, `parameters`).
+3. `get_metrics` and `get_metric_timeseries` get `DIMENSIONAL_HINT` appended to their descriptions — *"For per-card frequency and unused cards use get_card_stats; for grid heat use get_cell_heat; for word pairs use get_word_pairs; for scene breakdowns use get_scene_breakdown."*
+4. Returns `ToolDef[]` (`name`, `description`, `parameters`).
+
+### `validMetricIds()` — the honest metric universe
+`SELECT DISTINCT metric_id FROM agg_daily_metric ORDER BY metric_id`, falling back to `SELECT metric_id FROM metrics_catalog` only when that returns nothing. Data-driven on purpose: dimensional metrics (`card_frequency`, `cell_heat`, `word_pairs`, `nav_depth_by_card`, …) live in their own tables and never appear in `agg_daily_metric` — offering them through the scalar tools made `get_metrics` report "the feature is not in use", which was false, and the model repeated it to a teacher. Ids that have ever produced a scalar row are the honest universe; `DIMENSIONAL_HINT` points the model at where the dimensional metrics actually answer from.
+
+The result is cached in `metricIdCache`, a `WeakMap<Db, string[]>` keyed on the handle — so a rebuilt database (new handle via the inode check in `db()`) re-derives the vocabulary instead of serving the old universe.
 
 Net effect, as documented in the header:
 
@@ -72,9 +85,10 @@ Order of operations:
    - `child_id` present → `chosen = ids.length === 1 ? ids[0] : requested`. No `chosen` → `fail("This tool needs a child. Available: <ids>.")`. `chosen` not in `ids` → `fail("'<chosen>' is not one of your children. Available: <ids>.")` — described in-code as *belt and braces*: the enum already rejects this, but a schema change should not be able to open a hole.
    - `class_id` present → `scope.classId ?? children.find(c => c.class_id)?.class_id`; none → `fail('No class is associated with your account.')`
    - `adult_id` present → `scope.viewer.adult_id`
-4. `validateArgs(tool.schema, args)` against the **full** schema, including the constraints Gemini never saw. Failure → `fail("Invalid arguments: <path>: <message>; …")`.
-5. `tool.run(db(), validated.value)` → envelope. Success maps `envelope.guidance` to `{ level, code, detail }`, `envelope.forbidden_actions ?? []`, and `rowCount = Number(envelope.meta?.row_count ?? 0)`; `resultJson = JSON.stringify(envelope)`.
-6. A thrown error from `tool.run` becomes `fail(err.message)` — still `ok: false`, still a normal tool result.
+4. **Unknown metric ids fail loudly with the valid vocabulary.** Every string in `args.metric_ids` (or the scalar `args.metric_id`) is checked against `validMetricIds()`; any miss → `fail("Unknown metric id(s): <ids>. Valid ids: <validMetricIds() joined>.")` — so the model's next iteration corrects itself instead of concluding the data is missing.
+5. `validateArgs(tool.schema, args)` against the **full** schema, including the constraints Gemini never saw. Failure → `fail("Invalid arguments: <path>: <message>; …")`.
+6. `tool.run(db(), validated.value)` → envelope. Success maps `envelope.guidance` to `{ level, code, detail }`, `envelope.forbidden_actions ?? []`, and `rowCount = Number(envelope.meta?.row_count ?? 0)`; `resultJson = JSON.stringify(envelope)`.
+7. A thrown error from `tool.run` becomes `fail(err.message)` — still `ok: false`, still a normal tool result.
 
 `ms` is `performance.now()` deltas, unrounded here (the agent rounds before emitting `tool_result`).
 
@@ -98,7 +112,7 @@ Formats each row as `` `${metric_id} (${unit}, ${polarity}, min_n=${min_n}): ${n
 - [../api/ask-chat-endpoint.md](../api/ask-chat-endpoint.md) — `GET /api/chat` calls `toolsForScope()` with no model call and returns each tool's `properties.child_id`, so the scope boundary is inspectable rather than merely asserted
 
 ### Shared Resources
-- `globalThis.__aacChatDb` — a process-wide `Db` handle over the analytics SQLite file
+- `globalThis.__aacChatDb` — a process-wide `{ db, ino }` pair over the analytics SQLite file
 - `mcp/tools.ts` — the same tool registry the stdio MCP server serves to external clients
 - `AAC_DB` env var — shared with the MCP server and the analytics readers
 
@@ -109,4 +123,6 @@ Formats each row as `` `${metric_id} (${unit}, ${polarity}, min_n=${min_n}): ${n
 - **Making `invokeTool` throw instead of returning `fail()`** ends the agent turn and loses the conversation — the model's self-correction loop depends on errors arriving as tool results.
 - **Removing the `globalThis` cache** leaks a SQLite handle per dev hot-reload until the WAL reader count blocks the writer.
 - **Changing `meta.row_count`** in the MCP envelope silently zeroes the `rowCount` shown next to every tool chip in the Ask panel.
-- **Deleting `readCatalogueSummary()`** breaks nothing today, but it is the only place that reads `metrics_catalog` from the chat path.
+- **Adding a dimensional metric without extending `DIMENSIONAL_HINT`** leaves it unreachable from chat: it never appears in `agg_daily_metric`, so the enum excludes it from the scalar tools, and nothing tells the model which tool answers it instead.
+- **An empty `agg_daily_metric`** (fresh or unrolled database) widens the enum to the whole `metrics_catalog` — including dimensional ids with no scalar rows, resurrecting the false "the feature is not in use" answers the data-driven universe exists to prevent.
+- **Deleting `readCatalogueSummary()`** breaks nothing today, but it is the only place that reads `metrics_catalog` with `status = 'shown'` from the chat path (`validMetricIds()`'s fallback reads the whole catalogue).

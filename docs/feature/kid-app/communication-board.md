@@ -1,7 +1,7 @@
 # Communication Board
 
 ## Function
-The child-facing AAC surface at `/`: a fixed-position symbol grid, an always-on essential rail, a sentence bar with Speak/Undo/Clear/Stop, communication-mode chips that highlight rather than move cards, and adult toggles for Modelling, Editing, Scene and Private Mode.
+The child-facing AAC surface at `/`: a fixed-position symbol grid, an always-on essential rail, a re-speakable sentence bar with Speak/Undo/Clear/Stop, an ABC chip that opens a spelling keyboard, communication-mode chips that highlight rather than move cards, adult toggles for Modelling, Editing, Scene and Private Mode, a "What is modelling?" help dialog, and a theme toggle. (Prose here uses "modelling"; the code identifiers — `modeling`, `ModelingHelp` — use the American spelling.)
 
 ## Purpose
 This is the product itself — "the dashboard exists to explain what happens here, not the other way round" (`app/page.tsx` header). Every layout decision here is traceable to a clinical constraint: a mode never moves a card (C4), the grid column count comes from the child's own `boards.grid_cols` and never from the viewport (C2), masked cells stay as empty holes rather than being closed up (C2 progressive masking), and the essential rail is never reordered or dimmed. Modelling Mode exists because an adult demonstrating on the child's device otherwise inflates the child's own independence figures.
@@ -10,13 +10,17 @@ This is the product itself — "the dashboard exists to explain what happens her
 | File | Role |
 |------|------|
 | `app/page.tsx` | Server component. Resolves identity from the session cookie, reads the robust board, essentials, modes and categories from SQLite, applies per-child overrides, hands a `BoardData` object to the client. |
-| `components/kid/board-app.tsx` | The client board: composer state, tap handling, mode chips, essential rail, sentence bar, header toggles, and the four modal surfaces (voice, categories, card edit, category editor). |
+| `components/kid/board-app.tsx` | The client board: composer state, tap handling, mode chips, sentence bar and header toggles. The essential rail is delegated to `EssentialRail`, and six overlay surfaces mount here: `KeyboardLayer`, `ModelingHelp`, `CategoryDrawer`, `CategoryEditor`, `VoicePicker`, `EditSheet`. |
+| `components/kid/essential-rail.tsx` | `EssentialRail` — the always-available words as a standalone component, so an overlay can carry its own copy (`KeyboardLayer` renders a second rail). |
+| `components/kid/keyboard-layer.tsx` | The ABC spelling layer, opened from the category bar's ABC chip. Documented in [Keyboard & Modelling Help](keyboard-and-modeling-help.md). |
+| `components/kid/modeling-help.tsx` | The "What is modelling?" dialog. Documented in [Keyboard & Modelling Help](keyboard-and-modeling-help.md). |
+| `components/theme-toggle.tsx` | The top-bar theme control (rendered `compact`). Primary home: [Symbol Set & Card Faces](symbol-set.md). |
 
 ## Implementation
 
 ### Route and identity
 - Route: `/` (`app/page.tsx`), `export const dynamic = 'force-dynamic'`.
-- `?child=<id>` is **not** identity. If present, the page calls `setCurrentChild(requested)` then `redirect('/')`, so identity always comes back from the `aac_child` cookie. See [Child Sign-In](child-sign-in.md).
+- `?child=<id>` is **not** identity. If present, the page redirects to `GET /api/session/switch?child=<id>` ([Sign-In Endpoints](../api/sign-in-endpoints.md)), which validates the id against the roster, writes the `aac_child` cookie and lands back on `/` — a Server Component may not modify cookies, so the page never calls `setCurrentChild` itself. Identity always comes back from the cookie. See [Child Sign-In](child-sign-in.md).
 - No cookie → `redirect('/who')`. Cookie present but the child is missing from `children` (stale roster) → `redirect('/who')`.
 - No `boards` row with `kind = 'robust'` → renders the `Fallback` component: `"<name> has no robust board."` plus a link to `/dashboard`.
 
@@ -57,15 +61,20 @@ type BoardData = { child_id, child_name, board_id, grid_rows, grid_cols,
 |---|---|---|
 | `SCENES` | `classroom` "Classroom", `therapy` "Therapy", `free_play` "Free play", `home` "Home", `community` "Out" | Scene selector options |
 | modelling auto-exit | `90_000` ms | Timer reset on every adult press |
+| `HOLD_PREVIEW_MS` | `700` ms | Press-and-hold time before a card speaks its preview |
 | speaking-flag timeout | `Math.min(6000, 800 + text.length * 60)` ms | How long the Speak button reads "Speaking…" |
 | card min height | `max(64px, 14vh)` | Grid cell |
+| card face size | `clamp(44px, 12vh, 124px)` | `CardFace` on a grid cell — a CSS length, capped at the card's own width by `CardFace` |
+| grid gap / card padding | `gap-1.5 sm:gap-2` / `p-1 sm:p-2` | Both tighten below `sm:` so small phones keep usable cell area |
 | essential min height / width | `64` / `84` px | Rail button |
+| essential face size | `clamp(32px, 6.5vh, 68px)` | `CardFace` in `EssentialRail` |
+| drawer face size | `clamp(40px, 9vh, 96px)` | `CardFace` in `CategoryDrawer` ([Category Folders](category-folders.md)) |
 | sentence-bar button min height | `64` px | Speak / Undo / Clear / Stop |
 | Speak button flex | `flex-[3]` vs `flex-1` for the other three | |
 | dimmed opacity | `opacity-35` | Cards not highlighted by the active mode |
 
 ### Component state
-`composed: {key, card}[]`, `modeId`, `modeling`, `scene` (default `'classroom'`), `priv`, `speaking`, `speechChecked`, `canSpeak`, `editing`, `editTarget`, `cards`, `essentials`, `openCategory`, `voice`, `voiceOpen`, `catsOpen`.
+`composed: {key, card}[]`, `modeId`, `modeling`, `scene` (default `'classroom'`), `priv`, `speaking`, `speechChecked`, `canSpeak`, `editing`, `editTarget`, `cards`, `essentials`, `openCategory`, `voice`, `voiceOpen`, `catsOpen`, `keyboardOpen`, `helpOpen`.
 Refs: `utteranceId` (`crypto.randomUUID()`, rotated on speak and on clear), `startedAt` (ms of first tap in the utterance), `modelingTimer`.
 
 `speechChecked`/`canSpeak` are resolved after mount because speech support cannot be detected during SSR — rendering "this browser cannot speak" on the server would flash the warning at everyone.
@@ -81,7 +90,13 @@ Refs: `utteranceId` (`crypto.randomUUID()`, rotated on speak and on clear), `sta
 
 **Pick a word from a category folder** (`pickFromCategory(word)`): logs `card_tap` with `nav_depth: 1`, `source: 'search'`, `ms_delta: null`, `card_id: word.card_id` (null for words the catalogue lacks), and `payload {viaCategory, onBoard}`. The composed card gets `card_id: word.card_id ?? \`extra:${word.label}\``, `grid_row: -1`, `grid_col: -1`, `nav_depth: 1`. The drawer then closes.
 
+**Spell a word on the keyboard** (`addTypedWord(word)`): trims and ignores empty input, then logs a `keyboard_input` event — `source: 'keyboard'`, `payload {word, length}`, the current `utterance_id` and `board_id`, no grid fields — and appends a synthetic composed card (`card_id` = `typed:<word>`, `label`/`word_form`/`spoken_text` all the typed word, `grid_row: -1`, `grid_col: -1`, `nav_depth: 0`). Called by `KeyboardLayer` on space or Done ([Keyboard & Modelling Help](keyboard-and-modeling-help.md)).
+
 **Speak** (`doSpeak`): no-op when `composed` is empty. Calls `unlock()` then `speak(text, voice)`, sets `speaking`, logs a `speak` event with `payload {cardIds, labels, symbolCount, wordCount, assembly, msCompose, usedSuggestion: false}` where `assembly` is the utterance mode (`'phrase' | 'joined'`) and `wordCount` is `text.split(/\s+/).filter(Boolean).length`. Then rotates `utteranceId`, clears `startedAt`, calls `logger.resetTapClock()` and empties `composed`.
+
+**Re-speak from the message window** (`respeak`): the composed-message area of the sentence bar is a button. Tapped while speaking it stops the speech; otherwise it says the current sentence again and logs a **second** `speak` event that reuses the same `utterance_id`, with `trigger: 'message_window'` added to the payload — it is the same sentence, said again, and the payload says so. The composer is never cleared, so re-speaking can never destroy work. (Proloquo2Go's message-window behaviour.)
+
+**Hold to hear** (`previewCard`): pressing and holding a card for `HOLD_PREVIEW_MS` (700 ms) speaks its `wordForm` without adding it to the sentence and **without logging** — a hold is still an explicit press, but a preview is not a selection. The `held` ref suppresses the click that follows release, so a preview never turns into an accidental selection. Disabled while editing.
 
 **Undo** (`deleteLast`): logs `delete_last` with `card_id`, `label`, `grid_row`, `grid_col`, `grid_rows`, `grid_cols` and `ms_delta = Date.now() - Number(last.key.split('-').at(-1))` — the ms between tapping the card and removing it, which is the sole input to `mistap_rate`. Removes the last chip.
 
@@ -109,13 +124,17 @@ Refs: `utteranceId` (`crypto.randomUUID()`, rotated on speak and on clear), `sta
 | `Voice` | opens `VoicePicker` | |
 | `Edit cards` / `Done editing` | `aria-pressed={editing}` | toggles editing |
 | `I am modelling` / `Stop modelling` | | toggles modelling |
+| `?` round button | `aria-label="What is modelling?"` | opens `ModelingHelp` ([Keyboard & Modelling Help](keyboard-and-modeling-help.md)) |
 | `Private` / `Private — nothing recorded` | `aria-pressed={priv}`, `title="Nothing is recorded while this is on"` | `setPrivate(next)` — the child can reach it, it is not buried in adult settings |
+| Theme swatch | `<ThemeToggle compact />` | cycles black → white → warm; tokens in [Symbol Set & Card Faces](symbol-set.md) |
 
-Sentence bar: sticky (`top-0 z-10`), `min-h-[4.5rem]` so the board never jumps as words are added; empty state reads `Press a word to begin`; below it `Will say: "<text>"`.
+Below the header, the board passes an **ABC chip** into `CategoryBar` as its `leading` slot — `minHeight: 44`, `aria-pressed={keyboardOpen}`, `title="Spell a word letter by letter"` — which opens `KeyboardLayer`. The bar renders even with zero folders, so alphabet access never disappears ([Category Folders](category-folders.md)).
 
-Board: `grid` with `gridTemplateColumns: repeat(${data.grid_cols}, minmax(0,1fr))`, iterating `grid_rows × grid_cols` and looking each cell up by `` `${r}:${c}` ``. An empty cell renders `<div aria-hidden />`. A **masked** card renders a dashed `--color-line` placeholder with `minHeight: 64` and no button — the position is held open, never reclaimed.
+Sentence bar: sticky (`top-0 z-10`). The composed-message area is itself a **button** — `onClick={respeak}`, disabled while empty, `aria-label` toggling between `Say the sentence again` and `Stop speaking` — with `min-h-[4.5rem]` on the button so the board never jumps as words are added. Empty state reads `Press a word to begin`; below it `Will say: "<text>"`.
 
-Essential rail: `<nav aria-label="Always available">`, sticky at the bottom with `paddingBottom: max(0.5rem, env(safe-area-inset-bottom))`, horizontally scrollable, never dimmed by a mode.
+Board: `grid gap-1.5 sm:gap-2` with `gridTemplateColumns: repeat(${data.grid_cols}, minmax(0,1fr))`, iterating `grid_rows × grid_cols` and looking each cell up by `` `${r}:${c}` ``. An empty cell renders `<div aria-hidden />`. Each card button is padded `p-1 sm:p-2` and renders `CardFace` at `clamp(44px, 12vh, 124px)` — a CSS length, so the icon scales with the 14vh-based cell and is capped at the card's own width ([Symbol Set & Card Faces](symbol-set.md)). A **masked** card renders a dashed `--color-line` placeholder with `minHeight: 64` and no button — the position is held open, never reclaimed.
+
+Essential rail: `<nav aria-label="Always available">`, sticky at the bottom with `paddingBottom: max(0.5rem, env(safe-area-inset-bottom))`, never dimmed by a mode. The buttons live in the `<EssentialRail>` component — a horizontally scrollable row with faces at `clamp(32px, 6.5vh, 68px)` — extracted so `KeyboardLayer` can render a second copy, keeping help / stop / yes / no one tap away while spelling.
 
 Speech-unavailable banner (rendered only once `speechChecked`): *"This browser cannot speak. The sentence bar still shows what <FirstName> wants to say — hold the screen up to read it."*
 
@@ -127,15 +146,15 @@ Speech-unavailable banner (rendered only once `speechChecked`): *"This browser c
 - [Symbol Set & Card Faces](symbol-set.md) — `CardFace`, `faceColours`.
 - [Category Folders](category-folders.md) — `CategoryBar`, `CategoryDrawer`, `CategoryEditor`, `categoriesForChild`.
 - [Card Customisation](card-customisation.md) — `overridesFor`, `EditSheet`.
-- [Child Sign-In](child-sign-in.md) — `currentChildId`, `setCurrentChild`.
+- [Child Sign-In](child-sign-in.md) — `currentChildId`; `?child=` switching goes through `GET /api/session/switch`.
 - [Offline & PWA Shell](offline-pwa.md) — the root layout, viewport lock and service worker that wrap this page.
 - ../database/schema.md — `children`, `boards`, `board_cells`, `cards`, `mode_selection`.
-- ../api/sign-in-endpoints.md — `DELETE /api/session?child=` for the sign-out chip.
+- ../api/sign-in-endpoints.md — `DELETE /api/session?child=` for the sign-out chip, `GET /api/session/switch?child=` for `?child=` links.
+- ../pipeline/seed-generation.md — generated modes arrive as `mode_selection` rows with `emphasis = 'highlight'`; they are rendered as a lens, never as a new grid.
 
 ### Depended On By
 - ../analytics/metric-readers.md — every metric is computed from the events this screen emits; the five starred fields (`grid_row`, `grid_col`, `grid_rows`, `grid_cols`, `nav_depth`) exist only because `logTap` captures them here.
 - ../dashboard/student-overview.md — `mistap_rate`, `abandonment_rate`, `repeat_tap_rate` and the position heat map all read taps produced here.
-- communication-board.md — generated modes are consumed as `mode_selection` rows with `emphasis = 'highlight'`; they are rendered as a lens, never as a new grid.
 
 ### Shared Resources
 - `aac.db` tables `children`, `boards`, `board_cells`, `cards`, `mode_selection` (read-only through `lib/db.ts`).
@@ -153,17 +172,3 @@ Speech-unavailable banner (rendered only once `speechChecked`): *"This browser c
 - **Changing the `composed` key format** (`${card_id}-${Date.now()}`) breaks `deleteLast`, which recovers the tap timestamp with `Number(last.key.split('-').at(-1))`; `ms_delta` would become `NaN` and `mistap_rate` would silently stop working.
 - **Renaming the `board_switch` event type** to match the `mode_switch` name in the metrics spec requires a matching change to the `TYPES` set in `lib/ingest.ts`, or every mode switch is rejected with `unknown event type`.
 - **Making `cards`/`categories` required in `BoardData`** re-introduces the hot-reload crash the optional fields were added to prevent.
-
-> **2026-08-08:** Card icons are responsive — `clamp(40px, 11vh, 112px)` capped at
-> card width with `aspect-ratio: 1` (see `CardFace` size prop, now `number | string`).
-> Card face column is `min-w-0 max-w-full` and labels wrap with `overflow-wrap:anywhere`
-> (long labels used to push icons past the card borders on phones). Grid gap and card
-> padding tighten below `sm:`. Live install currently has **no mode boards** (Snack
-> time removed by request at data level); the mode code path is unchanged and a
-> pipeline rebuild re-seeds them.
-
-> **2026-08-08 (themes):** Three forced themes — black / white / warm — via
-> `data-theme` on `<html>` (`components/theme-toggle.tsx`, tokens in
-> `app/globals.css`), persisted per origin in `localStorage('aac-theme')` and
-> applied pre-paint by an inline script in `app/layout.tsx`. Unset = the old
-> adaptive behaviour. Card pastels are inline styles and untouched by themes.

@@ -16,7 +16,8 @@ Two additions the code makes over `analytics-metrics.md` §9:
 ## Source Files
 | File | Role |
 |------|------|
-| `app/dashboard/page.tsx` | The class page — ranked queue, empty state, roster table |
+| `app/dashboard/page.tsx` | The class page — header, ranked queue, empty state, roster table |
+| `app/dashboard/header.tsx` | `DashHeader` — the title row this page opens with |
 | `lib/queue.ts` | `buildQueue`, `analysisFreshness`, `rollupThrough`, `classesFor` |
 
 ## Implementation
@@ -96,6 +97,8 @@ The last four are "roster-row metrics, shown whether or not the child scores".
 ### Page (`app/dashboard/page.tsx`)
 `export const dynamic = 'force-dynamic'` — never statically cached.
 
+The page opens with `<DashHeader title={classesFor(children)} subtitle={`${children.length} children`} period="Last 7 days" />` — the class name(s) as the title, the roster count as the subtitle, and the freshness chip + user chip on the right ([dashboard shell](dashboard-shell.md)).
+
 ```
 needsAttention = queue.filter(q => q.score > 0)
 settled        = queue.filter(q => q.score === 0)
@@ -130,13 +133,13 @@ Table footnote: *"A child marked 'settling in' is shown with real numbers but is
 - [Metric readers](../analytics/metric-readers.md) — `readMetric`, `silenceStreak`, `formatValue`
 - [Baseline gating](../analytics/baseline-gating.md) — `baseline()`; `ready` gates all five score terms
 - [Insight rules](../analytics/fired-rules-and-evidence.md) — `openInsights()` supplies the `INSIGHT` term
-- [Dashboard shell](dashboard-shell.md) — `Panel`, `EmptyState`, `Pill`
+- [Dashboard shell](dashboard-shell.md) — `DashHeader`, `Panel`, `EmptyState`, `Pill`
 - [Database schema](../database/schema.md) — `events`, `agg_daily_metric`, `fired_rules`, `classes`, `children`
 
 ### Depended On By
 - [Dashboard shell](dashboard-shell.md) — imports `analysisFreshness` and `rollupThrough` from `lib/queue.ts`
 - [Student overview & AI impact](student-overview.md) — every queue row links into it
-- [Ask panel](ask-panel.md) — the class-level suggestion chip *"Who needs attention today, and why?"* expects the MCP `get_attention_queue` tool to produce the same ranking
+- [Ask panel](ask-panel.md) — the class-level suggestion chip *"Who needs attention today, and why?"* expects the MCP `get_attention_queue` tool to produce the same ranking. Reachability of that class-level page is half-fixed: the rail's **Class** item lights while `/dashboard/ask` is open (its `active()` predicate matches the path), but no `href` anywhere in the app points at it — it remains reachable only by typed URL
 
 ### Shared Resources
 - The scoring formula is duplicated in three places: `lib/queue.ts` `SCORE`/`THRESHOLD`, `docs/analytics-metrics.md` §9, and the MCP `get_attention_queue` tool. They must stay in step or the dashboard and the LLM will disagree about who needs help.

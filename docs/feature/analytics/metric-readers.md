@@ -1,9 +1,5 @@
 # Metric Readers
 
-> **Calculation-correctness pass (2026-08-08).** `agg_daily_metric` now stores TRUE daily values; min_n suppression happens in the READERS at their own grain. `readMetric` owns window aggregation (sum / last / weighted-mean over non-null values, window-grain min_n); `report.ts windowValue()` delegates to it; day-grain readers (`weekly`/`monthly`, `abandonmentTrend`, `baseline.ts`) mask days below min_n via a catalogue join. Tally metrics zero-fill when the child was present in the window — zero new words is a finding, not missing data. Full audit trail:
-> [`docs/feature-verification.md`](../../feature-verification.md) §"Metric-calculation pass".
-
-
 ## Function
 The read layer the dashboard renders from: scalar metrics rolled up out of `agg_daily_metric` over a `Window`, plus the dimensional reads (top cards, new words, cell heat, abandonment trend) and the Group F "AI value" reads that go straight to the event log.
 
@@ -44,9 +40,11 @@ type MetricValue = {
 | `last` (point-in-time; newest value is the only meaningful one) | `silence_streak`, `zero_activation_days`, `position_consistency` |
 | `weighted_mean` | **default** for every other metric id (`rollupFor()` = `ROLLUP[metricId] ?? 'weighted_mean'`) |
 
-SQL per mode, in `aggregate(metricId, childId, w)`:
+`agg_daily_metric` stores **true daily values** — the rollup no longer NULLs below-`min_n` days — so suppression is each reader's job, at its own grain. `readMetric` owns window-grain aggregation and suppression for the whole app; `windowValue()` in `lib/report.ts` delegates to it rather than re-implementing.
 
-- `sum` → `SELECT SUM(value) AS value, SUM(n) AS n, COUNT(value) AS days FROM agg_daily_metric WHERE child_id = ? AND metric_id = ? AND day_local BETWEEN ? AND ?`
+SQL per mode, in `aggregate(metricId, childId, w)` — all three restrict to non-null daily values:
+
+- `sum` → `SELECT SUM(value) AS value, SUM(n) AS n, COUNT(value) AS days FROM agg_daily_metric WHERE child_id = ? AND metric_id = ? AND day_local BETWEEN ? AND ? AND value IS NOT NULL`
 - `weighted_mean` → same query with `SUM(value * n) / NULLIF(SUM(n), 0)` as the value expression, "so a day with three sentences does not carry the same weight as a day with forty"
 - `last` → `SELECT value, n, 1 AS days ... AND value IS NOT NULL ORDER BY day_local DESC LIMIT 1`
 
@@ -55,10 +53,11 @@ SQL per mode, in `aggregate(metricId, childId, w)`:
 2. `cur = aggregate(metricId, childId, w)`.
 3. `prev = aggregate(metricId, childId, previousWindow(w))` — `previousWindow()` from `lib/db.ts` returns the immediately preceding block of the same length.
 4. `everRecorded` = `cur.days > 0 || prev.days > 0 ||` a fallback `SELECT COUNT(*) c FROM agg_daily_metric WHERE metric_id = ? LIMIT 1` — note this fallback is **not scoped to `child_id`**, deliberately: it answers "does the pipeline produce this metric at all", not "does this child have it".
-5. Suppression, in this order:
-   - `!everRecorded` → `value = null`, `suppressed = 'not_collected'`
-   - `meta && cur.n < meta.min_n` → `value = null`, `suppressed = 'small_sample'`
-   - a metric with no catalogue row is **never** suppressed for small sample (the `meta &&` guard).
+5. Suppression and zero-fill, an `else if` chain in this order:
+   - 5a. `!everRecorded` → `value = null`, `suppressed = 'not_collected'`.
+   - 5b. `value === null && rollupFor(metricId) === 'sum'` → **zero-fill**: if the child has any event in the window (`SELECT COUNT(*) FROM events WHERE child_id = ? AND actor = 'child' AND day_local BETWEEN ? AND ?` > 0), `value = 0`. The comment: *"A tally with no in-window rows is ZERO when the child was actually there — the catalogue's own example: five cards added, new_words 0 means the additions missed. Only an absent child (no events at all in the window) keeps it as no-data. The count view only emits rows on days something happened, so this fill is what makes 0 representable."* An absent child leaves `value = null` with `suppressed = null`. Consequence of the chain: **a zero-filled sum metric bypasses `min_n` suppression entirely** — the next branch never runs for it.
+   - 5c. `meta && cur.n < meta.min_n` → `value = null`, `suppressed = 'small_sample'` (window-grain `min_n`, applied to a non-null aggregate).
+   - A metric with no catalogue row is **never** suppressed for small sample (the `meta &&` guard).
 6. `comparison = prev.value` — **the previous window is not min_n-suppressed**; a comparison can come from a sample smaller than `meta.min_n`.
 7. `delta = value !== null && comparison !== null ? value - comparison : null`.
 
@@ -91,7 +90,7 @@ Cells come from `board_cells LEFT JOIN cards` (so every cell of the layout appea
 
 `resizedInWindow` is `true` when `SELECT COUNT(*) FROM board_revisions WHERE board_id = ? AND change_kind = 'resize' AND day_local BETWEEN ? AND ?` is non-zero — the flag the UI needs because, per constraint C2, coordinates are not comparable across a resize. This mirrors the MCP contract's `LAYOUT_CHANGED_MID_WINDOW` guidance code.
 
-**`abandonmentTrend(childId, w): AbandonPoint[]`** — raw per-day rows straight out of `agg_daily_metric` for `metric_id = 'abandonment_rate'`, ordered `day_local`. No `min_n` suppression is applied here; the pipeline already nulls `value` when `n < min_n`, so a point's `rate` can be null despite the `number` type on `AbandonPoint`.
+**`abandonmentTrend(childId, w): AbandonPoint[]`** — per-day rows from `agg_daily_metric` for `metric_id = 'abandonment_rate'`, ordered `day_local`, with **day-grain `min_n` masking applied by the reader itself** via a `metrics_catalog` join: `CASE WHEN a.n >= mc.min_n THEN a.value END AS rate`. The in-code comment: *"Day-grain read, so min_n masks per DAY: the rollup stores true values for every day and each reader suppresses at its own grain."* A below-`min_n` day's `rate` is therefore null despite the `number` type on `AbandonPoint` — masked here, not by the pipeline. The same day-grain pattern appears in `rollingBaseline` (`lib/baseline.ts`) and in `get_metric_timeseries`' weekly/monthly bucketing (`mcp/tools.ts`).
 
 ### Group F — AI value, read from the event log
 The section comment is explicit: *"These read the event log directly rather than `agg_daily_metric`, because the suggestion and gap events they depend on are not yet emitted by any client. Returning zeroes would be a lie; the callers render an explicit 'not collected yet' state instead."*
@@ -115,10 +114,11 @@ Tables read: `agg_daily_metric`, `agg_cell_heat`, `events`, `utterances`, `cards
 - [Data Dictionary](data-dictionary.md) — `metric()` supplies `meta` and the `min_n` used for `small_sample` suppression.
 - `lib/db.ts` — `all`, `one`, `type Window`, `previousWindow`, and the `latestDay()` convention that anchors `silenceStreak`.
 - [Rollup pipeline](../pipeline/l2-rollup.md) — `tools/rollup.py` materialises `agg_daily_metric` from `v_daily_metrics_all` and `agg_cell_heat`; if it has not run, every scalar metric reports `not_collected`.
-- [Database schema](../database/schema.md) — `agg_daily_metric.value` is already NULL when `n < min_n` at write time; this module applies the same rule again at read time over the rolled-up window.
+- [Database schema](../database/schema.md) — `agg_daily_metric` stores true daily values (no write-time NULLing); this module is where `min_n` suppression actually happens, at window grain in `readMetric` and at day grain in `abandonmentTrend`.
 
 ### Depended On By
 - [Student overview](../dashboard/student-overview.md) — `readMetric('taps_per_utterance' | 'independence_rate' | 'words_per_minute' | 'repeat_tap_rate')`, `silenceStreak`, `topCards`, `newWords(windowOf(14))`, `abandonmentTrend(windowOf(14))`.
+- [Progress reports](../dashboard/progress-reports.md) — `windowValue()` in `lib/report.ts` delegates to `readMetric`, so report figures and dashboard tiles cannot disagree on window aggregation.
 - [Access view](../dashboard/reach-and-errors.md) — `readMetric('mistap_rate' | 'correction_adjacent_rate' | 'composition_time' | 'time_to_first_tap')` and `cellHeat`.
 - [AI impact view](../dashboard/student-overview.md) — `tapsSaved`, `suggestionFunnel`, `vocabularyGaps`, `visualSourceSplit`, and `eventTypeCollected('suggestion_shown')` / `eventTypeCollected('gap_detected')` to choose between a real zero and a "not recorded" panel.
 - [Attention Queue](../dashboard/attention-queue.md) (`lib/queue.ts`) — `silenceStreak` plus `readMetric` for `abandonment_rate`, `mistap_rate`, `taps_per_utterance`, `independence_rate`.

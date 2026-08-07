@@ -1,9 +1,10 @@
 # Reporting Endpoints
 
 ## Function
-`POST /api/reports` generates one stored report per child programmatically, and
+`POST /api/reports` generates one stored report per child programmatically,
 `GET /api/reports/[id]/print` renders a stored report as server-side HTML with a print
-stylesheet, ready for the browser's "Save as PDF".
+stylesheet for the browser's own "Save as PDF", and `GET /api/reports/[id]/pdf` renders that
+same HTML through headless Chrome and returns a real PDF download.
 
 ## Purpose
 The dashboard's own "Generate" button goes through a Server Action
@@ -13,7 +14,10 @@ clicking. Same scoping, same store.
 
 The print route is server-rendered HTML rather than a PDF library on purpose. Every browser can
 already turn this into a PDF, and jsPDF/puppeteer would be a large dependency — and, for
-puppeteer, a whole Chromium — to reproduce what Cmd-P already does well.
+puppeteer, a whole Chromium — to reproduce what Cmd-P already does well. The download route
+keeps that decision: still no PDF library and no bundled Chromium. It drives the system Chrome
+already installed on the machine that serves everything, and where no binary exists it answers
+501 pointing at `/print` — degraded, never broken.
 
 Caveats print **in full**. On paper there is no hover and no expander, and a number that travels
 to a meeting without its caveat is how "60% positive" becomes a statement about how a child
@@ -23,11 +27,13 @@ feels.
 | File | Role |
 |------|------|
 | `app/api/reports/route.ts` | `POST` — roster-scoped generation, single child or whole roster |
-| `app/api/reports/[id]/print/route.ts` | `GET` — the printable HTML document, its stylesheet and HTML escaping |
+| `app/api/reports/[id]/print/route.ts` | `GET` — the auth gate plus the shared HTML served as a page, with the Cmd-P hint |
+| `app/api/reports/[id]/pdf/route.ts` | `GET` — the same HTML rendered through headless system Chrome and streamed back as a download |
+| `lib/report-html.ts` | `reportPrintHtml()` — the single document builder, its print stylesheet and `esc()`; one function shared by both GET routes so the paper version and the download can never drift |
 
 ## Implementation
 
-Both routes declare `export const runtime = 'nodejs'` and `export const dynamic = 'force-dynamic'`.
+All three routes declare `export const runtime = 'nodejs'` and `export const dynamic = 'force-dynamic'`.
 
 ### `POST /api/reports`
 
@@ -79,11 +85,40 @@ Order of operations:
 The existence check runs before the authorisation check, so an unknown id is distinguishable
 from an unauthorised one by status code.
 
-Response: `text/html; charset=utf-8`, `cache-control: no-store`.
+Response: `reportPrintHtml(report, { printHint: true })` as `text/html; charset=utf-8`,
+`cache-control: no-store`.
 
-### The printed document
+### `GET /api/reports/[id]/pdf`
 
-Built as one template string, no framework:
+Same order of checks as `/print`: `readReport(id)` → **404** plain-text `Not found`, then
+`currentViewer()` + `requireChild(viewer, report.child_id)` with **any** throw → **403**
+plain-text `Not authorised`.
+
+The Chrome binary is
+`process.env.AAC_CHROME_BIN ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'`
+— the default is the stock macOS install path on the machine that serves everything. When
+`existsSync` finds no binary there, the route answers **501** with a plain-text body pointing
+at `/api/reports/<id>/print` and the browser's own Save as PDF.
+
+Otherwise:
+
+1. `mkdtemp` under the OS temp dir (`aac-report-` prefix) — a fresh directory per request, so
+   two teachers downloading at once cannot race on file names.
+2. `reportPrintHtml(report, { printHint: false })` is written to `report.html` inside it.
+3. Chrome runs via `execFile` with `--headless --disable-gpu --no-first-run
+   --no-pdf-header-footer --print-to-pdf=<pdfPath> file://<htmlPath>` and a
+   `timeout` of 30 000 ms.
+4. Any render failure → **500**, plain text again pointing at `/print`.
+5. Success → the PDF bytes with `content-type: application/pdf`,
+   `content-disposition: attachment; filename="aac-report-<first>-<start>-to-<end>.pdf"`
+   (`<first>` is the child's first name lowercased and stripped to `[a-z0-9]`, falling back
+   to `child`), and `cache-control: no-store`.
+6. `rm -rf` of the temp directory runs in `finally`, on every path.
+
+### The printed document (`lib/report-html.ts`)
+
+Built by `reportPrintHtml(report, opts: { printHint: boolean })` as one template string, no
+framework:
 
 - `<title>{display_name} — {period_start} to {period_end}</title>`
 - `<h1>{display_name}</h1>` and a `.meta` line:
@@ -95,7 +130,10 @@ Built as one template string, no framework:
   bolded metric name followed by the caveat text
 - `<footer>`: `Written from {metricsUsed.length} of the {metrics.length} measures above and
   nothing else. Findings are hypotheses with their evidence attached, never diagnoses.`
-- A `.noprint` line: `Use your browser's Print dialog and choose "Save as PDF".`
+- Gated on `opts.printHint` — `true` from `/print`, `false` from `/pdf` — a `.noprint` line:
+  `Use your browser's Print dialog and choose “Save as PDF”.` (curly quotes in the copy). The
+  pdf route omits it, so the downloaded document carries no instruction about a dialog that
+  was never opened.
 
 Print styles (exact values):
 
@@ -136,14 +174,20 @@ result and a `404` means the hostname routing is wrong — this has bitten twice
 - [Database schema](../database/schema.md) — the `reports` table and `metrics_catalog.report_set`.
 
 ### Depended On By
-- [Reports pages](../dashboard/progress-reports.md) — `app/dashboard/reports/[id]/page.tsx` links to
-  `/api/reports/{report_id}/print` with `target="_blank" rel="noopener"`.
+- [Reports pages](../dashboard/progress-reports.md) — three dashboard pages link "Save as PDF"
+  to `/api/reports/{report_id}/pdf` with plain `<a>` tags (no `target`/`rel`):
+  `app/dashboard/reports/[id]/page.tsx`, plus `app/dashboard/student/[id]/page.tsx` and
+  `app/dashboard/student/[id]/report/page.tsx`, which use the child's latest frozen report.
+  No in-app link to `/print` remains — it is reached only through the pdf route's 501/500
+  fallback text.
 - Any scheduled job wanting class-wide output — the documented reason `POST` exists.
 
 ### Shared Resources
 - `aac.db` `reports` table, shared with the dashboard's `generateReportAction` Server Action,
   which calls the same `generateReport` with the same `[7, 28, 90]` clamp.
 - The `aac_adult` session cookie.
+- `AAC_CHROME_BIN` — the pdf route's Chrome binary path; unset, it falls back to the stock
+  macOS install path.
 
 ## Change Risks
 - **Changing the accepted `days` values** must be done in both places: this route and
@@ -155,8 +199,13 @@ result and a `404` means the hostname routing is wrong — this has bitten twice
 - **Recomputing metrics at print time instead of reading `metric_snapshot`** would make printed
   output disagree with the on-screen page and with any chat conversation about it — the precise
   failure `lib/report-store.ts` was written to prevent.
-- **Adding user-controlled content to the printed HTML without `esc()`** injects markup into a
-  document that is opened in a browser; `esc()` covers `& < > "` only.
+- **Adding user-controlled content to `lib/report-html.ts` without `esc()`** injects markup
+  into both consumers of the shared builder — the page a browser opens and the HTML Chrome
+  renders to PDF; `esc()` covers `& < > "` only.
+- **An absent Chrome binary** turns every "Save as PDF" click into a 501 — the fallback text
+  keeps the print view reachable, but the one-click download is gone until `AAC_CHROME_BIN`
+  points at a real binary. And `existsSync` only proves the file exists: a present-but-broken
+  binary passes the check, and every download then 500s from the render step instead.
 - **Dropping caveats from the print output** re-introduces the "60% positive" misreading the
   full-caveat rule exists to stop, and conflicts with the copy rules in
   `docs/aac-clinical-constraints.md`.

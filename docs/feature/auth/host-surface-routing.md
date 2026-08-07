@@ -1,11 +1,11 @@
 # Host and Surface Routing
 
 ## Function
-Next.js middleware that maps the request's `Host` header to one of three surfaces — `kid`,
-`dashboard`, `mcp` — 404s any path that does not belong to that surface, rewrites `/` to
-`/dashboard` on the dashboard hostname, redirects cookie-less `/dashboard/*` requests to
-`/login`, and stamps `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet` on dashboard
-responses.
+Next.js middleware that maps the request's `Host` header to one of four surfaces — `kid`,
+`dashboard`, `mcp`, `slides` — 404s any path that does not belong to that surface, rewrites `/` to
+`/dashboard` on the dashboard hostname and to `/architecture.html` on the slides hostname,
+redirects cookie-less `/dashboard/*` requests to `/login`, and stamps
+`X-Robots-Tag: noindex, nofollow, noarchive, nosnippet` on dashboard responses.
 
 ## Purpose
 The kid board and the dashboard are one Next.js app on one port, published on separate
@@ -32,7 +32,7 @@ than when someone remembers to add a check to it."*
 ### Surface detection
 
 ```ts
-type Surface = 'kid' | 'dashboard' | 'mcp' | 'any'
+type Surface = 'kid' | 'dashboard' | 'mcp' | 'slides' | 'any'
 ```
 
 `surfaceFor(host)` lowercases the header and strips the port (`host.toLowerCase().split(':')[0]`),
@@ -42,6 +42,7 @@ then matches prefixes **in this order**:
 |---|---|
 | `h.startsWith('aac-dashboard.')` | `'dashboard'` |
 | `h.startsWith('aac-mcp.')` | `'mcp'` |
+| `h.startsWith('aac-slides.')` | `'slides'` |
 | `h.startsWith('aac.')` | `'kid'` |
 | anything else | `'any'` |
 
@@ -80,6 +81,8 @@ const PUBLIC_DASH = ['/login', '/api/auth']
 4. `'kid'` → `pathname === '/'` or any `KID_PREFIXES` prefix match
 5. `'dashboard'` → `pathname === '/'` or any `DASH_PREFIXES` prefix match
 6. `'mcp'` → `pathname.startsWith('/api/mcp')`
+7. `'slides'` → `pathname === '/'` or `pathname === '/architecture.html'` — a static
+   presentation page from `public/`; no data, no session.
 
 `SHARED` uses exact equality; `SHARED_PREFIXES` / `KID_PREFIXES` / `DASH_PREFIXES` / the MCP
 rule use `startsWith`.
@@ -88,11 +91,12 @@ rule use `startsWith`.
 
 The comment above `PUBLIC_DASH` preserves the bug that shaped the route layout:
 
-> `/login` sits OUTSIDE `/dashboard` on purpose. It used to be `/dashboard/login`, which
-> rendered it inside `app/dashboard/layout.tsx` — and that layout calls `currentViewer()`, which
-> throws `NOT_SIGNED_IN` when there is no session. So the one page a signed-out visitor could
-> reach was the one page guaranteed to crash, and the root error boundary showed them the AAC
-> board's child-facing fallback.
+> `/login` sits OUTSIDE `/dashboard` on purpose. It used to be `/dashboard/login`, rendered
+> inside the dashboard route group — whose layout then called `currentViewer()`, which throws
+> `NOT_SIGNED_IN` when there is no session (that call now lives in `DashHeader`,
+> `app/dashboard/header.tsx`, and in the pages themselves, not the layout). So the one page a
+> signed-out visitor could reach was the one page guaranteed to crash, and the root error
+> boundary showed them the AAC board's child-facing fallback.
 
 Note that as written, `PUBLIC_DASH` never changes the outcome: `needsSession` already requires
 `pathname.startsWith('/dashboard')`, and neither `/login` nor `/api/auth` starts with
@@ -100,39 +104,24 @@ Note that as written, `PUBLIC_DASH` never changes the outcome: `needsSession` al
 documents the intent and would matter again the moment a public path is nested under
 `/dashboard`.
 
-### Request flow, in execution order
+### Request flow
 
-```
-1. host = request.headers.get('host') ?? ''
-   surface = surfaceFor(host)
-   { pathname } = request.nextUrl
+`middleware()` runs, in order: the surface allow-list 404, the slides-root rewrite
+(`'/'` → `/architecture.html`, unconditional — the page is public), the dashboard-root
+rewrite-or-redirect, the session redirect, then the `X-Robots-Tag` stamp on the response that
+passes through.
 
-2. if (!allowed(surface, pathname))
-     -> new NextResponse('Not found', { status: 404 })
+The root handling on the dashboard hostname is a **rewrite, not a redirect** when the
+`aac_adult` cookie is present: *"the URL stays clean at `https://aac-dashboard.kason.app/`
+instead of bouncing to `/dashboard`, and every existing `/dashboard/...` link keeps working
+unchanged."* It runs before the session check so an unauthenticated visitor to the root still
+lands on `/login`.
 
-3. if (surface === 'dashboard' && pathname === '/')
-     cookie 'aac_adult' present ? NextResponse.rewrite(url with pathname '/dashboard')
-                                : NextResponse.redirect(new URL('/login', request.url))
-
-4. needsSession = pathname.startsWith('/dashboard')
-                  && !PUBLIC_DASH.some(p => pathname.startsWith(p))
-   if (needsSession && no 'aac_adult' cookie)
-     -> NextResponse.redirect(url with pathname '/login', search cleared)
-
-5. res = NextResponse.next()
-   if (surface === 'dashboard' || pathname.startsWith('/dashboard'))
-     res.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet')
-   return res
-```
-
-Step 3 is a **rewrite, not a redirect**: *"the URL stays clean at
-`https://aac-dashboard.kason.app/` instead of bouncing to `/dashboard`, and every existing
-`/dashboard/...` link keeps working unchanged."* It runs before the session check so an
-unauthenticated visitor to the root still lands on `/login`.
-
-Step 4 clears the query string (`url.search = ''`) before redirecting — no `?next=` return path
-is preserved, so a signed-out deep link always lands on the dashboard root after sign-in
-(`components/login-form.tsx` pushes `/dashboard` unconditionally).
+The session redirect (`needsSession` — a path starting `/dashboard` and outside
+`PUBLIC_DASH`, with no `aac_adult` cookie) clears the query string (`url.search = ''`) before
+redirecting — no `?next=` return path is preserved, so a signed-out deep link always lands on
+the dashboard root after sign-in (`components/login-form.tsx` pushes `/dashboard`
+unconditionally).
 
 ### Presence-only cookie check
 
@@ -146,10 +135,13 @@ middleware, then `currentAdultId()` → `read()` fails the HMAC or expiry check 
 to sign in" with a link to `/login`. Middleware is a convenience redirect; the real check is in
 [Adult sign-in](adult-sign-in.md) and [Role and consent scoping](role-consent-scoping.md).
 
-Also note what is **not** gated in step 4: `/api/dashboard`, `/api/chat` and `/api/reports` are
-in `DASH_PREFIXES` (reachable on the dashboard hostname) but do not start with `/dashboard`, so
-`needsSession` is `false` for them. Those routes enforce access themselves by calling
-`currentViewer()` / `requireChild()`.
+Also note what is **not** gated by the session redirect: `/api/dashboard`, `/api/chat` and
+`/api/reports` are in `DASH_PREFIXES` (reachable on the dashboard hostname) but do not start
+with `/dashboard`, so `needsSession` is `false` for them. Those routes enforce access
+themselves by calling `currentViewer()` / `requireChild()`. The AI-settings pair splits
+exactly along this line and needed no new prefix: `/dashboard/settings` **is** session-gated
+through the `/dashboard` prefix, while `/api/dashboard/settings` is not — that route enforces
+its own 401 (a `currentViewer()` throw) and 403 (a role outside `teacher`/`slt`/`admin`).
 
 ### `X-Robots-Tag`
 
@@ -181,6 +173,7 @@ From `docs/deploy.md`'s verification table (`curl -H "Host: <name>.kason.app" lo
 | `aac` | 307 | 404 | 404 | 404 | 404 |
 | `aac-dashboard` | 307 | **200** | 307 | **405** | 404 |
 | `aac-mcp` | 404 | 404 | 404 | 404 | **200** |
+| `aac-slides` | **200** (rewritten to `/architecture.html`) | 404 | 404 | 404 | 404 |
 
 The `307`s are the redirect to `/login` with no session cookie. `405` on `/api/reports` is
 correct — the route exists and only accepts POST; a `404` there means the prefix is missing from
@@ -194,16 +187,16 @@ correct — the route exists and only accepts POST; a `404` there means the pref
   module that uses `node:sqlite` / `node:crypto`.
 - [Login page and first-run setup](login-page.md) — the redirect target `/login` and its
   `POST /api/auth` companion are both listed in `DASH_PREFIXES` and `PUBLIC_DASH`.
-- [Deployment and tunnel](../deploy/cloudflare-tunnel-ingress.md) — the three hostnames (`aac.`, `aac-dashboard.`,
-  `aac-mcp.`) are created by the Cloudflare tunnel config; this file is the server-side half of
-  that split.
+- [Deployment and tunnel](../deploy/cloudflare-tunnel-ingress.md) — the four hostnames (`aac.`, `aac-dashboard.`,
+  `aac-mcp.`, `aac-slides.`) are created by the Cloudflare tunnel config; this file is the
+  server-side half of that split.
 
 ### Depended On By
 - [Kid board](../kid-app/communication-board.md) and the kid API routes — reachable on `aac.` only because
   their prefixes are in `KID_PREFIXES`.
 - [Dashboard shell](../dashboard/dashboard-shell.md) and every `/dashboard/*` page — the session
   redirect is their first line of defence and the reason a signed-out visitor never renders the
-  layout that calls `currentViewer()`.
+  pages (and their `DashHeader`) that call `currentViewer()`.
 - [MCP HTTP transport](../api/mcp-http-transport.md) — `/api/mcp` is the only path reachable on the
   `aac-mcp.` hostname.
 - [Event ingest](../api/event-ingest.md) — `/api/events` is kid-surface-only, so the dashboard
@@ -221,11 +214,15 @@ correct — the route exists and only accepts POST; a `404` there means the pref
   says has happened twice: 200 on localhost (`surface === 'any'`), 404 on the real hostname. This
   cannot be caught by local testing — only by a request with an explicit `Host` header.
 - **Reordering `surfaceFor`'s prefix tests** matters if a future hostname shares a prefix.
-  `aac-dashboard.` and `aac-mcp.` are checked before `aac.`; a host like `aac-something.` falls
-  through to `'any'` and gets **everything**, which is the permissive branch.
-- **Moving `/login` back under `/dashboard`** reproduces the documented crash loop: the page
-  renders inside `app/dashboard/layout.tsx`, which calls `currentViewer()`, which throws
-  `NOT_SIGNED_IN` for exactly the visitor who needs the login page.
+  `aac-dashboard.`, `aac-mcp.` and `aac-slides.` are checked before `aac.`; a host like
+  `aac-something.` falls through to `'any'` and gets **everything**, which is the permissive
+  branch.
+- **Moving `/login` back under `/dashboard`** re-creates the trap the `PUBLIC_DASH` comment
+  records, now at the middleware layer: a `/dashboard/login` not listed in `PUBLIC_DASH` is
+  session-gated by the session redirect itself, so the signed-out visitor is redirected away
+  from the very page that signs them in. (The original crash came from the then-layout's
+  `currentViewer()` call — a throw that now lives in `DashHeader` and the pages, not the
+  layout.)
 - **Trusting the presence check as authentication** is a mistake waiting to happen. Any code that
   concludes "middleware let it through, so the viewer is valid" is wrong — the cookie's signature
   is never checked here. Every data path must still call `currentViewer()` / `requireChild()`.

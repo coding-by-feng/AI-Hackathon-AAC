@@ -1,7 +1,7 @@
 # Ask Panel
 
 ## Function
-The streaming chat surface: a client component that POSTs to `/api/chat` and renders the answer alongside the tools it called, the guidance notices the data raised, any rewritten answer, and any forbidden actions — mounted at `/dashboard/ask` (class scope), `/dashboard/student/[id]/ask` (per-child scope) and inside a stored report.
+The streaming chat surface: a client component that POSTs to `/api/chat` and renders the answer as markdown alongside the tools it called, the guidance notices the data raised, any rewritten answer, and any forbidden actions — mounted at `/dashboard/ask` (class scope), `/dashboard/student/[id]/ask` (per-child scope), inside a stored report, and docked in the student page's `#ask` section.
 
 ## Purpose
 From the component header: **the tool strip and the evidence are not debug output — they are the product.** A speech therapist will not act on an unattributed claim about a child, and a parent should be able to see exactly which numbers produced the sentence they are reading. Both are visible by default; only the raw payload is collapsed.
@@ -16,6 +16,7 @@ The class-level page passes no `childId`, so the model receives `child_id` as an
 | File | Role |
 |------|------|
 | `components/chat/ask-panel.tsx` | `AskPanel`, `AssistantTurn`, `NoticeRow`; the SSE reader and render loop |
+| `components/chat/markdown.tsx` | `Markdown` — dependency-free GFM-subset renderer that builds React elements only |
 | `app/dashboard/ask/page.tsx` | Class-level Ask — solo detection, roster shortcuts, role-aware copy |
 | `app/dashboard/student/[id]/ask/page.tsx` | Per-child Ask — `requireChild` scope, role-aware suggestions |
 
@@ -25,7 +26,7 @@ The class-level page passes no `childId`, so the model receives `child_id` as an
 ```ts
 <AskPanel childId?: string  childName?: string  suggestions: string[] />
 ```
-`childId` absent ⇒ class scope. Both Ask pages and `/dashboard/reports/[id]` mount it.
+`childId` absent ⇒ class scope. Four surfaces mount it: both Ask pages, `/dashboard/reports/[id]`, and the student page's `#ask` section (`/dashboard/student/[id]`).
 
 ### Turn model
 ```ts
@@ -78,18 +79,21 @@ Text is buffered and flushed on an animation frame because mutating the last tur
 | `get_cell_heat` | grid heat | | `get_attention_queue` | attention queue |
 | `get_word_pairs` | word pairs | | | |
 
-Unmapped tool names fall through to the raw name. The 13 mapped names are a subset of the 19 in `mcp-api.md` §3 — `write_insight`, `propose_board_change`, `get_insight_history`, `get_board_layout`, `compare_windows` and `query` have no friendly label.
+Unmapped tool names fall through to the raw name. The 13 mapped names are a subset of the **20 tools `mcp/tools.ts` defines** — seven have no friendly label: `get_report_set`, `get_insight_history`, `compare_windows`, `get_board_layout`, `write_insight`, `propose_board_change` and `query`.
 
 2. **Stats line** — `{n} call(s) · {(ms/1000).toFixed(1)}s · {(inputTokens + outputTokens).toLocaleString()} tokens`, rendered only when `stats` has arrived.
 3. **Critical notices** (`level === 'critical'`) as `NoticeRow tone="alert"`, **above** the answer.
 4. **`regenerated`** as `NoticeRow tone="warn"` with code `REWRITTEN` and detail `` `${reason} It was rewritten to stay within AAC practice.` ``
-5. **Answer text**, split on `\n` with empty lines dropped, one `<p>` per line.
+5. **Answer text** — `<Markdown text={turn.content} />`. The accumulated text is re-parsed on every animation-frame flush, so structure appears as it completes — a GFM table renders as plain lines until its separator row arrives, then snaps into shape.
 6. **`Reading the data…`** placeholder while `busy` and no content has arrived.
 7. **Non-critical notices** below the answer.
 8. **Forbidden block** — the label in bold followed by the fixed copy: *"These are ruled out by AAC practice for this finding, not by preference. Moving a learned button undoes the motor pattern a child has built."*
 9. **Error block** in `--color-alert`.
 
 `NoticeRow` prints the raw `code` in a monospace uppercase micro-label above the detail, so `SMALL_SAMPLE` or `PARTNER_WAIT_SHORT` is visible verbatim (`mcp-api.md` §6).
+
+### `components/chat/markdown.tsx`
+The model's output is untrusted input, and the renderer's safety is structural: it builds **React elements only** — no `dangerouslySetInnerHTML`, no HTML pass-through — so a prompt-injected `<script>` renders as the literal text `<script>`. Coverage is the subset a data chatbot actually emits: GFM tables (each wrapped in an `overflow-x-auto` div), bold/italic, inline and fenced code, ordered/unordered lists, headings (rendered as styled `<p>`), blockquotes, horizontal rules, and http(s)-only links (`target="_blank"`, `rel="noopener noreferrer"`). Everything else stays literal text. An unclosed fence mid-stream runs to the end of the text — "which is what a fence looks like mid-stream" — and re-parsing per frame is fine at chat sizes (both from the file header).
 
 ### Composer
 - Empty-state card: *"Ask about {childName ?? 'the children you support'}"* + *"Answers come from the same data as the rest of the dashboard, and every answer shows which numbers it used."*
@@ -112,6 +116,14 @@ Unmapped tool names fall through to the raw name. The 13 mapped names are a subs
 **`/dashboard/student/[id]/ask`, teacher/SLT:**
 `What changed for {first} this month?` · `Are there any open findings, and what caused them?` · `Which words does she reach for that are hard to get to?` · `Has this happened before?`
 
+**`/dashboard/student/[id]` (the docked `#ask` section), `role === 'parent'`:**
+`How has {first} been this fortnight?` · `What new words has she used?` · `Is there anything I should know?`
+
+**`/dashboard/student/[id]`, teacher/SLT:**
+`Why are corrections landing next door?` · `What changed for {first} this fortnight?` · `Which words does she reach for that are hard to get to?`
+
+The student-page sets say "fortnight" because they track that page's 14-day default window; the Ask sub-tab's sets say "month".
+
 **`/dashboard/reports/[id]`:** `What should I try next?` · `Which of these matters most?` · `What does the pairs number mean?`
 
 ### Page shells
@@ -121,6 +133,8 @@ Both Ask pages are `dynamic = 'force-dynamic'` and `max-w-4xl px-6 py-6`.
 - **Per-child page** — `requireChild(viewer, id)`, `StudentTabs active="ask"`, subtitle role-switched, and the same utterance-text disclaimer naming the child.
 
 Both disclaimers reflect `mcp-api.md` §9: utterance text is not a permission setting — `aac_text.db` is never opened.
+
+The fourth mount — the student page's `#ask` section — is docked at the bottom of `/dashboard/student/[id]` under the same cannot-read-utterances note; see [student-overview.md](student-overview.md).
 
 ## Dependencies & Connections
 
@@ -132,7 +146,8 @@ Both disclaimers reflect `mcp-api.md` §9: utterance text is not a permission se
 
 ### Depended On By
 - [Progress reports](progress-reports.md) — embeds `AskPanel` under a stored report so the conversation is about the frozen numbers
-- [Dashboard shell](dashboard-shell.md) — the **Ask** nav item
+- [Student overview](student-overview.md) — docks `AskPanel` in the student page's `#ask` section
+- [Dashboard shell](dashboard-shell.md) — no rail item links to `/dashboard/ask`; the rail's **Class** item lights while it is open (its `active()` predicate matches `/dashboard/ask*`), but the class-level page is reachable only by typed URL
 
 ### Shared Resources
 - The `/api/chat` event vocabulary: `text · tool_call · tool_result · notice · forbidden · regenerated · error · done`, plus the `[DONE]` sentinel. Adding a type server-side without adding a `case` here means the event is silently dropped.
@@ -147,11 +162,4 @@ Both disclaimers reflect `mcp-api.md` §9: utterance text is not a permission se
 - **Raising `maxLength` above 2000** shifts cost and prompt-injection surface onto `/api/chat`; the limit is the only client-side bound.
 - **Rendering suggestion chips after the first turn** (removing the `turns.length === 0` guard) would push the transcript around mid-conversation and re-offer questions already answered.
 - **Removing the tool strip or the notice rows** turns this from an auditable answer into an unattributed claim about a child — the failure the component header exists to prevent.
-
-> **2026-08-08:** Assistant answers render as markdown via
-> `components/chat/markdown.tsx` — a dependency-free renderer building React
-> elements only (no `dangerouslySetInnerHTML`, no HTML pass-through, so model
-> output cannot inject markup). Covers GFM tables (in an `overflow-x-auto`
-> wrapper), bold/italic, inline + fenced code, lists, headings, blockquotes,
-> rules, and http(s) links. Streaming re-parses the accumulated text per frame;
-> a table snaps into shape when its separator row arrives.
+- **Replacing `markdown.tsx` with an HTML-pass-through renderer** (or adding `dangerouslySetInnerHTML` to it) re-opens prompt-injected markup: the model's output is untrusted input, and the no-HTML property is structural — React elements only — not a sanitiser to keep patched.

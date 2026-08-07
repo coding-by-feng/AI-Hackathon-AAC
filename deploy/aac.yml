@@ -29,5 +29,10 @@ ingress:
   - hostname: aac-mcp.kason.app
     service: http://localhost:3000
 
+  # Architecture / pitch slides. A static presentation page served from
+  # public/ — no data, no session; middleware maps '/' to the page.
+  - hostname: aac-slides.kason.app
+    service: http://localhost:3000
+
   # Anything else that resolves here.
   - service: http_status:404
