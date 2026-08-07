@@ -127,11 +127,11 @@ export default async function StudentPage({
   // list being mounted is itself a safety property, not decoration.
   const findings = openInsights(id).map(toCardData)
 
-  // "Save as PDF" prints the latest frozen report if one exists; otherwise it
-  // goes to the report archive where one can be generated. The live numbers on
-  // this page are not silently passed off as a frozen artifact.
+  // "Save as PDF" downloads the latest frozen report if one exists; otherwise
+  // it goes to the report archive where one can be generated. The live numbers
+  // on this page are not silently passed off as a frozen artifact.
   const latest = listReports([id], 1)[0]
-  const printHref = latest ? `/api/reports/${latest.report_id}/print` : null
+  const printHref = latest ? `/api/reports/${latest.report_id}/pdf` : null
 
   const suggestions =
     viewer.role === 'parent'
@@ -205,7 +205,6 @@ export default async function StudentPage({
             {printHref ? (
               <a
                 href={printHref}
-                target="_blank"
                 className="rounded-lg border border-[var(--color-line)] px-4 py-2 font-medium hover:bg-[var(--color-surface-sunk)]"
               >
                 Save as PDF

@@ -59,7 +59,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
                 className="rounded-md border border-[var(--color-line)] px-3 py-1.5">
             See live numbers
           </Link>
-          <a href={`/api/reports/${report.report_id}/print`} target="_blank" rel="noopener"
+          <a href={`/api/reports/${report.report_id}/pdf`}
              className="rounded-md bg-[var(--color-accent)] px-3 py-1.5 font-medium text-white">
             Save as PDF
           </a>

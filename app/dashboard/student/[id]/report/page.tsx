@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { currentViewer, requireChild } from '@/lib/access'
 import { windowOf } from '@/lib/db'
 import { reportMetrics, plainSummary } from '@/lib/report'
+import { listReports } from '@/lib/report-store'
 import { MetricCard, MetricCaveats } from '@/components/metric-card'
 import { StudentTabs } from '@/components/status'
 
@@ -91,9 +92,28 @@ export default async function StudentReportPage({
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">This period in plain words</h2>
           <div className="flex gap-2 text-xs">
-            <button className="rounded-md border border-[var(--color-line)] px-3 py-1.5">
-              Save as PDF
-            </button>
+            {(() => {
+              // This button used to be a <button> with no handler — dead since
+              // the page shipped. It downloads the latest frozen report, or
+              // sends you to the archive to make one.
+              const latest = listReports([id], 1)[0]
+              return latest ? (
+                <a
+                  href={`/api/reports/${latest.report_id}/pdf`}
+                  className="rounded-md border border-[var(--color-line)] px-3 py-1.5"
+                >
+                  Save as PDF
+                </a>
+              ) : (
+                <Link
+                  href="/dashboard/reports"
+                  title="No frozen report yet — generate one first"
+                  className="rounded-md border border-[var(--color-line)] px-3 py-1.5"
+                >
+                  Save as PDF
+                </Link>
+              )
+            })()}
             <Link
               href={`/dashboard/student/${id}/ask`}
               className="rounded-md bg-[var(--color-accent)] px-3 py-1.5 font-medium text-white"

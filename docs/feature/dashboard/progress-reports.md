@@ -176,3 +176,11 @@ Shared `scale(values, h, pad = 4)` maps values to y with `min = Math.min(0, …)
 - **`monthly()` is dead code** — deleting it is safe; wiring it in changes the x-axis of every `line` chart from 8 weeks to 6 months.
 - **Making the live Progress tab's "Save as PDF" button work** should point at a route equivalent to `/api/reports/{id}/print`, which requires a stored report — the live tab has no `report_id` to print.
 - **Renaming a catalogue `name`** changes the report card heading *and* `citedIn`'s matching *and* the print output, all at once.
+
+> **2026-08-08:** "Save as PDF" now downloads a real PDF: `GET
+> /api/reports/[id]/pdf` renders the shared print HTML (`lib/report-html.ts`)
+> through headless Chrome (`AAC_CHROME_BIN`, default the macOS Chrome path) and
+> streams it back as `content-disposition: attachment`. `/print` remains as the
+> in-browser view and the fallback where Chrome is absent (501 with
+> instructions). The progress view's PDF button had shipped as a handler-less
+> `<button>` — now wired to the latest frozen report.
