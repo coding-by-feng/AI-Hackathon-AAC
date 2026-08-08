@@ -143,6 +143,16 @@ honest probe is the public URL, so a launchd job runs the watchdog every 120 s:
 3. If localhost:3000 is also down, kick `app.kason.aac.web` first; then kick
    `app.kason.aac.tunnel`; log the post-kick status to `deploy/logs/watchdog.log`.
 
-The plist follows the other services (`deploy/app.kason.aac.watchdog.plist`,
-gitignored like all plists — install by copying to `~/Library/LaunchAgents/`
-and `launchctl bootstrap gui/$UID`).
+Install is TWO copies, not one: macOS TCC refuses launchd-spawned
+interpreters read access to `~/Documents` (exit 127, "can't open input file"),
+so the RUNTIME script lives beside the plist:
+
+```bash
+cp deploy/tunnel-watchdog.sh  ~/Library/LaunchAgents/aac-tunnel-watchdog.sh
+cp deploy/app.kason.aac.watchdog.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/app.kason.aac.watchdog.plist
+```
+
+`deploy/tunnel-watchdog.sh` in the repo stays the source of truth — re-copy it
+after editing. (`run-web.sh` gets away with running from Documents only because
+`/bin/bash` on this machine carries an older TCC grant; do not rely on that.)
