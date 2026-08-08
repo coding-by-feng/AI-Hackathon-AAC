@@ -130,3 +130,19 @@ stripping the port), the tunnel hostnames and the middleware prefixes are a **co
 - **Dropping `--config` from `ProgramArguments`.** A stray `~/.cloudflared/config.yml` would then silently take over and route the tunnel somewhere else — the exact scenario the config header warns about.
 - **Moving or rotating the credentials file.** `credentials-file` is an absolute path; if the tunnel UUID `f50f1ef0-ea82-4ec2-953b-93404512a766` changes, `cloudflared` fails at startup and `KeepAlive` retries it every 10 seconds with the only evidence in `deploy/logs/tunnel.err.log`.
 - **Leaving `AAC_MCP_TOKEN` unset in production.** `aac-mcp.kason.app` has no Access policy, so the route's own refusal is the only barrier; it fails closed, but a *weak or leaked* token fails open to the analytics of every child on the roster.
+
+### The watchdog (`deploy/tunnel-watchdog.sh` · `app.kason.aac.watchdog`)
+
+After a Mac sleep or network change, cloudflared's QUIC connections to the edge
+can die while the **process stays alive** — launchd's KeepAlive sees a healthy
+process, visitors see Error 1033 (it happened live on 2026-08-08). The only
+honest probe is the public URL, so a launchd job runs the watchdog every 120 s:
+
+1. `GET https://aac.kason.app/who` — 200 → exit silently.
+2. Two failures 10 s apart required before acting (an edge blip never restarts anything).
+3. If localhost:3000 is also down, kick `app.kason.aac.web` first; then kick
+   `app.kason.aac.tunnel`; log the post-kick status to `deploy/logs/watchdog.log`.
+
+The plist follows the other services (`deploy/app.kason.aac.watchdog.plist`,
+gitignored like all plists — install by copying to `~/Library/LaunchAgents/`
+and `launchctl bootstrap gui/$UID`).
