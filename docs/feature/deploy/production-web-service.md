@@ -131,3 +131,22 @@ memory over days; it is not something to leave running."* `package.json` still p
 - **Committing `deploy/app.kason.aac.web.plist`.** It carries `AAC_MCP_TOKEN` in plaintext; that token is the *only* thing guarding `aac-mcp.kason.app`, which has no Cloudflare Access policy. If it leaks, rotate it in both the plist and `.env.local`.
 - **Running a second copy of the app against the same database.** Two writers on `aac_app.db` in WAL mode across processes is exactly the scenario `tools/concurrency_test.py` exists to check; the single-process design is intentional.
 - **Assuming the plist's `EnvironmentVariables` are authoritative.** `.env.local` is sourced afterwards and silently overrides them — a stale `AAC_VIEWER` there will make the dashboard render as the wrong adult no matter what the plist says.
+
+### Host: macmini2 (cutover 2026-08-09)
+
+All four hostnames are served from **macmini2** (`macmini2.local`, user
+`kasonzhan_md_test`), not the laptop. What differs from the original host, and
+why — each of these was a failure before it was a setting:
+
+| Concern | On macmini2 |
+|---|---|
+| Install root | **`~/aac`, not `~/Documents`.** launchd-spawned processes are blocked by TCC from reading *or writing* anything under `~/Documents`: jobs bootstrapped fine, then never ran and produced no logs at all. Nothing about the app requires Documents. |
+| Toolchain | No Homebrew and no admin rights, so everything is a userland tarball in `~/.local`: Node 26.5.0, `cloudflared`, Google Cloud SDK, plus a standalone **Python 3.12** (`~/.local/opt/python312`) because gcloud rejects the system's Python 3.9. |
+| `run-web.sh` | PATH is `$HOME/.local/bin` first, and it exports `CLOUDSDK_PYTHON` — without it `gcloud auth print-access-token` fails and every Vertex call dies. |
+| Starting jobs | `RunAtLoad` did **not** start them on bootstrap (`runs = 0`, never exited). `launchctl kickstart -p gui/$UID/<label>` starts them; they then behave normally, including `KeepAlive` restarts. |
+| Credentials | `~/.cloudflared/f50f1ef0…json` (same tunnel, so the connector is interchangeable) and a copy of `~/.config/gcloud` — which is why no interactive `gcloud auth login` was needed. |
+
+`deploy/aac.yml`'s `credentials-file` and all three plists carry macmini2's home
+path. Run **one connector at a time**: two connectors on one tunnel makes
+Cloudflare load-balance between them, so half the requests would hit whichever
+machine, each with its own database.
