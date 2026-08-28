@@ -41,3 +41,6 @@ deploy/*.plist
 docs/feature/.manifest.json.bak
 docs/feature/.manifest.json.*
 !docs/feature/.manifest.json
+
+# Third-party AAC vendor manuals — reference only, never redistributed
+docs/*.pdf

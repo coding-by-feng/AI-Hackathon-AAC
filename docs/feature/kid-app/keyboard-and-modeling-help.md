@@ -3,7 +3,7 @@
 > **Status: being built in parallel this wave (team-plan W5) — this doc is written from the plan, not from source. Verify every claim against the shipped code after integration, then remove this banner.**
 
 ## Function
-Adds two patterns lifted from the TouchChat and Proloquo2Go manuals (the PDFs in `docs/`): an on-board **keyboard** so a child with alphabet access can spell words the grid does not have, and a **modeling help** surface that teaches adults how to model language on the board without their presses polluting the child's data.
+Adds two patterns lifted from the TouchChat and Proloquo2Go manuals (vendor documents, read as reference and deliberately not redistributed in this repo): an on-board **keyboard** so a child with alphabet access can spell words the grid does not have, and a **modeling help** surface that teaches adults how to model language on the board without their presses polluting the child's data.
 
 ## Purpose
 Two documented gaps drive this:

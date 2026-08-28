@@ -13,7 +13,7 @@
 | W2 | Metric gaps N3–N5 (core word list, partner gate, keyboard metric) | Data honesty must precede any dashboard that renders it. N1/N2 resolved by building on `lib/report.ts`, which reads dimensional tables correctly. **Done before fan-out.** |
 | W3 | Vocabulary icon generation (~90 concepts, one by one) | User-visible faces for every word; the built-in SVG set stays as offline fallback. |
 | W4 | Dashboard redesign to the approved dark mockup | The generated design is the spec; the report infrastructure it needs already exists. |
-| W5 | Kid app: keyboard + message-window patterns + modeling help | TouchChat/Proloquo2Go patterns from the PDFs in `docs/`; the keyboard closes clinical gap C8 and lights metric H2. |
+| W5 | Kid app: keyboard + message-window patterns + modeling help | TouchChat/Proloquo2Go patterns, read from the vendors' own published manuals (referenced, not redistributed); the keyboard closes clinical gap C8 and lights metric H2. |
 | W6 | Root structure + this plan | Documented boundaries instead of a physical monorepo split (see §4). |
 | W7 | Feature docs update + align | One md per feature; drift removed against real source. |
 | W8 | Integration: typecheck, build, tests, redeploy, honest results | Single serial gate after every agent returns. |
